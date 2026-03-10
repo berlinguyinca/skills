@@ -68,30 +68,30 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DATA-01 | — | Pending |
-| DATA-02 | — | Pending |
-| DATA-03 | — | Pending |
-| DATA-04 | — | Pending |
-| CATG-01 | — | Pending |
-| CATG-02 | — | Pending |
-| CATG-03 | — | Pending |
-| CATG-04 | — | Pending |
-| PRES-01 | — | Pending |
-| PRES-02 | — | Pending |
-| PRES-03 | — | Pending |
-| PRES-04 | — | Pending |
-| PRES-05 | — | Pending |
-| PRES-06 | — | Pending |
-| PRES-07 | — | Pending |
-| SKIL-01 | — | Pending |
-| SKIL-02 | — | Pending |
-| SKIL-03 | — | Pending |
+| DATA-01 | Phase 1 | Pending |
+| DATA-02 | Phase 1 | Pending |
+| DATA-03 | Phase 1 | Pending |
+| DATA-04 | Phase 1 | Pending |
+| CATG-01 | Phase 3 | Pending |
+| CATG-02 | Phase 3 | Pending |
+| CATG-03 | Phase 3 | Pending |
+| CATG-04 | Phase 3 | Pending |
+| PRES-01 | Phase 2 | Pending |
+| PRES-02 | Phase 2 | Pending |
+| PRES-03 | Phase 2 | Pending |
+| PRES-04 | Phase 2 | Pending |
+| PRES-05 | Phase 5 | Pending |
+| PRES-06 | Phase 5 | Pending |
+| PRES-07 | Phase 5 | Pending |
+| SKIL-01 | Phase 4 | Pending |
+| SKIL-02 | Phase 4 | Pending |
+| SKIL-03 | Phase 4 | Pending |
 
 **Coverage:**
 - v1 requirements: 18 total
-- Mapped to phases: 0
-- Unmapped: 18 ⚠️
+- Mapped to phases: 18
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-10*
-*Last updated: 2026-03-10 after initial definition*
+*Last updated: 2026-03-10 after roadmap creation*
