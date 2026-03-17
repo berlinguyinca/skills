@@ -5,7 +5,7 @@ A collection of Claude Code skills by Gert Wohlgemuth. All skills are prefixed `
 ## Install
 
 ```bash
-git clone https://github.com/wohlgemuth/skills.git ~/.gw-skills && ~/.gw-skills/install.sh
+git clone https://github.com/berlinguyinca/skills.git ~/.gw-skills && ~/.gw-skills/install.sh
 ```
 
 ## Uninstall
@@ -19,6 +19,7 @@ git clone https://github.com/wohlgemuth/skills.git ~/.gw-skills && ~/.gw-skills/
 | Skill | Description |
 |-------|-------------|
 | `/gw:analyze-app` | Analyze any application across specialist dimensions (UX, security, architecture, etc.) with role-adapted agents. Auto-detects app type (web, server, cli, mobile, library) and spawns 5-6 parallel specialists. |
+| `/gw:merge-it` | Ship current changes end-to-end: branch, PR, self-review, fix, generate presentation, merge. |
 | `/gw:update` | Update all gw-skills to the latest version. |
 
 ## Updating
@@ -50,3 +51,7 @@ New skills are available immediately — no reinstall needed.
 - `--type <type>` — Force app type instead of auto-detecting
 
 Outputs a prioritized `.analysis/REPORT.md` with findings from all specialists.
+
+### /gw:merge-it
+
+Ships your current changes through a full workflow: create branch, push, open PR, self-review, propose fixes, wait for your approval, apply fixes, generate a PowerPoint presentation of changes, and merge. Includes an approval gate before executing any fixes.
