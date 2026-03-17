@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
+# Resolve repo dir: follow the symlink from ~/.claude/commands/gw, fall back to ~/.gw-skills
+if [ -L "$HOME/.claude/commands/gw" ]; then
+  REPO_DIR="$(cd "$(readlink "$HOME/.claude/commands/gw")/../.." && pwd)"
+elif [ -d "$HOME/.gw-skills" ]; then
+  REPO_DIR="$HOME/.gw-skills"
+else
+  exit 0  # can't find repo — skip silently
+fi
+
 cd "$REPO_DIR"
 
 # Fetch silently, timeout after 3 seconds to avoid blocking
