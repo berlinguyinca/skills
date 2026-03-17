@@ -8,7 +8,7 @@ description: Update gw-skills to the latest version
 Resolve the gw-skills repo directory by following the symlink at `~/.claude/commands/gw`:
 
 ```bash
-REPO_DIR="$(cd "$(readlink ~/.claude/commands/gw)/../.." && pwd)"
+REPO_DIR="$(cd "$(readlink ~/.claude/commands/gw)/../../.." && pwd)"
 echo "$REPO_DIR"
 ```
 

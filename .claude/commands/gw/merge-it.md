@@ -8,7 +8,7 @@ description: Ship the current changes end-to-end: branch, PR, review, fix, prese
 Resolve the gw-skills repo directory and run its update check script:
 
 ```bash
-GW_REPO="$(cd "$(readlink ~/.claude/commands/gw)/../.." 2>/dev/null && pwd)" || GW_REPO="$HOME/.gw-skills"
+GW_REPO="$(cd "$(readlink ~/.claude/commands/gw)/../../.." 2>/dev/null && pwd)" || GW_REPO="$HOME/.gw-skills"
 bash "$GW_REPO/check-update.sh" 2>/dev/null || true
 ```
 

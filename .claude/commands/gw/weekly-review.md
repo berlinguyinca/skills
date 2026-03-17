@@ -9,7 +9,7 @@ argument-hint: "[<org-or-repo>] [--from YYYY-MM-DD] [--to YYYY-MM-DD] [--author 
 Resolve the gw-skills repo directory and run its update check script:
 
 ```bash
-GW_REPO="$(cd "$(readlink ~/.claude/commands/gw)/../.." 2>/dev/null && pwd)" || GW_REPO="$HOME/.gw-skills"
+GW_REPO="$(cd "$(readlink ~/.claude/commands/gw)/../../.." 2>/dev/null && pwd)" || GW_REPO="$HOME/.gw-skills"
 bash "$GW_REPO/check-update.sh" 2>/dev/null || true
 ```
 
