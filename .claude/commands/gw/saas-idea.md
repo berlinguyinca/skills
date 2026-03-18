@@ -1,7 +1,7 @@
 ---
 name: saas-idea
 description: Harvest trending SaaS opportunities from the internet, score and rank them, then deep-dive into the best idea with full business plan, marketing playbook, and implementation prompts
-argument-hint: "[--focus <niche>] [--fresh] [--budget low|medium|high] [--pick <N>] [--skip-gsd]"
+argument-hint: "[--focus <niche>] [--fresh] [--budget low|medium|high] [--pick <N>] [--skip-gsd] [--auto] [--build] [--verify]"
 ---
 
 ## Step 0 — Update check
@@ -25,6 +25,15 @@ Parse the arguments: "$ARGUMENTS"
 - If "--budget <level>" is present, set BUDGET=level (one of: low, medium, high). Default: medium
 - If "--pick <N>" is present, set PICK_ID=N (integer). Default: empty (interactive)
 - If "--skip-gsd" is present, set SKIP_GSD=true. Default: false
+- If "--auto" is present, set AUTO_SELECT=true. Default: false
+- If "--build" is present, set BUILD_MODE=true AND AUTO_SELECT=true (build implies auto). Default: false
+- If "--verify" is present, set VERIFY_MODE=true. Default: false
+
+### Flag validation
+
+- If `--build` AND `--skip-gsd` are both present: warn "⚠ --build requires GSD but --skip-gsd was set. Disabling build mode." Set BUILD_MODE=false, keep SKIP_GSD=true.
+- If `--build` is present: also set VERIFY_MODE=true (build always verifies before building).
+- If `--pick` is present: also set AUTO_SELECT=true (pick implies auto — skip interactive selection).
 
 ### Budget semantics
 
@@ -35,6 +44,16 @@ The BUDGET flag modifies behavior in Phases 2-4:
 | `low` | Solo dev with AI tooling | Strongly favor ideas one person can ship in 2-4 weeks | Minimal infra, free-tier services only | Conservative, bootstrapped |
 | `medium` | 2-5 person team with AI tooling | Favor ideas shippable in 4-8 weeks | Moderate infra, paid services OK | Moderate, some paid acquisition budget |
 | `high` | Funded team (5-15) | Larger scope OK, 8-16 week MVPs acceptable | Full infra, enterprise services | Aggressive, investor-backed growth |
+
+### Cost-optimization principle (all tiers)
+
+Budget tiers govern team size and timeline, but the *starting point* for every tier is near-zero cost. Apply these 5 rules regardless of budget level:
+
+1. **Free tier first** — default to free-tier services. Only upgrade when a free tier's hard limit is actually hit (not speculatively).
+2. **Serverless before provisioned** — prefer pay-per-use (Lambda, API Gateway, Neon serverless) over always-on compute (ECS, Fargate, RDS provisioned). Idle compute = wasted money.
+3. **Validate before spending** — no paid services, ad spend, or infra upgrades until at least 1 paying customer or 100+ validated signups.
+4. **Cost monitoring from day 1** — every deployment includes AWS Cost Explorer alerts, Stripe dashboard review, monthly burn-rate check.
+5. **Open-source over SaaS when equivalent** — if a self-hosted OSS tool replaces a paid SaaS with <2 hours setup, prefer it.
 
 ---
 
@@ -400,7 +419,7 @@ Aim for 5-15 signals. Quality over quantity.
 
 ### Launch all harvest agents
 
-Launch ALL 6 agents in a SINGLE message using the Agent tool. Each call must set `run_in_background=true`. Do not wait for one agent to finish before launching the next — they all run in parallel.
+Apply `superpowers:dispatching-parallel-agents` pattern — Launch ALL 6 agents in a SINGLE message using the Agent tool. Each call must set `run_in_background=true`. Do not wait for one agent to finish before launching the next — they all run in parallel.
 
 After launching, you will be notified as each background agent completes. Wait for ALL 6 to finish before proceeding.
 
@@ -489,7 +508,7 @@ Score every remaining idea on this balanced scorecard:
 | Dimension | Weight | What to measure |
 |-----------|--------|-----------------|
 | Market Demand | 25% | Number of signals, signal strength, search volume indicators, community buzz |
-| Feasibility | 20% | Can a team at the {BUDGET} level MVP this in the expected timeframe? AI is a force multiplier — a solo dev with Claude Code can ship what used to need 5 people. Reward ideas suited to AI-accelerated development. Budget semantics: low = 2-4 weeks solo dev, medium = 4-8 weeks small team, high = 8-16 weeks funded team. |
+| Feasibility | 20% | Can a team at the {BUDGET} level MVP this in the expected timeframe? AI is a force multiplier — a solo dev with Claude Code can ship what used to need 5 people. Reward ideas suited to AI-accelerated development. Budget semantics: low = 2-4 weeks solo dev, medium = 4-8 weeks small team, high = 8-16 weeks funded team. **Strongly favor ideas that can validate with near-zero infrastructure cost** (free-tier databases, serverless compute, no paid APIs for MVP). Ideas requiring expensive infra just to prototype score lower. |
 | Revenue Potential | 25% | Proven willingness to pay, clear monetization model, market size indicators |
 | Competition | 15% | How crowded is the space? Are incumbents vulnerable? Is there a differentiation wedge? |
 | Uniqueness | 15% | Novel combination of trends? Fresh angle? Contrarian insight? |
@@ -539,12 +558,23 @@ Sort ideas by composite score descending. Write the top 10 to `.saas-ideas/SHORT
 Replace YYYY-MM-DD with today's actual date. Fill all {N} placeholders with real counts.
 ```
 
-### Interactive selection
+### Idea selection
 
 After the synthesis agent completes:
 
 1. Read `.saas-ideas/SHORTLIST.md`
-2. Print the top 10 as a numbered summary list:
+
+**If AUTO_SELECT is true (or PICK_ID is set):**
+
+2. Determine selection: use PICK_ID if set, otherwise default to #1.
+3. Print: `"Auto-selected #{N}: {Idea Name} (Score: X.X/10) — {one-liner}"`
+4. Store the full entry for that idea as `SELECTED_IDEA` (see fields below).
+5. Proceed directly to Phase 3. No user interaction.
+
+**If AUTO_SELECT is false:**
+
+2. Apply `superpowers:brainstorming` "explore approaches" pattern — present the top 3 ideas with trade-offs:
+
    ```
    SaaS Idea Shortlist — Top 10
    ─────────────────────────────
@@ -552,8 +582,23 @@ After the synthesis agent completes:
     2. {Idea Name}  (Score: X.X/10) — {one-liner}
     3. ...
    ```
-3. Ask the user: **"Which idea do you want to deep-dive into? Enter a number (1-10)."**
-4. Once the user selects a number, store the full entry for that idea as `SELECTED_IDEA` with all fields:
+
+   Then for the top 3, present a comparison:
+
+   ```
+   Top 3 — Trade-off Analysis
+   ───────────────────────────
+   #1 {Name} — Key strength: {strength}. Key risk: {risk}. Best for: {user type}.
+   #2 {Name} — Key strength: {strength}. Key risk: {risk}. Best for: {user type}.
+   #3 {Name} — Key strength: {strength}. Key risk: {risk}. Best for: {user type}.
+
+   Recommendation: #{N} — {reasoning}
+   ```
+
+3. Ask the user: **"Which idea do you want to deep-dive into? Enter a number (1-10), or press Enter for the recommendation."**
+4. If the user presses Enter (empty response), use the recommended idea.
+
+**In both cases**, store the full entry for the selected idea as `SELECTED_IDEA` with all fields:
    - `name` — the idea name
    - `one_liner` — the one-sentence description
    - `category` — the category tag
@@ -642,6 +687,19 @@ Provide conservative / moderate / aggressive projections for months 1-12:
 | 12    | ...             | ...          | ...             |
 
 Show assumptions (conversion rates, traffic, churn) for each scenario.
+
+### Cost to first dollar
+
+Before projecting revenue growth, establish what it costs to earn the first $1:
+
+| Cost Category | Target | Notes |
+|---|---|---|
+| Infrastructure | $0/mo | Free tiers only (Neon, Lambda, Cloudflare) |
+| Marketing | $0 | Organic only (content, community, Show HN) |
+| Third-party services | $0/mo | Free tiers only (Resend, PostHog, Sentry) |
+| **Total to first $1 revenue** | **$0** | Validate pricing before spending anything |
+
+Do not project aggressive growth until the first 10 paying customers validate pricing.
 
 ## 8. Key Metrics
 - Customer Acquisition Cost (CAC) target by channel
@@ -776,10 +834,19 @@ For each platform (Twitter/X, LinkedIn, Reddit, YouTube):
 - API/marketplace strategy if applicable
 
 ## 9. Paid Acquisition
+
+### Organic-first mandate (all tiers)
+
+Before any paid spend:
+1. Exhaust free channels first (content marketing, community engagement, social media, Product Hunt launch, Show HN, relevant subreddits/forums)
+2. Validate product-market fit with at least 10 organic paying customers
+3. Only then test paid acquisition with small $50-100 experiments to measure CAC
+4. Scale paid only when an organic CAC baseline exists for comparison
+
 Calibrate to BUDGET tier:
-- low: $0-500/month — focus on organic, maybe small Google Ads experiment
-- medium: $500-3000/month — Google Ads + one social channel
-- high: $3000-15000/month — multi-channel paid strategy
+- low: $0/month — organic only, do NOT spend on ads. All growth through content, community, and word-of-mouth.
+- medium: $500-3000/month — Google Ads + one social channel (only after 10 organic paying customers)
+- high: $3000-15000/month — multi-channel paid strategy (only after organic CAC baseline established)
 
 For each channel:
 - Estimated CAC
@@ -839,12 +906,14 @@ Write a technical specification covering ALL 8 sections below. Be concrete — n
 ## 1. Recommended Stack
 
 The following technologies are MANDATORY — do not substitute:
-- **Database:** PostgreSQL (use managed service appropriate to BUDGET — RDS for medium/high, Supabase or Neon free tier for low)
+- **Database:** PostgreSQL — default to Neon free tier for ALL tiers until >1,000 users or >500MB. Do not use RDS until the Neon free tier is a proven bottleneck.
 - **Auth:** Google OAuth (via next-auth, passport-google-oauth20, or equivalent)
 - **Payments:** Stripe (Checkout, Billing, or Payment Intents as appropriate)
-- **Hosting:** AWS (ECS/Fargate for medium/high, Amplify or Lightsail for low)
+- **Hosting:** AWS — default to Lambda + API Gateway for ALL tiers. Avoid ECS/Fargate until >1M requests/month sustained.
+- **Frontend hosting:** S3 + CloudFront or Cloudflare Pages (free unlimited bandwidth). Prefer Cloudflare Pages for zero-cost CDN.
 - **Infrastructure as Code:** Terraform (all infra must be codified)
 - **Domain:** Deploy as subdomain under `codingandmore.net` (e.g., `{app-name}.codingandmore.net`)
+- **Cost justification:** For every tech choice, justify that it is the cheapest option that meets requirements. If a cheaper alternative exists, use it.
 
 Choose the remaining technologies optimized for:
 - AI-assisted development speed (Claude Code, Cursor, Copilot compatibility)
@@ -910,28 +979,44 @@ For remaining services, recommend specific providers:
 | Logging | ... | ... | ... | ... |
 | File storage | ... | ... | ... | ... |
 
-Calibrate non-mandatory services to BUDGET:
-- low: free-tier services only, minimize vendor count
-- medium: paid tiers OK where they save significant time
-- high: best-in-class services, optimize for team velocity
+**Free-tier defaults (apply at launch for ALL tiers, including high):**
+
+| Category | Free-Tier Default | Free Limit | Upgrade Trigger |
+|---|---|---|---|
+| Email (transactional) | Resend | 3K emails/mo | >3K/mo |
+| Analytics | PostHog | 1M events/mo | >1M events |
+| Error monitoring | Sentry | 5K events/mo | >5K/mo |
+| Logging | AWS CloudWatch | 5GB ingest/mo | >5GB |
+| File storage | AWS S3 | 5GB + 20K GET/mo | >5GB |
+| Uptime monitoring | BetterStack free | 5 monitors | >5 monitors |
+
+Only upgrade to paid tiers when a free tier's hard limit is actually hit — not speculatively. Budget tiers govern how aggressively you scale *after* hitting limits, not the starting point.
 
 ## 6. Infrastructure (AWS + Terraform)
 
 All infrastructure MUST be defined in Terraform. Provide Terraform module structure.
 
-- **AWS deployment architecture:** describe the specific AWS services used (ECS/Fargate, RDS PostgreSQL, S3, CloudFront, Route53, ACM, etc.)
-- **Domain:** configure as `{app-name}.codingandmore.net` via Route53 + ACM certificate
+### Serverless-first architecture (all tiers)
+
+Default to serverless components that cost $0 at idle:
+- **Compute:** Lambda + API Gateway ($0 at idle, pay only per invocation)
+- **Database:** Neon serverless PostgreSQL ($0 at idle, free tier generous for MVP)
+- **CDN:** Cloudflare free tier (unlimited bandwidth, free DNS/SSL) — preferred over CloudFront
+- **Static hosting:** S3 or Cloudflare Pages
+
+Only provision always-on compute (ECS/Fargate, RDS) when sustained traffic makes serverless more expensive (typically >1M requests/month or >$50/mo Lambda spend).
+
+- **Domain:** configure as `{app-name}.codingandmore.net` via Route53 + ACM certificate (or Cloudflare DNS)
 - **Terraform module layout:** list the `.tf` files and what each defines
 - **CI/CD pipeline:** GitHub Actions → build → test → deploy to AWS
 - **Environment strategy:** local (Docker Compose), staging (`staging.{app-name}.codingandmore.net`), production (`{app-name}.codingandmore.net`)
-- Estimated monthly infrastructure cost at scale:
+- Estimated monthly infrastructure cost (serverless baseline):
 
 | Users | Compute | Database | Storage | Services | Total/month |
 |-------|---------|----------|---------|----------|-------------|
-| 0 (dev) | ... | ... | ... | ... | ... |
-| 100 | ... | ... | ... | ... | ... |
-| 1,000 | ... | ... | ... | ... | ... |
-| 10,000 | ... | ... | ... | ... | ... |
+| 0-100 | $0 (Lambda free tier) | $0 (Neon free) | $0 (S3 free tier) | $0 (all free tiers) | **$0** |
+| 1,000 | $1-5 | $0-19 | $0-5 | $5-8 | **$6-37** |
+| 10,000 | $10-30 | $19-50 | $5-15 | $36-100 | **$70-195** |
 
 ## 7. AI Leverage Points
 
@@ -986,6 +1071,19 @@ Each prompt you write must be fully self-contained — it should include all nec
 - Hosting: AWS
 - Infrastructure: Terraform
 - Domain: `{app-name}.codingandmore.net`
+
+**Cost optimization defaults (hardcoded in all prompts):**
+- Database: Neon free tier (serverless PostgreSQL, $0 at idle)
+- Compute: Lambda + API Gateway ($0 at idle)
+- CDN: Cloudflare free tier (unlimited bandwidth, free DNS/SSL)
+- Email: Resend free tier (3K emails/mo)
+- Analytics: PostHog free tier (1M events/mo)
+- Error monitoring: Sentry free tier (5K events/mo)
+- Cost alerts: AWS Cost Explorer alerts at $5/mo and $20/mo thresholds
+- Cost tracking: `COST-LOG.md` in repo root — updated monthly with actual spend per service
+- **Cost verification acceptance criteria:** $0/month at <100 users
+
+**Phase 0 (before building features):** Set up cost monitoring — AWS Cost Explorer alerts, Stripe dashboard, `COST-LOG.md` initialized with $0 baseline.
 
 **Goal: Complete working prototype.** The prompts should aim to produce fully deployable code, not just scaffolding. Each phase prompt should generate actual working code that can be tested and deployed.
 
@@ -1103,7 +1201,7 @@ Write the complete implementation prompts document to `.saas-ideas/deep-dive/IMP
 
 ### Launch all deep-dive agents
 
-Launch ALL 4 agents in a SINGLE message using the Agent tool. Each call must set `run_in_background=true`. Do not wait for one agent to finish before launching the next — they all run in parallel.
+Apply `superpowers:dispatching-parallel-agents` pattern — Launch ALL 4 agents in a SINGLE message using the Agent tool. Each call must set `run_in_background=true`. Do not wait for one agent to finish before launching the next — they all run in parallel.
 
 After launching, you will be notified as each background agent completes. Wait for ALL 4 to finish before proceeding.
 
@@ -1129,8 +1227,81 @@ After all 4 agents complete, validate the results:
    ```
 
 3. Apply criticality-aware retry logic:
-   - **CRITICAL agents** (Business Plan, Tech Spec): if either fails, offer to retry before proceeding to Phase 4. These are essential for the downstream deliverables.
-   - **Non-critical agents** (Marketing Playbook, Implementation Prompts): if either fails, note the failure and continue to Phase 4. The user can regenerate these later.
+   - **CRITICAL agents** (Business Plan, Tech Spec): if either fails, offer to retry before proceeding. These are essential for the downstream deliverables.
+   - **Non-critical agents** (Marketing Playbook, Implementation Prompts): if either fails, note the failure and continue. The user can regenerate these later.
+
+---
+
+## Phase 3.5 — Coherence Verification (conditional)
+
+**Skip this phase entirely if VERIFY_MODE is false.** Only run when VERIFY_MODE is true.
+
+Apply `superpowers:verification-before-completion` — launch a single **foreground** Agent (`subagent_type="general-purpose"`) that reads all deep-dive artifacts and checks cross-document coherence.
+
+### Verification agent prompt
+
+```
+You are a quality assurance analyst. Your job is to verify coherence across SaaS idea deliverables before proceeding to final assembly.
+
+Read the following files:
+- `.saas-ideas/deep-dive/TECH-SPEC.md`
+- `.saas-ideas/deep-dive/IMPLEMENTATION-PROMPTS.md`
+- `.saas-ideas/deep-dive/BUSINESS-PLAN.md`
+
+Run these 4 coherence checks and report results:
+
+### Check 1: Mandatory Stack
+Verify that ALL of the following appear in BOTH TECH-SPEC.md AND IMPLEMENTATION-PROMPTS.md:
+- PostgreSQL (database)
+- Google OAuth (auth)
+- Stripe (payments)
+- AWS (hosting)
+- Terraform (infrastructure)
+- codingandmore.net (domain)
+
+### Check 2: Phase Alignment
+Verify that the timeline phases/milestones in TECH-SPEC.md (Section 8: Timeline) align with the build phases in IMPLEMENTATION-PROMPTS.md (Section 2: Phase-by-Phase Build Prompts). Check that:
+- The number of phases is consistent (or logically mapped)
+- Phase descriptions cover the same scope
+- No major feature appears in one document but is missing from the other
+
+### Check 3: Budget Consistency
+Verify that the BUDGET tier is applied consistently:
+- Revenue projections in BUSINESS-PLAN.md match the budget tier assumptions
+- Infrastructure costs in TECH-SPEC.md match the budget tier
+- Team size assumptions are consistent across all documents
+- Timeline estimates are calibrated to the budget tier
+
+### Check 4: Idea Coherence
+Verify that the idea name, description, and core value proposition are consistent across all three documents. No document should describe a fundamentally different product.
+
+Write the verification report to `.saas-ideas/deep-dive/VERIFICATION.md` in this format:
+
+```markdown
+# Coherence Verification Report
+
+**Date:** {today's date}
+**Idea:** {idea name}
+
+## Results
+
+| Check | Status | Details |
+|-------|--------|---------|
+| Mandatory Stack | PASS/FAIL | {which items are present/missing in which files} |
+| Phase Alignment | PASS/FAIL | {alignment summary or mismatches found} |
+| Budget Consistency | PASS/FAIL | {consistency summary or contradictions found} |
+| Idea Coherence | PASS/FAIL | {coherence summary or discrepancies found} |
+
+## Summary
+{overall assessment — all pass, or list of issues to address}
+```
+```
+
+After the verification agent completes:
+
+1. Read `.saas-ideas/deep-dive/VERIFICATION.md` and print the results table to the user.
+2. **If BUILD_MODE is true and any check is FAIL:** Ask the user "Verification found issues (see above). Continue to build anyway? [y/n]". If the user says no, stop and let them fix the artifacts manually.
+3. **If all checks PASS or BUILD_MODE is false:** Continue to Phase 4.
 
 ---
 
@@ -1270,11 +1441,15 @@ Write the updated JSON back to `.saas-ideas/history.json`. Do NOT overwrite prev
 
 Skip this step if SKIP_GSD is true.
 
+**If BUILD_MODE is true:** Print "GSD integration deferred to Phase 5 (build mode)." and skip to Step 5. Phase 5 handles the full GSD auto-chain.
+
+**If BUILD_MODE is false:** Proceed with shallow GSD init below.
+
 Check if `~/.claude/commands/gsd/` exists. If it does:
 
 1. Check if `.planning/PROJECT.md` exists (i.e., GSD project already initialized).
-   - **If yes (brownfield/existing project):** Automatically invoke `/gsd:new-milestone` and reference `.saas-ideas/deep-dive/TECH-SPEC.md` as the requirements source. Tell the user you are creating a new GSD milestone from the tech spec phases. Include project context: "This project was generated by /gw:saas-idea. Superpowers workflow: brainstorm → plan → TDD → review → verify for each phase."
-   - **If no (greenfield):** Automatically invoke `/gsd:new-project` and reference `.saas-ideas/deep-dive/TECH-SPEC.md` as the requirements source. Tell the user you are creating a GSD project from the tech spec. Include project context: "This project was generated by /gw:saas-idea. Superpowers workflow: brainstorm → plan → TDD → review → verify for each phase."
+   - **If yes (brownfield/existing project):** Automatically invoke `/gsd:new-milestone` and reference `.saas-ideas/deep-dive/TECH-SPEC.md` as the requirements source. Tell the user you are creating a new GSD milestone from the tech spec phases. Include project context: "This project was generated by /gw:saas-idea. Apply superpowers at each phase: brainstorming → writing-plans → test-driven-development → verification-before-completion. Full superpowers workflow: brainstorm → plan → TDD → review → verify for each phase."
+   - **If no (greenfield):** Automatically invoke `/gsd:new-project` and reference `.saas-ideas/deep-dive/TECH-SPEC.md` as the requirements source. Tell the user you are creating a GSD project from the tech spec. Include project context: "This project was generated by /gw:saas-idea. Apply superpowers at each phase: brainstorming → writing-plans → test-driven-development → verification-before-completion. Full superpowers workflow: brainstorm → plan → TDD → review → verify for each phase."
 
 If GSD commands don't exist, say: "Full plan available in `.saas-ideas/`. Install GSD to auto-scaffold the project." and stop.
 
@@ -1311,6 +1486,113 @@ Print the following to the user:
 
 3. Print: "Pitch deck saved to `.saas-ideas/deep-dive/pitch-deck.pptx`"
 
-4. If GSD was invoked in Step 4, note whether a project or milestone was created and where to find it.
+4. If VERIFY_MODE was true: read `.saas-ideas/deep-dive/VERIFICATION.md` and include a one-line verification summary (e.g., "Verification: 4/4 checks passed" or "Verification: 3/4 checks passed — Budget Consistency FAIL").
 
-5. If any Phase 3 agents failed (non-critical), remind the user which files are missing and that they can re-run the skill with the same arguments to regenerate them.
+5. If BUILD_MODE was true: print "GSD project is building — check progress with `/gsd:progress`."
+
+6. If GSD was invoked in Step 4 (shallow init, not build mode), note whether a project or milestone was created and where to find it.
+
+7. If any Phase 3 agents failed (non-critical), remind the user which files are missing and that they can re-run the skill with the same arguments to regenerate them.
+
+8. Print the full pipeline command hint:
+   ```
+   Tip: To run the full pipeline next time:
+     /gw:saas-idea --build --budget low
+     /gw:saas-idea --build --budget low --focus devtools
+     /gw:saas-idea --auto --verify
+   ```
+
+---
+
+## Phase 5 — Build Execution (conditional)
+
+**Skip this phase entirely unless ALL of the following are true:**
+- BUILD_MODE is true
+- SKIP_GSD is false
+- `~/.claude/commands/gsd/` exists (GSD is installed)
+
+If any condition is false, the skill ends after Step 5 (Present Results).
+
+---
+
+### Step 1 — Synthesize GSD Idea Document
+
+Read `.saas-ideas/deep-dive/TECH-SPEC.md` and `.saas-ideas/deep-dive/BUSINESS-PLAN.md`. Write `.saas-ideas/deep-dive/GSD-IDEA-DOC.md` with the following structure:
+
+```markdown
+# GSD Idea Document: {Idea Name}
+
+**Generated by:** /gw:saas-idea --build
+**Date:** {today's date}
+**Budget:** {BUDGET}
+
+## Problem & Solution
+{Extract problem statement and solution from BUSINESS-PLAN.md Sections 1-2. Keep concise — 1 paragraph each.}
+
+## Mandatory Stack
+- **Database:** PostgreSQL (Neon free tier)
+- **Auth:** Google OAuth
+- **Payments:** Stripe
+- **Hosting:** AWS (Lambda + API Gateway)
+- **Infrastructure:** Terraform
+- **Domain:** {app-name}.codingandmore.net
+- **CDN:** Cloudflare free tier
+- **Cost target:** $0/month at <100 users
+
+## MVP Scope
+{Copy verbatim from TECH-SPEC.md Section 3 — v1 (MVP) features only}
+
+## Data Model
+{Copy verbatim from TECH-SPEC.md Section 4}
+
+## Build Timeline
+{Copy verbatim from TECH-SPEC.md Section 8 — week-by-week timeline}
+
+## Superpowers Workflow (mandatory for every phase)
+Apply these superpowers skills at each GSD phase:
+1. `superpowers:brainstorming` — before design decisions
+2. `superpowers:writing-plans` — before coding each phase
+3. `superpowers:test-driven-development` — all implementation work
+4. `superpowers:subagent-driven-development` — parallel independent tasks
+5. `superpowers:systematic-debugging` — on any bug encounters
+6. `superpowers:requesting-code-review` — after each milestone
+7. `superpowers:verification-before-completion` — before merge/PR
+8. `superpowers:using-git-worktrees` — for feature branches
+```
+
+---
+
+### Step 2 — Launch GSD Auto-Chain
+
+Invoke `/gsd:new-project --auto` and reference `@.saas-ideas/deep-dive/GSD-IDEA-DOC.md` as the project context document.
+
+GSD's `--auto` chain handles the full lifecycle:
+- Research → requirements → roadmap (auto-approved)
+- For each phase: discuss → plan → execute (auto-advanced)
+- Each phase naturally invokes superpowers through GSD's execution (TDD, code review, verification)
+
+Print: "Launching GSD auto-chain for {Idea Name}. This will research, plan, and build the MVP automatically. Monitor progress with `/gsd:progress`."
+
+---
+
+### Step 3 — Post-Build Summary
+
+After GSD auto-chain completes (or if the user checks back later), print:
+
+```
+Build Status: {Idea Name}
+──────────────────────────
+GSD Project: .planning/PROJECT.md
+Phases: {N completed} / {N total}
+Last Phase: {phase name} — {status}
+
+Generated Files:
+  .saas-ideas/deep-dive/GSD-IDEA-DOC.md   ({N} KB)
+  .planning/PROJECT.md                      ({N} KB)
+  .planning/ROADMAP.md                      ({N} KB)
+
+Next Steps:
+  - Check progress: /gsd:progress
+  - Resume work: /gsd:resume-work
+  - Verify completed phases: /gsd:verify-work
+```
