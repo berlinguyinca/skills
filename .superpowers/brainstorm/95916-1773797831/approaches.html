@@ -1,0 +1,36 @@
+<h2>Three approaches to making the weekly deck hit harder</h2>
+<p class="subtitle">Each addresses the "GitHub dump" problem differently. Click the one that resonates most.</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Narrative Rewrite — Fix the Story, Keep the Structure</h3>
+      <p><strong>What changes:</strong> Better narrative synthesis by Claude. Instead of listing PRs, Claude identifies 2-3 "themes of the week" and writes the deck around those themes. PRs become supporting evidence, not the skeleton. KPIs become outcome-oriented ("30-min auto-recovery" not "7 new capabilities"). Remove the Q&A step — Claude figures it out.</p>
+      <p><strong>What stays:</strong> Same slide count, same python-pptx renderer, same visual system. The chart types stay but get smarter captions.</p>
+      <p><strong>Trade-off:</strong> Fastest to implement. Biggest bang for buck. But the slides still <em>look</em> the same — just say better things.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Visual Overhaul — Redesign the Slide Templates</h3>
+      <p><strong>What changes:</strong> New slide layouts with better information density. Replace generic bar/donut charts with purpose-built visuals: timeline strips, before/after callouts, impact magnitude indicators. KPI cards get visual weight (large numbers, small labels). Remove redundant slides (merge "Key Deliverables" + "Impact Details" into one). Better use of whitespace and visual hierarchy.</p>
+      <p><strong>What stays:</strong> Same data pipeline, same GitHub queries, same categorization logic.</p>
+      <p><strong>Trade-off:</strong> Slides look dramatically better. But if the narrative is still PR-driven, pretty slides with shallow content just <em>look</em> better while saying the same thing.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Full Rethink — Narrative + Visuals Together</h3>
+      <p><strong>What changes:</strong> Both A and B. Claude synthesizes top-down themes from PRs, then the renderer uses layouts designed for those themes. A "theme slide" gets a headline + 2-3 evidence bullets + a visual anchor (metric callout, timeline, or before/after). Strict 4-5 slide max: Title → Week's Headline → 2-3 Theme Slides → What's Next. Every slide has one job. Remove Q&A, remove redundant slides, remove vanity charts.</p>
+      <p><strong>What stays:</strong> Same GitHub data pipeline, same config system, same uv/python-pptx toolchain.</p>
+      <p><strong>Trade-off:</strong> Most work. But this is the version where someone glances at the deck and thinks "wow, they shipped a lot this week" — which is the whole point.</p>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top: 2rem; padding: 1rem; background: rgba(52, 152, 219, 0.08); border-radius: 8px; border-left: 3px solid #3498DB;">
+  <p style="margin: 0;"><strong>My recommendation: C.</strong> The problem is that content and visuals are both weak — fixing one without the other just moves the bottleneck. And with a strict 4-5 slide limit, each slide has to nail both story and presentation. The data pipeline is solid — it's the synthesis and rendering that need the rethink.</p>
+</div>

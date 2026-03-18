@@ -1,0 +1,132 @@
+<h2>Slide Layout Mockups</h2>
+<p class="subtitle">These show the layout and information hierarchy — not pixel-perfect PPTX rendering, but the structure each slide type would follow.</p>
+
+<!-- SLIDE 2: THE HEADLINE -->
+<div class="section">
+  <h3>Slide 2 — The Headline Slide</h3>
+  <p>One bold sentence + 3 outcome KPIs. This is the slide people remember.</p>
+
+  <div class="mockup">
+    <div class="mockup-header">Headline Slide</div>
+    <div class="mockup-body" style="background: #2C3E50; color: white; padding: 2.5rem; min-height: 280px; display: flex; flex-direction: column; justify-content: center; position: relative;">
+      <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: #3498DB;"></div>
+
+      <div style="font-size: 1.4rem; font-weight: 700; color: #FFFFFF; line-height: 1.3; max-width: 85%; margin-bottom: 2rem;">
+        Sample processing got dramatically faster — auto-recovery, smarter scheduling, and a 1000x query speedup
+      </div>
+
+      <div style="display: flex; gap: 2rem;">
+        <div style="background: rgba(52,152,219,0.15); border: 1px solid rgba(52,152,219,0.3); border-radius: 8px; padding: 1rem 1.5rem; text-align: center; flex: 1;">
+          <div style="font-size: 1.8rem; font-weight: 700; color: #3498DB;">30 min</div>
+          <div style="font-size: 0.75rem; color: #95A5A6; text-transform: uppercase; letter-spacing: 0.05em;">Auto-Recovery</div>
+        </div>
+        <div style="background: rgba(52,152,219,0.15); border: 1px solid rgba(52,152,219,0.3); border-radius: 8px; padding: 1rem 1.5rem; text-align: center; flex: 1;">
+          <div style="font-size: 1.8rem; font-weight: 700; color: #3498DB;">1000x</div>
+          <div style="font-size: 0.75rem; color: #95A5A6; text-transform: uppercase; letter-spacing: 0.05em;">Queue Speedup</div>
+        </div>
+        <div style="background: rgba(52,152,219,0.15); border: 1px solid rgba(52,152,219,0.3); border-radius: 8px; padding: 1rem 1.5rem; text-align: center; flex: 1;">
+          <div style="font-size: 1.8rem; font-weight: 700; color: #27AE60;">3</div>
+          <div style="font-size: 0.75rem; color: #95A5A6; text-transform: uppercase; letter-spacing: 0.05em;">Bugs Eliminated</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 3: THEME SLIDE -->
+<div class="section">
+  <h3>Slide 3 — Theme Slide (example: "Turnaround Time Overhaul")</h3>
+  <p>Headline at top, evidence bullets on the left, one visual anchor on the right (before/after, metric callout, or mini-timeline).</p>
+
+  <div class="mockup">
+    <div class="mockup-header">Theme Slide</div>
+    <div class="mockup-body" style="background: #FFFFFF; padding: 2rem; min-height: 280px; position: relative;">
+      <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: #3498DB;"></div>
+
+      <div style="font-size: 1.1rem; font-weight: 700; color: #2C3E50; margin-bottom: 0.3rem;">Turnaround Time Overhaul</div>
+      <div style="font-size: 0.8rem; color: #95A5A6; margin-bottom: 1.5rem;">Faster results for lab users, less manual work for operators</div>
+
+      <div style="display: flex; gap: 2rem;">
+        <!-- Left: evidence bullets -->
+        <div style="flex: 3;">
+          <div style="margin-bottom: 1rem; padding-left: 0.8rem; border-left: 3px solid #3498DB;">
+            <div style="font-size: 0.85rem; font-weight: 600; color: #2C3E50;">Stuck samples auto-recover in 30 minutes</div>
+            <div style="font-size: 0.75rem; color: #7F8C8D; margin-top: 0.2rem;">Previously required manual operator intervention, stalling results for hours</div>
+          </div>
+          <div style="margin-bottom: 1rem; padding-left: 0.8rem; border-left: 3px solid #3498DB;">
+            <div style="font-size: 0.85rem; font-weight: 600; color: #2C3E50;">Newest lab data processed first</div>
+            <div style="font-size: 0.75rem; color: #7F8C8D; margin-top: 0.2rem;">Fresh samples get priority 2.5 — no more waiting behind reprocessing backlog</div>
+          </div>
+          <div style="margin-bottom: 1rem; padding-left: 0.8rem; border-left: 3px solid #3498DB;">
+            <div style="font-size: 0.85rem; font-weight: 600; color: #2C3E50;">Queue checks: minutes → milliseconds</div>
+            <div style="font-size: 0.75rem; color: #7F8C8D; margin-top: 0.2rem;">Batch optimization for 100K sample queues</div>
+          </div>
+        </div>
+
+        <!-- Right: visual anchor (before/after) -->
+        <div style="flex: 2; display: flex; flex-direction: column; gap: 0.5rem;">
+          <div style="background: #FDEDEC; border: 1px solid #E74C3C; border-radius: 6px; padding: 0.8rem; text-align: center;">
+            <div style="font-size: 0.65rem; text-transform: uppercase; color: #E74C3C; font-weight: 600; letter-spacing: 0.05em;">Before</div>
+            <div style="font-size: 1.3rem; font-weight: 700; color: #E74C3C;">Hours</div>
+            <div style="font-size: 0.7rem; color: #95A5A6;">Manual recovery, FIFO queue</div>
+          </div>
+          <div style="text-align: center; color: #95A5A6; font-size: 1.2rem;">↓</div>
+          <div style="background: #EAFAF1; border: 1px solid #27AE60; border-radius: 6px; padding: 0.8rem; text-align: center;">
+            <div style="font-size: 0.65rem; text-transform: uppercase; color: #27AE60; font-weight: 600; letter-spacing: 0.05em;">After</div>
+            <div style="font-size: 1.3rem; font-weight: 700; color: #27AE60;">30 min</div>
+            <div style="font-size: 0.7rem; color: #95A5A6;">Auto-recovery, priority queue</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 5: WHAT'S NEXT -->
+<div class="section">
+  <h3>Slide 5 — What's Next</h3>
+  <p>Clean, scannable list with status indicators. No walls of text.</p>
+
+  <div class="mockup">
+    <div class="mockup-header">What's Next Slide</div>
+    <div class="mockup-body" style="background: #FFFFFF; padding: 2rem; min-height: 220px; position: relative;">
+      <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: #3498DB;"></div>
+
+      <div style="font-size: 1.1rem; font-weight: 700; color: #2C3E50; margin-bottom: 1.5rem;">What's Next</div>
+
+      <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <div style="background: #F39C12; color: white; font-size: 0.6rem; font-weight: 600; padding: 0.25rem 0.6rem; border-radius: 10px; min-width: 70px; text-align: center;">TESTING</div>
+          <div style="font-size: 0.85rem; font-weight: 600; color: #2C3E50; flex: 1;">Interactive node monitoring dashboard</div>
+          <div style="font-size: 0.75rem; color: #95A5A6;">Full terminal UI for processing nodes</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <div style="background: #F39C12; color: white; font-size: 0.6rem; font-weight: 600; padding: 0.25rem 0.6rem; border-radius: 10px; min-width: 70px; text-align: center;">TESTING</div>
+          <div style="font-size: 0.85rem; font-weight: 600; color: #2C3E50; flex: 1;">Coelution correlation detection</div>
+          <div style="font-size: 0.75rem; color: #95A5A6;">~2 weeks</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <div style="background: #3498DB; color: white; font-size: 0.6rem; font-weight: 600; padding: 0.25rem 0.6rem; border-radius: 10px; min-width: 70px; text-align: center;">PLANNED</div>
+          <div style="font-size: 0.85rem; font-weight: 600; color: #2C3E50; flex: 1;">Pre-normalization data reduction</div>
+          <div style="font-size: 0.75rem; color: #95A5A6;">~2 weeks</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <div style="background: #F39C12; color: white; font-size: 0.6rem; font-weight: 600; padding: 0.25rem 0.6rem; border-radius: 10px; min-width: 70px; text-align: center;">TESTING</div>
+          <div style="font-size: 0.85rem; font-weight: 600; color: #2C3E50; flex: 1;">Quality remediation (40+ modules)</div>
+          <div style="font-size: 0.75rem; color: #95A5A6;">81 files changed</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top: 2rem; padding: 1rem; background: rgba(52, 152, 219, 0.08); border-radius: 8px; border-left: 3px solid #3498DB;">
+  <p style="margin: 0 0 0.5rem 0;"><strong>Key visual principles:</strong></p>
+  <ul style="margin: 0; padding-left: 1.2rem; font-size: 0.9rem; color: #555;">
+    <li><strong>Headline slide</strong> — dark background for impact, KPIs as visual anchors</li>
+    <li><strong>Theme slides</strong> — white background, left evidence / right visual anchor (before/after, metric, or timeline)</li>
+    <li><strong>What's Next</strong> — status pills + one-liners, no paragraphs</li>
+    <li><strong>Consistent accent bar</strong> on every slide for brand continuity</li>
+    <li><strong>No charts for the sake of charts</strong> — only visuals that add insight</li>
+  </ul>
+</div>
