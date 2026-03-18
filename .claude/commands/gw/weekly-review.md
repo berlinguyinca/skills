@@ -334,69 +334,9 @@ Also produce:
 - **Architecture notes:** cross-repo patterns within the org
 - **Open PR technical status:** org open PRs only, with technical state
 
-## Step 4e — Interactive review & enrichment
+### 4e. (Removed)
 
-**Before generating the presentations, pause and ask the user targeted questions to enrich the narrative.** This is a conversation — the user knows context that GitHub data can't capture (strategic priorities, stakeholder concerns, demos given, blockers encountered, team dynamics).
-
-Present a brief summary of what was found, then ask questions one group at a time. Wait for answers before proceeding.
-
-### Round 1 — Headline & framing
-
-Show the draft headline and KPI cards, then ask:
-
-> "Here's what I found this week:
->
-> **Headline:** {draft headline}
-> **KPIs:** {card labels and values}
->
-> Questions:
-> 1. Does this headline capture the most important story? Would you frame the week differently?
-> 2. Any of these highlights more or less important than I've scored them?
-> 3. Is there a strategic angle I'm missing — e.g. a deadline this work unblocks, a stakeholder request it addresses, or a recurring pain point it finally solves?"
-
-Incorporate the user's answers into the headline, KPI cards, and highlight impact scores/text.
-
-### Round 2 — Context the data can't show
-
-> "A few things I can't tell from the git log:
-> 1. Were there any demos, presentations, or stakeholder conversations this week related to this work?
-> 2. Any blockers, delays, or scope changes worth mentioning?
-> 3. Anything you want to emphasize or downplay in the executive deck?
-> 4. Any additional context for the 'Coming Soon' items — timelines, dependencies, who's waiting on them?"
-
-Incorporate answers into:
-- Highlight `user_impact` text (add stakeholder context, deadline info)
-- Coming soon `user_impact` (add timeline expectations)
-- Executive summary paragraph (add strategic framing)
-- Optionally add a "Key Decisions" or "Blockers" slide if the user provides significant context
-
-### Round 3 — Bug fixes & side projects (quick)
-
-Only ask if there are bug fixes or personal PRs:
-
-> "Quick check on the bug fixes and side projects:
-> 1. {For each bug fix}: Was this causing real user complaints, or was it caught proactively? Any estimate of impact?
-> 2. {If side projects}: Worth mentioning to this audience, or skip entirely?"
-
-Incorporate answers into bug fix `user_explanation` and the side projects section.
-
-### Finalize
-
-After incorporating all answers, print the updated summary:
-
-```
-Updated narrative:
-  Headline: {updated}
-  KPIs: {updated}
-  Top highlights: {updated list with scores}
-  Bug fixes: {count}
-  Coming soon: {count}
-  Side projects: {included/skipped}
-
-Generating presentations...
-```
-
-If the user says "skip" or "just generate" at any point, skip remaining questions and proceed with the data as-is.
+The interactive Q&A step has been removed. Claude derives all narrative content autonomously from PR data. If PR bodies lack sufficient evidence, the slide text acknowledges this rather than asking the user.
 
 ## Step 5 — Write JSON handoff & generate presentations
 
