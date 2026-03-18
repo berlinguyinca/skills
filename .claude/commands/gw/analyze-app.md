@@ -615,3 +615,129 @@ Check if `~/.claude/commands/gsd/` exists. If it does:
    - **If no (greenfield):** Automatically invoke `/gsd:new-project` and reference `.analysis/REPORT.md` as the requirements source. Tell the user you are creating a GSD project from the recommended phases.
 
 If GSD commands don't exist, say: "Full analysis available in `.analysis/REPORT.md`. Install GSD to auto-create a project from these phases." and stop.
+
+---
+
+## Step 8 — Generate Findings Presentation
+
+Skip this step if SKIP_PPTX is true.
+
+### 8a. Gather presentation data
+
+1. Read `.analysis/REPORT.md` — extract Executive Summary, Scorecard, Priority 1-2 items, Compound Wins, Recommended Phases, and (if present) Fixes Applied section.
+2. Detect the default branch: `git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@'` — fall back to `main` then `master`.
+3. If on a non-default branch, run `git diff --stat {default_branch}...HEAD` to capture what changed compared to the default branch. Parse the diff stat into a list of: file path, lines added, lines removed.
+4. If on the default branch (no diff), skip the "Changes vs Default Branch" slide — focus only on findings.
+
+### 8b. Build JSON data file
+
+Write a JSON file to `/tmp/analyze_app_presentation_data.json` with this schema:
+
+```json
+{
+  "project_name": "{project name from Step 1}",
+  "app_type": "{APP_TYPE}",
+  "date": "{today's date}",
+  "stack_summary": "{stack summary from STACK_CONTEXT}",
+  "executive_summary": "{text from REPORT.md Executive Summary}",
+  "scorecard": [
+    { "dimension": "Security", "health": "Good", "critical": 0, "warnings": 2, "top_issue": "..." }
+  ],
+  "priority_1_items": [
+    { "title": "...", "effort": "Quick Win", "dimensions": "Security, Architecture", "fixed": false }
+  ],
+  "priority_2_items": [
+    { "title": "...", "effort": "Medium", "dimensions": "Testing", "fixed": true }
+  ],
+  "compound_wins": [
+    { "title": "...", "improves": ["Security", "Performance"], "action": "..." }
+  ],
+  "phases": [
+    { "name": "Phase 1: Critical Fixes", "effort": "S", "items": ["item1", "item2"] }
+  ],
+  "fixes_applied": {
+    "total": 5,
+    "passed": 4,
+    "failed": 0,
+    "reverted": 1
+  },
+  "branch_diff": {
+    "has_diff": true,
+    "default_branch": "main",
+    "current_branch": "feat/analysis-fixes",
+    "files_changed": 12,
+    "insertions": 340,
+    "deletions": 85,
+    "file_stats": [
+      { "file": "src/auth.ts", "added": 45, "removed": 12 }
+    ]
+  }
+}
+```
+
+If no fixes were applied, set `fixes_applied` to `null`. If on the default branch, set `branch_diff.has_diff` to `false`. Cap `file_stats` to the top 10 files sorted by total churn (added + removed) to keep the JSON and slide manageable for large repos.
+
+### 8c. Write and execute the Python presentation script
+
+Write a Python script to `/tmp/analyze_app_presentation.py`. The script reads the JSON data file and generates a `.pptx` presentation.
+
+**Design system** (matches `gw:weekly-review` palette — the canonical gw-skills design system. Note: `gw:merge-it` uses a slightly different palette; it should be aligned in a future update):
+
+```
+PRIMARY      = RGBColor(0x2C, 0x3E, 0x50)  # dark blue-gray — titles, headers
+SECONDARY    = RGBColor(0x34, 0x49, 0x5E)  # medium blue-gray — body text
+ACCENT       = RGBColor(0x34, 0x98, 0xDB)  # bright blue — highlights, KPIs
+SUCCESS      = RGBColor(0x27, 0xAE, 0x60)  # green — good health, fixed items
+DANGER       = RGBColor(0xE7, 0x4C, 0x3C)  # red — critical items
+WARNING      = RGBColor(0xF3, 0x9C, 0x12)  # amber — warnings
+MUTED        = RGBColor(0x95, 0xA5, 0xA6)  # gray — captions, labels
+BG_WHITE     = RGBColor(0xFF, 0xFF, 0xFF)
+BG_LIGHT     = RGBColor(0xF8, 0xF9, 0xFA)
+```
+
+- Font: Calibri throughout
+- Slide dimensions: 16:9 widescreen (13.333" x 7.5")
+- Title: 32pt bold PRIMARY
+- Heading: 24pt bold PRIMARY
+- Body: 14pt SECONDARY
+- KPI Value: 36pt bold ACCENT
+- KPI Label: 11pt uppercase MUTED
+- Accent bar: 0.06" wide ACCENT strip at left edge of every slide
+
+**Slide structure:**
+
+1. **Title Slide** — Project name, "Application Analysis Report", date, app type badge, stack summary subtitle
+2. **Executive Summary Slide** — Executive summary text in a card layout with the overall health verdict
+3. **Scorecard Slide** — Table with dimension, health (color-coded: green/amber/red), critical count, warning count, top issue. Use colored rectangles as health indicators.
+4. **Critical Issues Slide(s)** — Priority 1 items. Each item: title, effort badge (colored shape), dimensions, [FIXED] badge if applicable. If >5 items, split across multiple slides.
+5. **Important Issues Slide** — Priority 2 items in condensed format (title + effort only). Mark [FIXED] items with green checkmark.
+6. **Compound Wins Slide** — Each compound win: title, which dimensions improve (as colored badges), action summary.
+7. **Changes vs Default Branch Slide** (only if `branch_diff.has_diff` is true) — Branch comparison header (current vs default), file change count, insertions/deletions as colored bars (green for added, red for removed), top 10 changed files as a mini table.
+8. **Fix Summary Slide** (only if `fixes_applied` is not null) — Donut-style visual: passed (green), failed (red), reverted (amber). Issue count comparison: "X of Y critical issues resolved".
+9. **Recommended Phases Slide** — Phase timeline as horizontal cards: Phase 1 → Phase 2 → Phase 3, each with T-shirt size effort badge and item count.
+10. **Closing Slide** — "Full report: `.analysis/REPORT.md`", date, "Generated by gw:analyze-app"
+
+**Script execution:**
+
+```bash
+mkdir -p doc
+uv run --with python-pptx python /tmp/analyze_app_presentation.py
+```
+
+Fallback: `python3 -m pip install python-pptx && python3 /tmp/analyze_app_presentation.py`
+
+If both fail, tell the user: "PowerPoint generation failed — python-pptx is required. Install it with `pip install python-pptx` or use `--skip-pptx` to skip presentation generation." Do not generate an HTML fallback.
+
+**Output path:** `doc/analysis-report-{YYYY-MM-DD}.pptx` (consistent with `gw:merge-it` which uses `doc/` for generated presentations)
+
+### 8d. Present result
+
+Tell the user: "Presentation saved to `doc/analysis-report-{date}.pptx`"
+
+If the project is a git repo with uncommitted changes to the presentation file, ask: "Commit the presentation to the branch? [y/n]"
+
+If yes:
+```bash
+git add doc/analysis-report-*.pptx
+git commit -m "docs: add analysis findings presentation"
+```
