@@ -52,7 +52,7 @@ Parse `$ARGUMENTS`:
 ### Resolve sources & classify priority
 
 1. If a positional argument was given, use it as the sole source for this run.
-2. Otherwise, read `~/.config/gw-skills/weekly-review.json`. If the file exists and `sources` is non-empty, use all entries as sources.
+2. Otherwise, read `~/.config/gw-skills/weekly-review.json`. If the file exists and parses as valid JSON with a non-empty `sources` array, use all entries. If the file exists but is malformed JSON, warn the user: "Config file at ~/.config/gw-skills/weekly-review.json is not valid JSON. Fix it or delete it and re-add sources with `--add`." and stop.
 3. If neither a positional argument nor a config file with sources exists, ask the user: "No source specified and no saved sources found. Provide an org or repo, or use `--add` to save one for future runs."
 
 For each source, classify it:
@@ -156,15 +156,16 @@ Search for `.pptx` files committed or modified during the reporting window. Thes
 
 **For each source repo** (run in parallel):
 
+Use a single API call to find `.pptx` files efficiently (avoids N+1 per-commit lookups that hit rate limits):
+
 ```bash
-gh api "repos/ORG/REPO/commits?since=START_DATET00:00:00Z&until=END_DATET23:59:59Z&per_page=100" \
-  --jq '.[].sha' | head -20
+gh api "repos/ORG/REPO/commits?since=START_DATET00:00:00Z&until=END_DATET23:59:59Z&per_page=50" \
+  --jq '[.[].sha] | join("\n")' | head -10 | while read SHA; do
+  gh api "repos/ORG/REPO/commits/$SHA" --jq '.files[]? | select(.filename | endswith(".pptx")) | .filename' 2>/dev/null
+done | sort -u
 ```
 
-Then for each commit, check for `.pptx` files in the diff:
-```bash
-gh api "repos/ORG/REPO/commits/SHA" --jq '.files[]? | select(.filename | endswith(".pptx")) | .filename'
-```
+**Rate limit guard:** Cap at 10 commits per repo. If `gh api` returns a 403/429, stop scanning that repo and continue with others.
 
 **For single-repo sources**, also check if any `.pptx` files exist at the repo root or in `doc/`:
 ```bash

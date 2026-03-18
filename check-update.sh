@@ -3,7 +3,9 @@ set -euo pipefail
 
 # Resolve repo dir: follow the symlink from ~/.claude/commands/gw, fall back to ~/.gw-skills
 if [ -L "$HOME/.claude/commands/gw" ]; then
-  REPO_DIR="$(cd "$(readlink "$HOME/.claude/commands/gw")/../../.." && pwd)"
+  # Use readlink -f on Linux for absolute path; macOS readlink works without -f here
+  LINK_TARGET="$(readlink "$HOME/.claude/commands/gw")"
+  REPO_DIR="$(cd "$LINK_TARGET/../../.." && pwd)"
 elif [ -d "$HOME/.gw-skills" ]; then
   REPO_DIR="$HOME/.gw-skills"
 else

@@ -12,6 +12,7 @@ git clone https://github.com/berlinguyinca/skills.git ~/.gw-skills && ~/.gw-skil
 
 ```bash
 ~/.gw-skills/uninstall.sh && rm -rf ~/.gw-skills
+rm -rf ~/.config/gw-skills  # remove saved config (source list, etc.)
 ```
 
 ## Available Skills
