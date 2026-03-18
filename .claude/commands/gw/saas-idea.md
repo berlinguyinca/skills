@@ -1085,3 +1085,176 @@ After all 4 agents complete, validate the results:
 3. Apply criticality-aware retry logic:
    - **CRITICAL agents** (Business Plan, Tech Spec): if either fails, offer to retry before proceeding to Phase 4. These are essential for the downstream deliverables.
    - **Non-critical agents** (Marketing Playbook, Implementation Prompts): if either fails, note the failure and continue to Phase 4. The user can regenerate these later.
+
+---
+
+## Phase 4 — Final Assembly
+
+Phase 4 is orchestrator-driven. Only Step 1 uses a subagent. Steps 2-5 are executed directly by the orchestrator.
+
+### Step 1 — Pitch Deck (foreground subagent)
+
+Launch a single **foreground** Agent (subagent_type="general-purpose") with this prompt:
+
+"You are a pitch deck designer. Read ALL deep-dive files from `.saas-ideas/deep-dive/`:
+- `BUSINESS-PLAN.md`
+- `MARKETING-PLAYBOOK.md`
+- `TECH-SPEC.md`
+- `IMPLEMENTATION-PROMPTS.md`
+
+Generate a complete Python script that uses `python-pptx` to create a 10-slide investor pitch deck saved to `.saas-ideas/deep-dive/pitch-deck.pptx`.
+
+**Design system:**
+- Colors: Dark blue `#1B2A4A` for headers, white `#FFFFFF` for body text, accent blue `#3B82F6` for highlights and emphasis, light gray `#F1F5F9` for alternating rows and backgrounds
+- Fonts: Calibri for body text, Calibri Bold for headings
+- Layout: Title + subtitle top bar on each slide, content area with generous margins (at least 0.75" on all sides), slide numbers bottom-right
+
+**10 slides:**
+
+| # | Slide | Content |
+|---|-------|---------|
+| 1 | **Title** | Idea name (32pt bold, dark blue), tagline (18pt, accent blue), date (14pt, gray) centered on slide |
+| 2 | **The Problem** | Pain point description with supporting market stats. Use bullet points with accent blue markers. Include a pull-quote style callout for the most compelling stat. |
+| 3 | **The Solution** | What it does in one sentence (large text), then 3-4 key differentiators as icon-style bullet points |
+| 4 | **Market Opportunity** | TAM/SAM/SOM as three nested rounded rectangles (largest to smallest), each labeled with dollar amounts. Source data from BUSINESS-PLAN.md market analysis. |
+| 5 | **Business Model** | Pricing tiers as a comparison table (light gray alternating rows). Revenue projections note below. |
+| 6 | **Competitive Landscape** | 2x2 positioning matrix with axes labeled. Place competitors and the product as positioned shapes. Source from BUSINESS-PLAN.md competitive analysis. |
+| 7 | **Go-to-Market** | Launch strategy as a horizontal timeline with 4-5 phases. Each phase is a rounded rectangle with title and key action. Source from MARKETING-PLAYBOOK.md. |
+| 8 | **Tech Architecture** | Stack diagram showing frontend/backend/infra layers as stacked rounded rectangles. MVP timeline as bullet points. Include note: 'AI-accelerated development workflow via Claude Code'. Source from TECH-SPEC.md. |
+| 9 | **Traction Plan** | Month-by-month growth targets for months 1-6 as a simple table. Key milestones highlighted in accent blue. |
+| 10 | **The Ask / Next Steps** | What's needed to start — bullet points for resources, budget, timeline. Bold call-to-action at bottom. |
+
+**Important Python implementation details:**
+- Import `json`, `os`, `sys` at the top
+- Use `from pptx import Presentation` and related imports from `python-pptx`
+- Use `from pptx.util import Inches, Pt, Emu` and `from pptx.dml.color import RGBColor`
+- Use `from pptx.enum.text import PP_ALIGN` and `from pptx.enum.shapes import MSO_SHAPE`
+- Create helper functions: `add_title_bar(slide, title, subtitle)`, `add_slide_number(slide, num)`, `set_cell_style(cell, bold, color)`
+- Each slide should be a separate function for clarity
+- The script must be self-contained — read the markdown files, extract relevant content, and build all 10 slides
+- Write the output file to `.saas-ideas/deep-dive/pitch-deck.pptx`
+- Print the absolute path of the generated file on success
+
+Write the script to `/tmp/saas_pitch_deck_gen.py`, then execute it.
+
+**Execution chain:**
+
+1. Try:
+   ```bash
+   uv run --with python-pptx python3 /tmp/saas_pitch_deck_gen.py
+   ```
+
+2. If `uv` is not available or fails, fall back to:
+   ```bash
+   pip install python-pptx && python3 /tmp/saas_pitch_deck_gen.py
+   ```
+
+3. If both fail, generate an HTML file at `.saas-ideas/deep-dive/pitch-deck.html` instead with the same 10-slide content as a styled HTML presentation. Note the limitation to the user: 'Generated HTML pitch deck as fallback — python-pptx was not available.'
+
+If the Python script fails: show the error output, examine the script for issues, fix, and retry once. If it fails again, fall back to HTML."
+
+---
+
+### Step 2 — Executive Report (orchestrator writes directly)
+
+Read all deep-dive files from `.saas-ideas/deep-dive/`. Also read `.saas-ideas/SHORTLIST.md` for the selected idea details. Write `.saas-ideas/REPORT.md` with this structure:
+
+```markdown
+# SaaS Idea Report: {Idea Name}
+
+**Generated:** {today's date}
+**Score:** {X}/10
+**Tagline:** {one-liner}
+**Budget:** {BUDGET}
+**Focus:** {FOCUS or "none"}
+
+## Executive Summary
+{3-5 sentences — what the product does, why the market needs it, how big the opportunity is, how fast you can ship an MVP}
+
+## Deliverables
+| File | Description |
+|------|-------------|
+| SHORTLIST.md | Top 10 ranked ideas with scores |
+| deep-dive/BUSINESS-PLAN.md | Full business plan |
+| deep-dive/MARKETING-PLAYBOOK.md | Go-to-market playbook |
+| deep-dive/TECH-SPEC.md | Architecture & MVP spec |
+| deep-dive/IMPLEMENTATION-PROMPTS.md | Ready-to-use Claude Code prompts |
+| deep-dive/pitch-deck.pptx | Investor/co-founder pitch deck |
+
+## Quick Start
+1. Review the business plan
+2. Run the project init prompt from IMPLEMENTATION-PROMPTS.md
+3. Follow the phase-by-phase prompts to build the MVP
+```
+
+Replace all `{...}` placeholders with actual values extracted from the deep-dive files and shortlist. The executive summary should be substantive — not generic filler.
+
+---
+
+### Step 3 — Update History (orchestrator writes directly)
+
+Read `.saas-ideas/history.json`. If the file does not exist, create it with `{"runs": []}`.
+
+Parse the existing JSON, then **append** a new entry to the `runs` array:
+
+```json
+{
+  "date": "YYYY-MM-DD",
+  "ideas_surfaced": ["Idea Name 1", "Idea Name 2", "...all 10 from shortlist..."],
+  "selected": "Selected Idea Name",
+  "focus": "FOCUS value or null",
+  "budget": "BUDGET value",
+  "score": 8.4
+}
+```
+
+Populate the fields:
+- `date`: today's date
+- `ideas_surfaced`: all 10 idea names from SHORTLIST.md
+- `selected`: the #1 ranked idea that was deep-dived
+- `focus`: the FOCUS argument value, or `null` if none was provided
+- `budget`: the BUDGET argument value
+- `score`: the composite score of the selected idea
+
+Write the updated JSON back to `.saas-ideas/history.json`. Do NOT overwrite previous entries — the `runs` array accumulates across invocations.
+
+---
+
+### Step 4 — GSD Integration (orchestrator)
+
+Skip this step if SKIP_GSD is true.
+
+Check if `~/.claude/commands/gsd/` exists. If it does:
+
+1. Check if `.planning/PROJECT.md` exists (i.e., GSD project already initialized).
+   - **If yes (brownfield/existing project):** Automatically invoke `/gsd:new-milestone` and reference `.saas-ideas/deep-dive/TECH-SPEC.md` as the requirements source. Tell the user you are creating a new GSD milestone from the tech spec phases. Include project context: "This project was generated by /gw:saas-idea. Superpowers workflow: brainstorm → plan → TDD → review → verify for each phase."
+   - **If no (greenfield):** Automatically invoke `/gsd:new-project` and reference `.saas-ideas/deep-dive/TECH-SPEC.md` as the requirements source. Tell the user you are creating a GSD project from the tech spec. Include project context: "This project was generated by /gw:saas-idea. Superpowers workflow: brainstorm → plan → TDD → review → verify for each phase."
+
+If GSD commands don't exist, say: "Full plan available in `.saas-ideas/`. Install GSD to auto-scaffold the project." and stop.
+
+---
+
+### Step 5 — Present Results (orchestrator)
+
+Print the following to the user:
+
+1. **Executive Summary** — read and display the Executive Summary section from `.saas-ideas/REPORT.md`
+
+2. **File listing** — list all generated files with sizes:
+   ```
+   Generated Files:
+     .saas-ideas/SHORTLIST.md              ({N} KB)
+     .saas-ideas/REPORT.md                 ({N} KB)
+     .saas-ideas/history.json              ({N} KB)
+     .saas-ideas/deep-dive/BUSINESS-PLAN.md       ({N} KB)
+     .saas-ideas/deep-dive/MARKETING-PLAYBOOK.md  ({N} KB)
+     .saas-ideas/deep-dive/TECH-SPEC.md           ({N} KB)
+     .saas-ideas/deep-dive/IMPLEMENTATION-PROMPTS.md ({N} KB)
+     .saas-ideas/deep-dive/pitch-deck.pptx        ({N} KB)
+   ```
+
+3. Print: "Pitch deck saved to `.saas-ideas/deep-dive/pitch-deck.pptx`"
+
+4. If GSD was invoked in Step 4, note whether a project or milestone was created and where to find it.
+
+5. If any Phase 3 agents failed (non-critical), remind the user which files are missing and that they can re-run the skill with the same arguments to regenerate them.
