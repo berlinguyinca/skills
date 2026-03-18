@@ -16,7 +16,7 @@ Replace the bottom-up PR-listing approach with top-down theme synthesis. Claude 
 
 ## Slide Structure
 
-Exactly 5 slides (down from up to 8), each with a single purpose:
+5-6 slides (down from up to 8), each with a single purpose. Always 2 theme slides; a 3rd theme slide is added only when the data clearly supports 3 distinct themes:
 
 ### Slide 1: Title
 - Project/org name, date range
@@ -25,8 +25,9 @@ Exactly 5 slides (down from up to 8), each with a single purpose:
 ### Slide 2: The Headline
 - One bold sentence capturing the week's impact (not a summary, but *why it matters*)
 - Subtitle with supporting context
-- 3 outcome-oriented KPI cards with real numbers extracted from PR evidence
+- Exactly 3 outcome-oriented KPI cards with real numbers extracted from PR evidence
 - KPIs are outcomes ("30min auto-recovery", "1000x queue speedup") not activity counts ("7 new capabilities", "12 PRs merged")
+- Always 3 cards — if only 2 strong outcomes exist, the 3rd can be a qualitative outcome (e.g., "Dev Experience" with label "macOS builds fixed")
 
 ### Slides 3-4: Theme Slides (2, sometimes 3)
 - Each theme groups related PRs into a coherent story
@@ -64,12 +65,13 @@ For each theme slide, Claude selects the visual anchor type that best communicat
 - `before_after` — measurable improvement exists
 - `metric_callout` — one dominant number
 - `count_cards` — breadth of impact
+- `evidence_list` (fallback) — when no quantitative anchor fits, the right column shows a compact bulleted summary instead of a visual element. This is the default if none of the above apply.
 
 ### Step 5: What's Next Curation (improved)
 Open PRs filtered to the 4 most significant items. Each gets a one-line description and status pill. No paragraphs.
 
 ### Removed: Interactive Q&A
-The Q&A step (Step 4e in the current skill) is removed. Claude derives everything from the PR data autonomously. If evidence is insufficient, the slide acknowledges it rather than asking.
+The Q&A step (Step 4e in the current skill) is removed entirely — for both executive and technical decks. Claude derives everything from the PR data autonomously. If evidence is insufficient, the slide acknowledges it rather than asking. This is a behavioral change to the technical deck flow as well, but the technical deck's slide structure and renderer remain unchanged.
 
 ## Visual Design System
 
@@ -103,6 +105,13 @@ The Q&A step (Step 4e in the current skill) is removed. Claude derives everythin
 - What's Next rows: light gray (#F8F9FA) row backgrounds for scannability
 - Status pills: colored rounded badges (TESTING = amber, PLANNED = blue)
 
+### Color Token Mapping (for JSON `color` field)
+The JSON `color` field on KPI cards maps to hex values as follows:
+- `"accent"` → #3498DB (ACCENT)
+- `"success"` → #27AE60 (SUCCESS)
+- `"danger"` → #E74C3C (DANGER)
+- `"warning"` → #F39C12 (WARNING)
+
 ## Python Renderer Changes
 
 ### New Slide Types
@@ -121,6 +130,7 @@ The renderer receives JSON with the new structure and renders these slide types:
   - `before_after`: Two stacked rounded rectangles (red top / green bottom) with arrow text between
   - `metric_callout`: Single large centered number with label
   - `count_cards`: 2-3 small stat boxes in a row
+  - `evidence_list` (fallback): Compact bulleted summary when no quantitative anchor fits
 
 **`whats_next`** — Slide 5
 - Row layout: status pill shape + title text + detail text per item
@@ -141,14 +151,23 @@ The renderer receives JSON with the new structure and renders these slide types:
 - Title slide (simplified)
 - Left accent bar on all slides
 - Truncation guards (80 char titles, 150 char bullets)
-- `matplotlib` as dependency (only used if a theme genuinely warrants a chart — rare)
+- `matplotlib` as dependency (retained for the technical deck renderer; not used by the new executive slide types)
 - `uv run --with` execution model
 - JSON handoff file at `/tmp/weekly_review_data.json`
 - Config system at `~/.config/gw-skills/weekly-review.json`
 
 ## JSON Handoff Format
 
-The JSON written to `/tmp/weekly_review_data.json` changes to:
+The JSON written to `/tmp/weekly_review_data.json` changes structure. The new format replaces the `executive` key in the existing JSON. The `technical` key (used by the technical deck renderer) remains unchanged and continues to use the existing fields (`highlights`, `bug_fixes`, `category_counts`, `impact_areas`, etc.). The full JSON file contains both:
+
+```json
+{
+  "executive": { /* new format below */ },
+  "technical": { /* unchanged — same structure as today */ }
+}
+```
+
+The new `executive` value:
 
 ```json
 {
@@ -200,10 +219,11 @@ The JSON written to `/tmp/weekly_review_data.json` changes to:
 - **Same config system.** `~/.config/gw-skills/weekly-review.json` unchanged.
 - **Same data sources.** GitHub queries unchanged — the change is in synthesis, not collection.
 - **Backward compatible.** The skill still produces `weekly-review-executive-YYYY-MM-DD.pptx` in the working directory.
+- **Asset harvesting out of scope.** The current skill's harvested `.pptx` assets (Step 3e) are not used in the new executive slide types. This could be revisited later to embed real screenshots as visual anchors.
 
 ## Success Criteria
 
-1. Executive deck is exactly 5 slides (title + headline + 2-3 themes + what's next)
+1. Executive deck is 5-6 slides (title + headline + 2-3 themes + what's next)
 2. No slide contains a generic PR-count chart (donut, bar chart of categories)
 3. KPI values are outcome-oriented numbers extracted from PR evidence, not activity counts
 4. Each theme slide has a clear headline, evidence bullets, and a visual anchor
