@@ -17,7 +17,7 @@ If the output contains `UPDATE_AVAILABLE`, tell the user how many commits behind
 
 ---
 
-Generate two polished PowerPoint presentations from GitHub activity: an **executive deck** (max 8 slides, visual, plain English, no jargon) and a **technical deck** (max 30 slides, detailed, for IT/dev staff). Both decks should look professional enough to present in a meeting — clean layout, data visualizations, consistent design system.
+Generate two polished PowerPoint presentations from GitHub activity: an **executive deck** (5-6 slides, visual, plain English, no jargon) and a **technical deck** (max 30 slides, detailed, for IT/dev staff). Both decks should look professional enough to present in a meeting — clean layout, data visualizations, consistent design system.
 
 Supports pulling activity from **multiple GitHub orgs and repos** simultaneously via a persistent config file.
 
@@ -75,10 +75,11 @@ Run these checks in parallel:
 1. `gh auth status` — confirm GitHub CLI is authenticated
 2. `which uv` — check availability (will fall back to `python3` if missing)
 3. `gh api user --jq '.login'` — resolve `@me` to the actual GitHub username
+4. `gh api user --jq '.name'` — resolve the user's full display name (e.g. "Gert Wohlgemuth"). If `.name` is null or empty, fall back to the login username.
 
 If `gh auth status` fails, stop and tell the user to run `gh auth login`.
 
-Print: `"Authenticated as USERNAME, querying sources for Mon DD–Mon DD..."`
+Print: `"Authenticated as FULL_NAME (USERNAME), querying sources for Mon DD–Mon DD..."`
 
 ## Step 3 — Fetch GitHub data
 
@@ -222,7 +223,7 @@ Store all harvested assets in the JSON as:
 
 **Integration rules for the generated deck:**
 - When building PR detail slides: if a harvested asset's `related_pr_url` matches the PR being rendered (or `source_file` contains the branch name from the PR), embed the harvested image on that slide instead of (or alongside) the screenshot placeholder. Size it to fill 50-60% of the slide.
-- When building the executive "What We Shipped" slide: if any harvested assets contain before/after comparisons or dashboard screenshots, add a bonus "Demo" slide right after with the best 2-3 harvested images arranged in a grid with tiny captions.
+- When building executive theme slides: if any harvested assets contain before/after comparisons relevant to a theme, use the asset image as the visual anchor instead of a rendered shape. If assets include dashboard screenshots, consider adding a bonus slide (max 1) after the theme slides.
 - When building the technical deck: create a "Visuals from PRs" slide if 3+ assets were harvested — arrange in a 2x2 or 3x2 grid with repo + slide title as caption under each image.
 - If no `.pptx` files are found, skip this step silently — no error, no message.
 
@@ -243,34 +244,87 @@ Use a tiered classification:
 2. **Title keywords fallback:** `fix`/`bug`/`error`/`patch` → Bug Fix, `add`/`new`/`feat`/`create` → Feature, `improve`/`update`/`refactor`/`optimize` → Improvement, `doc`/`readme` → Docs, `bump`/`dep`/`upgrade` → Maintenance
 3. **Remainder** → Other
 
-### 4c. Generate executive narrative (org-first)
+### 4c. Generate executive narrative (org-first, theme-based)
 
 **Organization work dominates the narrative.** Personal repos get a brief mention at most.
 
-**Use the PR body context extracted in Step 3a-ii to write rich, specific, evidence-based narratives** — not generic summaries from titles alone. The executive deck must make a compelling case for why this work matters. Pull specific numbers, before/after comparisons, and concrete outcomes from the PR descriptions:
+**Use the PR body context extracted in Step 3a-ii to build a top-down, theme-based narrative** — not a list of PRs. The executive deck must make someone glance at it and think "this team ships real value."
 
-- BAD (generic): "Improved the scheduling system"
-- GOOD (specific, evidence-based): "Sample processing now prioritizes the newest lab data first and auto-recovers stuck items within 30 minutes — previously these required manual intervention, affecting ~5% of daily throughput"
+#### Theme Synthesis
 
-Transform developer PR descriptions into plain-English, stakeholder-facing language. Produce:
+Read all merged PR data and identify **2-3 natural themes** — clusters of related work that tell a coherent story together. Themes emerge from the data; they are NOT predetermined categories like "Bug Fix" or "Feature."
 
-- **headline**: A single-sentence summary of the week's most impactful achievement. Use specific numbers from the PR bodies when available. (e.g. "Pipeline reliability overhaul: auto-recovery, capacity limiting, and operator dry-run mode eliminate manual intervention for stuck samples")
-- **kpi_cards**: 4 **outcome-oriented** metrics that a non-technical executive cares about. Do NOT use developer metrics like commit counts, PR counts, or repo counts — those are meaningless to a lab director. Instead use impact-focused labels like: `[{"label": "New Capabilities", "value": "5"}, {"label": "Issues Resolved", "value": "3"}, {"label": "Systems Improved", "value": "4"}, {"label": "Upcoming", "value": "5"}]`. Other good labels: "Reliability Gains", "Tools Delivered", "Workflows Automated", "Bottlenecks Removed".
-- **highlights**: 3-5 items, each a JSON object:
+**Examples of good themes:**
+- "Turnaround Time Overhaul" (groups: scheduler priority PR, auto-recovery PR, batch optimization PR)
+- "Reliability & Stability" (groups: deadlock fix, temp file cleanup, build fix)
+- "Operator Tooling" (groups: dry-run mode, CLI commands, monitoring endpoints)
+
+**Examples of bad themes (too generic):**
+- "Features" / "Bug Fixes" / "Improvements" — these are categories, not themes
+- "Backend Work" / "Various Updates" — too vague to tell a story
+
+Always produce exactly 2 themes. Add a 3rd only when the data clearly supports 3 distinct stories. Never exceed 3.
+
+#### Headline Generation
+
+Write one bold sentence capturing the week's most impactful story. Use specific numbers from PR bodies when available. This is the sentence people remember.
+
+- BAD: "Several improvements to the processing pipeline"
+- GOOD: "Sample processing got dramatically faster — auto-recovery, smarter scheduling, and a 1000x query speedup"
+
+#### Produce the following JSON structure:
+
+- **metadata**: Object with `date_range` (string, e.g. "2026-03-11 – 2026-03-17"), `org` (primary org name), `repos` (array of repo names queried). Derived from the source configuration in Step 1.
+- **headline**: Object containing:
+  - `text`: One bold sentence (see above).
+  - `subtitle`: One supporting sentence with additional context.
+  - `kpis`: Exactly 3 outcome-oriented KPI cards. Each is `{"value": "...", "label": "...", "color": "accent|success|danger|warning"}`.
+    - KPI values are OUTCOMES with real numbers from PR evidence: "30 min" (auto-recovery time), "1000x" (speedup), "3" (bugs eliminated).
+    - NOT activity counts: "12 PRs", "7 features", "45 commits" are meaningless to a lab director.
+    - Always 3 cards. If only 2 strong quantitative outcomes exist, the 3rd can be qualitative (e.g., value: "Fixed", label: "macOS Dev Builds").
+    - Color mapping: `"accent"` = #3498DB, `"success"` = #27AE60, `"danger"` = #E74C3C, `"warning"` = #F39C12.
+- **themes**: Array of 2-3 theme objects, each containing:
   ```json
   {
-    "short_label": "Auto-recovery for stuck samples",  // MAX 8 WORDS — chart label
-    "impact_score": 5,                                   // 1-5, 5=highest
-    "category": "Feature",                               // Feature|Bug Fix|Improvement
-    "user_impact": "Lab users no longer need to manually restart stuck samples — the system detects and recovers them automatically within 30 minutes, eliminating ~5% daily throughput loss from stuck items."  // 1-2 SENTENCES with SPECIFIC EVIDENCE from the PR body (numbers, timeouts, before/after). Not generic platitudes.
+    "title": "Turnaround Time Overhaul",
+    "subtitle": "Faster results for lab users, less manual work for operators",
+    "evidence": [
+      {
+        "claim": "Stuck samples auto-recover in 30 minutes",
+        "detail": "Previously required manual operator intervention, stalling results for hours"
+      }
+    ],
+    "visual_anchor": {
+      "type": "before_after",
+      "before": {"value": "Hours", "detail": "Manual recovery"},
+      "after": {"value": "30 min", "detail": "Auto-recovery, priority queue"}
+    }
   }
   ```
-  The `user_impact` must draw on concrete details from the PR body: timeout values, capacity limits, test counts, endpoint counts, performance improvements, coverage numbers. If the PR body says "retry up to 3 times with 500ms/1s/2s backoff", translate that into impact: "The system now automatically retries failed operations up to 3 times before alerting, reducing false alarms."
-- **bug_fixes**: list of `{"short_label": "...", "user_explanation": "..."}`. `short_label` MAX 8 WORDS. `user_explanation` is 1-2 sentences: FIRST what users experienced (the symptom), THEN the resolution. Pull specifics from the PR body — if it says "/tmp/ fills with gigabytes of stale data", say exactly that.
-- **coming_soon**: org open PRs as JSON objects `{"short_label": "...", "scope": "small|medium|large", "repo": "...", "user_impact": "..."}`. `short_label` MAX 6 WORDS. `user_impact` is 1 sentence with specifics from the open PR description (e.g. "Interactive terminal dashboard for monitoring all processing nodes across the cluster with one-click shutdown").
-- **side_projects**: 2-3 sentences about personal repo activity. e.g. "Shipped 4 updates to ai-sync, a tool for synchronizing AI coding assistant configurations across machines. Key improvement: pull no longer overwrites local changes."
+  - Each theme has 2-3 evidence items. Each evidence item has a bold `claim` (max 10 words) and a gray `detail` (max 25 words) with specific numbers from PR bodies.
+  - `visual_anchor` type selection:
+    - `"before_after"`: Use when there's a measurable improvement. Fields: `before: {value, detail}`, `after: {value, detail}`.
+    - `"metric_callout"`: Use when one big number tells the story. Fields: `value`, `label`.
+    - `"count_cards"`: Use when the theme is about breadth. Fields: `cards: [{value, label}, ...]`.
+    - `"evidence_list"` (fallback): Use when no quantitative anchor fits. Fields: `items: ["string", ...]`.
+- **impact_focus**: Object describing the week's dominant impact category. Analyze all merged PRs and pick the single most representative category:
+  - **Productivity** — new tools, CLI commands, automation, dev workflows
+  - **Quality of Service** — performance improvements, faster processing, better throughput
+  - **Quality of Life** — UX improvements, easier operations, reduced manual work
+  - **Features** — new capabilities, new modules, new endpoints
+  - **Bug Fixes** — fixing broken behavior, resolving errors
+  - **Stability** — reliability, recovery, resilience, error handling
+  ```json
+  "impact_focus": {
+    "category": "Stability",
+    "summary": "Self-healing pipeline, capacity guards, and temp file cleanup"
+  }
+  ```
+  The `summary` is a short phrase (max 10 words) listing the 2-3 biggest contributions in that category.
+- **whats_next**: Array of max 4 items from open PRs, each: `{"title": "...", "detail": "...", "status": "testing|planned"}`. Title is max 8 words. Detail is max 10 words. Status is lowercase.
+- **side_projects**: 1-2 sentences about personal repo activity, or empty string if none. This field is included in the JSON but is not rendered as its own slide. If non-empty, append it as a footnote line at the bottom of the What's Next slide in 11pt MUTED.
 
-**Rules:** No jargon, no code references, no file paths. Chart labels are SHORT (6-8 words). Every explanatory text must cite **specific evidence from the PR descriptions** — numbers, measurements, concrete before/after differences. Generic statements like "improved reliability" are not acceptable; "auto-recovers stuck samples within 30 minutes instead of requiring manual restart" is. Think of the audience as a lab director who wants to understand impact with supporting evidence.
+**Rules:** No jargon, no code references, no file paths. Every claim must cite specific evidence from PR descriptions. Generic statements like "improved reliability" are not acceptable.
 
 ### 4d. Generate technical narrative (org-first)
 
@@ -297,70 +351,70 @@ Also produce:
 - **impact_areas**: `{"Queue Management": N, "Data Pipeline": N, ...}` — org PRs grouped by functional area
 - **Architecture notes:** cross-repo patterns within the org
 - **Open PR technical status:** org open PRs only, with technical state
+- **Deep-dive data for highlights:** For each highlight from Step 4e (max 3), produce a deep-dive object:
+  - `title`: Short descriptive title (max 6 words)
+  - `problem`: 2-3 sentences describing what was broken/missing/slow before this work
+  - `approach`: 2-3 sentences describing the technical approach and key design decisions
+  - `result`: 2-3 sentences describing the outcome and measurable impact
+  - `visual_anchor`: Same visual anchor system as executive themes (prefer `before_after` or `metric_callout`)
+  - `screenshot_hint`: Description of what to screenshot for this highlight (derived from matched PRs' `screenshot_hint` fields, or a general description)
 
-## Step 4e — Interactive review & enrichment
+### 4e. Spotlight prompt loop
 
-**Before generating the presentations, pause and ask the user targeted questions to enrich the narrative.** This is a conversation — the user knows context that GitHub data can't capture (strategic priorities, stakeholder concerns, demos given, blockers encountered, team dynamics).
+After Step 4d analysis completes, pause and ask:
 
-Present a brief summary of what was found, then ask questions one group at a time. Wait for answers before proceeding.
+> "Before I generate the slides — is there any work from this week you're especially proud of and want to spotlight? Describe it briefly and I'll feature it prominently."
 
-### Round 1 — Headline & framing
+**Interaction loop:**
 
-Show the draft headline and KPI cards, then ask:
+1. User describes something → Claude matches it to one or more merged PRs from the fetched data
+2. Claude confirms: "Got it — I'll spotlight [matched PR title]. Anything else?"
+3. Loop continues until user says "no", "done", "stop", or similar
+4. If user says "skip" or "none" on the first ask, proceed with no highlights
 
-> "Here's what I found this week:
->
-> **Headline:** {draft headline}
-> **KPIs:** {card labels and values}
->
-> Questions:
-> 1. Does this headline capture the most important story? Would you frame the week differently?
-> 2. Any of these highlights more or less important than I've scored them?
-> 3. Is there a strategic angle I'm missing — e.g. a deadline this work unblocks, a stakeholder request it addresses, or a recurring pain point it finally solves?"
+**Store highlights as an array:**
 
-Incorporate the user's answers into the headline, KPI cards, and highlight impact scores/text.
-
-### Round 2 — Context the data can't show
-
-> "A few things I can't tell from the git log:
-> 1. Were there any demos, presentations, or stakeholder conversations this week related to this work?
-> 2. Any blockers, delays, or scope changes worth mentioning?
-> 3. Anything you want to emphasize or downplay in the executive deck?
-> 4. Any additional context for the 'Coming Soon' items — timelines, dependencies, who's waiting on them?"
-
-Incorporate answers into:
-- Highlight `user_impact` text (add stakeholder context, deadline info)
-- Coming soon `user_impact` (add timeline expectations)
-- Executive summary paragraph (add strategic framing)
-- Optionally add a "Key Decisions" or "Blockers" slide if the user provides significant context
-
-### Round 3 — Bug fixes & side projects (quick)
-
-Only ask if there are bug fixes or personal PRs:
-
-> "Quick check on the bug fixes and side projects:
-> 1. {For each bug fix}: Was this causing real user complaints, or was it caught proactively? Any estimate of impact?
-> 2. {If side projects}: Worth mentioning to this audience, or skip entirely?"
-
-Incorporate answers into bug fix `user_explanation` and the side projects section.
-
-### Finalize
-
-After incorporating all answers, print the updated summary:
-
-```
-Updated narrative:
-  Headline: {updated}
-  KPIs: {updated}
-  Top highlights: {updated list with scores}
-  Bug fixes: {count}
-  Coming soon: {count}
-  Side projects: {included/skipped}
-
-Generating presentations...
+```json
+[
+  {
+    "description": "user's own words",
+    "matched_prs": ["url1", "url2"],
+    "pr_titles": ["title1", "title2"]
+  }
+]
 ```
 
-If the user says "skip" or "just generate" at any point, skip remaining questions and proceed with the data as-is.
+If no highlights were provided, set `highlights` to an empty array and proceed normally. After collecting highlights, finalize the Step 4d deep-dive data before proceeding to Step 4f.
+
+### 4f. "What I Learned" prompt
+
+After spotlights, ask:
+
+> "One more thing — what's something you learned this week? A technique, tool insight, debugging lesson, or interesting discovery. I'll create a visual for it."
+
+**Interaction:**
+
+1. User describes a learning → Claude distills it into a learning object
+2. Claude confirms: "Got it — I'll visualize that. Anything else you learned?"
+3. Loop continues until user says "no", "done", or similar (max 3 learnings)
+4. If user says "skip" or "none" on the first ask, proceed with no learnings
+
+**For each learning, produce:**
+
+- `title`: Short title (max 6 words)
+- `insight`: 1-2 sentence description of the learning
+- `visual_type`: One of:
+  - `"analogy"` — before/after or comparison (use when the learning involves a contrast or improvement)
+  - `"diagram"` — flow or process (use when the learning involves steps or a pipeline)
+  - `"quote_card"` — emphasized text with styled background (use when the learning is a principle or insight)
+  - `"chart"` — data-based visualization (use when the learning involves numbers)
+- `visual_data`: Type-specific data for the renderer:
+  - `analogy`: `{"before": {"label": "...", "value": "..."}, "after": {"label": "...", "value": "..."}}`
+  - `diagram`: `{"steps": ["Step 1", "Step 2", "Step 3"]}`
+  - `quote_card`: `{"quote": "The key insight in one sentence", "attribution": "Context"}`
+  - `chart`: `{"labels": ["A", "B"], "values": [10, 90], "chart_type": "bar"}`
+
+Store as a `learnings` array. If empty, set to `[]`.
 
 ## Step 5 — Write JSON handoff & generate presentations
 
@@ -377,12 +431,45 @@ Write all content from Step 4 to `/tmp/weekly_review_data.json` with this struct
   "start_date": "YYYY-MM-DD",
   "end_date": "YYYY-MM-DD",
   "executive": {
-    "headline": "...",
-    "kpi_cards": [{"label": "...", "value": "..."}],
-    "highlights": [{"short_label": "...", "impact_score": 5, "category": "Feature", "user_impact": "1-2 sentence explanation of why this matters to users"}],
-    "bug_fixes": [{"short_label": "...", "user_explanation": "What was broken and how it affects users"}],
-    "coming_soon": [{"short_label": "...", "scope": "medium", "repo": "...", "user_impact": "Why this matters"}],
-    "side_projects": "..."
+    "metadata": {
+      "date_range": "2026-03-11 – 2026-03-17",
+      "org": "metabolomics-us",
+      "repos": ["repo1", "repo2"]
+    },
+    "headline": {
+      "text": "Sample processing got dramatically faster",
+      "subtitle": "Auto-recovery, smarter scheduling, and a 1000x query speedup",
+      "kpis": [
+        {"value": "30 min", "label": "Auto-Recovery", "color": "accent"},
+        {"value": "1000x", "label": "Queue Speedup", "color": "accent"},
+        {"value": "3", "label": "Bugs Eliminated", "color": "success"}
+      ]
+    },
+    "themes": [
+      {
+        "title": "Turnaround Time Overhaul",
+        "subtitle": "Faster results for lab users, less manual work for operators",
+        "evidence": [
+          {
+            "claim": "Stuck samples auto-recover in 30 minutes",
+            "detail": "Previously required manual operator intervention"
+          }
+        ],
+        "visual_anchor": {
+          "type": "before_after",
+          "before": {"value": "Hours", "detail": "Manual recovery, FIFO queue"},
+          "after": {"value": "30 min", "detail": "Auto-recovery, priority queue"}
+        }
+      }
+    ],
+    "whats_next": [
+      {
+        "title": "Interactive node dashboard",
+        "detail": "Terminal UI for processing nodes",
+        "status": "testing"
+      }
+    ],
+    "side_projects": ""
   },
   "technical": {
     "stats": {
@@ -445,7 +532,33 @@ Write all content from Step 4 to `/tmp/weekly_review_data.json` with this struct
         "related_pr_url": "..."
       }
     ]
-  }
+  },
+  "highlights": [
+    {
+      "user_description": "The scheduling recovery system — really proud of how it handles all edge cases",
+      "matched_pr_urls": ["https://github.com/..."],
+      "matched_pr_titles": ["feat: scheduling recovery..."],
+      "deep_dive": {
+        "title": "Scheduling Recovery System",
+        "problem": "Samples stuck in SCHEDULING state were lost forever when SQS sends failed",
+        "approach": "Added Phase 1.5 detection with configurable 30-minute timeout and capacity-aware rescheduling",
+        "result": "Stuck samples now auto-recover without operator intervention, with structured cycle metrics for visibility",
+        "visual_anchor": {"type": "before_after", "before": {"value": "...", "detail": "..."}, "after": {"value": "...", "detail": "..."}},
+        "screenshot_hint": "CLI table showing sync cycle metrics with recovery counts"
+      }
+    }
+  ],
+  "learnings": [
+    {
+      "title": "Bulk queries beat N+1",
+      "insight": "Replacing per-sample DB lookups with a single bulk query improved performance 1000x for 100k samples",
+      "visual_type": "analogy",
+      "visual_data": {
+        "before": {"label": "N+1 Queries", "value": "Minutes"},
+        "after": {"label": "Bulk Query", "value": "Milliseconds"}
+      }
+    }
+  ]
 }
 ```
 
@@ -525,31 +638,24 @@ plt.rcParams.update({
 
 ### DESIGN PRINCIPLE: VISUAL + CONTEXT
 
-**The executive deck tells a story to non-technical stakeholders.** Each slide pairs a visual (chart, dashboard, diagram) with brief explanatory text that answers "why does this matter?" Charts alone are too cryptic for a lab director — they need 1-2 sentences of context per visual.
+**The executive deck tells a story to non-technical stakeholders.** Each slide has a clear visual element — KPI cards, evidence-and-anchor layouts, or status rows — paired with concise explanatory text that answers "why does this matter?"
 
-**Balance rule: ~50% visual, ~50% concise text.** Charts grab attention, text provides meaning.
-
-- Every chart slide includes 2-3 sentences explaining what the audience is looking at and why it's important.
-- Bullets: max 5 per slide, max 20 words each. Plain English, user-impact focused.
-- KPI cards use BIG numbers (40pt+) with tiny labels.
-- Use matplotlib for data visualization. Charts should be clear enough to understand in 3 seconds.
+**Balance rule: every slide has one job.** The headline slide sets the week's story with 3 outcome KPIs. Theme slides pair evidence bullets with a visual anchor. The What's Next slide is scannable rows. No charts for the sake of charts — only visuals that add insight.
 
 **The technical deck is more chart-heavy** (~70% visual) since the audience understands the data.
 
 ---
 
-### Executive deck — `CWD/weekly-review-executive-YYYY-MM-DD.pptx` (max 10 slides)
+### Executive deck — `CWD/weekly-review-executive-YYYY-MM-DD.pptx` (5-9 slides)
 
 | # | Slide | Content |
 |---|-------|---------|
-| 1 | **Title** | "Development Update" large title. Org name(s) + date range as subtitle. Clean, minimal. |
-| 2 | **Headline & Summary** | The `headline` as large 22pt text at top — this frames the week's story. Below: 3-4 KPI cards with **outcome-oriented metrics** that a non-technical executive cares about. NOT commits/PRs — instead use metrics like "Systems Improved", "Issues Resolved", "New Capabilities", "Reliability Gains". E.g. `{"label": "New Capabilities", "value": "5"}, {"label": "Issues Resolved", "value": "3"}, {"label": "Systems Improved", "value": "4"}, {"label": "Upcoming", "value": "5"}`. Below cards: 2-3 sentence executive summary of the week's impact in plain English. |
-| 3 | **What We Delivered** | **Left 55%: horizontal bar chart** of highlights (short_label on y-axis, impact_score on x-axis, colored by category). **Right 40%: 3-5 plain-English bullets** explaining the top items and their user/lab impact. Each bullet is 1 sentence, max 20 words, answering "what does this mean for users?" Title: "Key Deliverables". |
-| 4 | **Impact Details** | **Top 3 highlights expanded.** For each: a short title (bold, 16pt) + 1-2 sentences explaining the user-facing benefit in plain English (14pt). Use numbered items or small accent-colored cards. No jargon. Think: "Lab users now get their results 2x faster because the system automatically handles stuck samples instead of waiting for manual fixes." This is the slide people actually read and discuss. |
-| 5 | **Issues Fixed** | **2-4 plain-English bullets** explaining what was broken and how it's now fixed, from the user's perspective. Each starts with what users experienced ("Processing servers were running out of disk space") followed by the resolution ("this is now cleaned up automatically"). No charts — just clear, readable explanations. **Skip if no bug fixes.** |
-| 6 | **Where We Focused** | **Donut chart of `impact_areas`** with total in center. Title: "Focus Areas". Below: 1-2 sentence caption explaining what the areas mean in plain language (e.g. "Most work focused on making the sample processing pipeline more reliable and self-healing"). Skip category_counts donut — that's a developer metric. |
-| 7 | **What's Coming** | **2-4 plain-English bullets** describing the most important upcoming work and their expected user impact. Each item: bold short title + 1 sentence of context. Title: "Coming Soon". **Skip if no open PRs.** |
-| 8 | **Side Projects** | Only if personal activity exists. Brief section in MUTED: 2-3 sentences about personal repo activity. **Skip if no personal activity.** |
+| 1 | **Title** | "Development Update" large title. Author's full name (from `author_name`) in 20pt SECONDARY below the title. Org name(s) + date range as subtitle below that. **Impact line:** "This week's focus: {category} — {summary}" in 16pt italic MUTED, positioned at bottom third of slide (y=5.5"). Light background (#F8F9FA). Clean, minimal. |
+| 2 | **Headline & KPIs** | Light gray background (#F8F9FA). The `headline.text` as 28pt bold text at top. `headline.subtitle` as 16pt gray text below. 3 KPI cards at bottom — white rounded rectangles with subtle border (#E0E0E0), large number (36pt bold, color from `kpis[].color` token mapped to hex), small uppercase label (11pt, MUTED) below. Color token mapping: `"accent"` → #3498DB, `"success"` → #27AE60, `"danger"` → #E74C3C, `"warning"` → #F39C12. |
+| 3-4 | **Theme Slides** (2, or 3 if data supports it) | White background. Theme `title` as 24pt bold at top, `subtitle` as 14pt gray below. **Left column (60%):** 2-3 evidence bullets, each with a 3px blue (#3498DB) left border. Bold `claim` (14pt, PRIMARY) + gray `detail` (12pt, MUTED) below. **Right column (40%):** Visual anchor, rendered by type: **`before_after`**: Two stacked rounded rectangles — red top (#FDF2F2 bg, #E74C3C text) with "Before" label + value + detail, arrow "↓" between, green bottom (#F0FAF4 bg, #27AE60 text) with "After" label + value + detail. **`metric_callout`**: Single large centered number (48pt bold, ACCENT) with label (14pt, MUTED). **`count_cards`**: 2-3 small stat boxes side by side, each with bold number + small label. **`evidence_list`**: Compact bulleted list of items in SECONDARY 12pt. |
+| 5-7 | **Spotlight slides** (0-3) | **One per highlight.** Title: "Spotlight: [title]" (24pt bold PRIMARY). **Left 55%:** problem text (2 sentences, 14pt SECONDARY) + spacer + result text (2 sentences, 14pt bold SUCCESS) + user's description in quotes (12pt italic MUTED). **Right 45%:** large screenshot placeholder (dashed border rectangle filling right side, "Screenshot: [hint]" in MUTED 14pt centered). Simple narrative layout — no PROBLEM/APPROACH/RESULT labels. Cap at 3 slides. **Skip if no highlights.** |
+| | **What I Learned** | White background. Title "What I Learned" (24pt bold PRIMARY). 1-3 learning cards arranged horizontally as rounded rectangles. Each card: matplotlib-generated visual in top half (analogy comparison, flow diagram, styled quote card, or chart), title (14pt bold PRIMARY) and insight text (12pt SECONDARY) in bottom half. Card sizing: 1 card = full width, 2 = side-by-side, 3 = three across. **Skip if no learnings.** |
+| Last | **What's Next** | White background. Title "What's Next" (24pt bold). Max 4 rows, each on a light gray (#F8F9FA) row background with rounded corners. Each row: status pill (small rounded rectangle — TESTING = #F39C12, PLANNED = #3498DB, white text, 9pt bold) + title (14pt bold, PRIMARY) + detail (12pt, MUTED). |
 
 ---
 
@@ -564,7 +670,10 @@ plt.rcParams.update({
 | 5 | **Code Volume** | **Full-slide grouped bar chart.** For each repo: green bar (additions) up, red bar (deletions) beside it. Net change as annotation above each group. Title: "Code Volume". |
 | 6 | **Architecture** | **Visual repo-relationship diagram** built with matplotlib. Each repo as a colored circle/node (size = commit count). Lines between repos if PRs reference both. Annotations with short description of cross-repo patterns. Fallback: if only 1 repo, just show a single labeled circle with key stats around it. **Skip if trivial.** |
 | 7–N | **PR Detail slides** | **One slide per significant non-minor org PR. MAX 3 lines of text per slide.** Layout: Title (22pt, 1 line). One-sentence "what changed" (14pt, max 15 words). One-sentence "why" (14pt italic SUCCESS, max 15 words). Right side: colored category badge + impact area badge + merge date. If additions/deletions available: +/- badge. **If `screenshot_worthy` is true**: add a large gray dashed-border placeholder rectangle (60% of slide, centered) with text "Screenshot: {screenshot_hint}" in MUTED 14pt — this signals the presenter to paste an actual screenshot before presenting. **Cap at 15 slides.** |
-| N+1 | **Minor & Personal** | **Combined into one compact slide.** Two sections: "Minor Changes" (small table: title, repo, category — max 5 rows). "Side Projects" (small table: title, repo, one-liner — max 5 rows). Tables use MUTED styling. **Skip if neither exists.** |
+| N+1… | **Deep Dive: [title] — Problem & Approach** | **Slide 1 of each highlight (max 3 highlights).** Title: "Deep Dive: [title]" (22pt bold PRIMARY). Left 60%: "PROBLEM" label (9pt DANGER) + text (12pt SECONDARY), then "APPROACH" label (9pt ACCENT) + text (12pt SECONDARY). Right 40%: visual anchor (same rendering as executive theme slides). **Skip if no highlights.** |
+| | **Deep Dive: [title] — Changes** | **Slide 2 of each highlight.** Title: "What Changed" (22pt bold PRIMARY), subtitle: "[title]" (14pt MUTED). List all matched PRs for this highlight with their `what_changed` one-liner (14pt SECONDARY) and repo badge. 1-2 PRs: show with more detail. 3+ PRs: compact table. Screenshot placeholder if any matched PR is `screenshot_worthy`. |
+| | **Deep Dive: [title] — Results** | **Slide 3 of each highlight.** Title: "Results & Impact" (22pt bold PRIMARY). "RESULT" label (9pt SUCCESS) + result text (14pt SECONDARY). Visual anchor (large, centered). Key metrics or test evidence from PR bodies. Screenshot placeholder at bottom right. |
+| | **Minor & Personal** | **Combined into one compact slide.** Two sections: "Minor Changes" (small table: title, repo, category — max 5 rows). "Side Projects" (small table: title, repo, one-liner — max 5 rows). Tables use MUTED styling. **Skip if neither exists.** |
 | N+2 | **Open PRs** | **Visual pipeline.** Matplotlib horizontal bar chart where each open PR is a bar, width = rough scope, colored by repo. Bar labels = short PR title (max 6 words). Title: "In Progress". **Skip if none.** |
 | Last | **Links** | Compact URL reference. Repo name as small blue header, PR links as 9pt MUTED text. Minimal space — this is a reference slide, not for presenting. |
 
@@ -582,6 +691,129 @@ plt.rcParams.update({
 - For category pills: small rounded rectangles with category-appropriate fill color
 - Accept output directory as `sys.argv[1]` (default to current directory)
 - Print the absolute paths of both generated files on success
+
+**Executive deck renderer — new slide types:**
+
+The executive section of the Python renderer must generate these slides from the `executive` key in the JSON:
+
+**Slide 1 (Title):** "Development Update" as 32pt bold PRIMARY. Author's full name (from `data["author_name"]`) as 20pt SECONDARY below title. Org names + date range as 18pt SECONDARY below that. Impact line: `"This week's focus: {category} — {summary}"` from `executive.impact_focus`, rendered as 16pt italic MUTED at y=5.5". Use BG_LIGHT fill for slide background.
+
+**Slide 2 (Headline + KPIs):**
+- Background: BG_LIGHT (#F8F9FA) — add a full-slide rounded rectangle with BG_LIGHT fill behind everything
+- Headline text: 28pt bold PRIMARY, positioned at (0.7", 0.5"), width 11", word wrap
+- Subtitle: 16pt MUTED, below headline
+- 3 KPI cards at bottom: white rounded rectangles with CARD_BORDER (#E0E0E0) border, centered horizontally
+  - Card width: 3.5", height: 1.4", gap: 0.5" between cards
+  - Value: 36pt bold, color from token mapping (accent→ACCENT, success→SUCCESS, danger→DANGER, warning→WARNING)
+  - Label: 11pt uppercase MUTED, centered below value
+
+**Slides 3-4 (Theme slides):**
+- Background: white
+- Title: 24pt bold PRIMARY at (0.7", 0.4")
+- Subtitle: 14pt MUTED at (0.7", 0.85")
+- Left column (60%, from x=0.7" to x=7.8"):
+  - Evidence bullets starting at y=1.5", each bullet block is ~1.2" tall
+  - Each bullet: blue accent bar shape (0.04" wide, ~0.8" tall, ACCENT fill) at left edge
+  - Claim text: 14pt bold PRIMARY, indented 0.15" right of accent bar
+  - Detail text: 12pt MUTED, same indent, below claim
+- Right column (40%, from x=8.2" to x=12.6"):
+  - Visual anchor rendering by type:
+  - `before_after`: Two stacked rounded rectangles
+    - "Before" box: fill RGBColor(0xFD, 0xF2, 0xF2), y starts at 1.5". Label "BEFORE" in 9pt DANGER uppercase, value in 22pt bold DANGER, detail in 11pt MUTED. Height: 1.6"
+    - Arrow "↓" text between boxes in 18pt MUTED, centered
+    - "After" box: fill RGBColor(0xF0, 0xFA, 0xF4). Same layout as before but SUCCESS colors. Height: 1.6"
+  - `metric_callout`: Single centered block. Value in 48pt bold ACCENT, label in 14pt MUTED below.
+  - `count_cards`: 2-3 small rounded rectangles side by side, each with bold number (24pt ACCENT) and label (10pt MUTED).
+  - `evidence_list`: Bulleted text list, each item 12pt SECONDARY with bullet character "•".
+
+**Slide 5 (What's Next):**
+- Title "What's Next" at (0.7", 0.4"), 24pt bold PRIMARY
+- Each item is a row with light gray (#F8F9FA) rounded rectangle background
+  - Row height: 0.8", gap: 0.3" between rows, starting at y=1.3"
+  - Status pill: small rounded rectangle (width: 1.1", height: 0.35"), centered vertically in row
+    - "testing" → WARNING fill, white 9pt bold text "TESTING"
+    - "planned" → ACCENT fill, white 9pt bold text "PLANNED"
+  - Title: 14pt bold PRIMARY, positioned right of pill
+  - Detail: 12pt MUTED, right-aligned or after title
+
+**Slides 5-7 (Spotlight slides):**
+
+For each entry in the top-level `highlights` array (max 3), generate one Spotlight slide in the executive deck, inserted after theme slides and before What's Next:
+
+- Background: white, with left accent bar
+- Title: "Spotlight: [title]" at (0.7", 0.4"), 24pt bold PRIMARY
+- Left column (55%, x=0.7" to x=7"):
+  - Problem text: 14pt SECONDARY, starting at y=1.3", word-wrapped, max 3 sentences
+  - Result text: 14pt bold SUCCESS, starting at y=3.5", max 3 sentences
+  - User's description in quotes: 12pt italic MUTED, starting at y=5.5"
+- Right column (45%, x=7.3" to x=12.6"):
+  - Large screenshot placeholder: dashed-border rectangle from y=1.3" to y=6.5"
+  - Text inside: "Screenshot: [screenshot_hint or title]" in MUTED 14pt, centered vertically
+- If `highlights` is empty or missing, skip Spotlight slides entirely.
+
+**What I Learned slide:**
+
+For each entry in the top-level `learnings` array (max 3), generate a learning card on a single shared slide:
+
+- Background: white, accent bar
+- Title: "What I Learned" at (0.7", 0.4"), 24pt bold PRIMARY
+- Learning cards starting at y=1.3", arranged horizontally:
+  - Card sizing: 1 card = 11.9" wide, 2 cards = 5.7" each with 0.3" gap, 3 cards = 3.7" each with 0.3" gap
+  - Each card: rounded rectangle with BG_LIGHT fill, height 5.5"
+  - Top half (~3"): matplotlib-generated visual embedded as image, based on `visual_type`:
+    - `"analogy"`: Two horizontal bars — red "before" bar (shorter) and green "after" bar (longer), with labels and values
+    - `"diagram"`: Horizontal flow with boxes connected by arrows, each box containing a step label
+    - `"quote_card"`: Large opening quote mark ("\u201C") in ACCENT 72pt, quote text in 16pt bold PRIMARY, attribution in 11pt MUTED below
+    - `"chart"`: Simple bar or line chart from `visual_data.labels` and `visual_data.values`
+  - Bottom half (~2.5"): title (14pt bold PRIMARY, centered) + insight text (12pt SECONDARY, centered, word-wrapped)
+- If `learnings` is empty or missing, skip this slide entirely.
+
+**Removed from executive renderer:**
+- The `make_hbar_highlights()` chart call and "Key Deliverables" slide
+- The "Impact Details" expanded text slide
+- The "Issues Resolved" slide (bug fixes are now folded into themes)
+- The `make_donut_chart()` call and "Focus Areas" slide
+- The "In Testing & Coming Soon" paragraph-style slide
+- The "Side Projects" slide
+- The `extract_status_tag()` helper (no longer needed for executive deck)
+- The hardcoded `exec_summary` paragraph
+
+**Kept for executive renderer:**
+- `new_slide()`, `add_accent_bar()`, `add_text_box()`, `add_paragraph()`, `set_run()`, `add_rounded_card()`, `trunc()` helpers
+- `SLIDE_W`, `SLIDE_H`, `FONT`, and all color constants
+- The title slide (Slide 1) — just update background to BG_LIGHT
+
+**Technical deck renderer — Deep Dive slides (3 per highlight):**
+
+For each entry in the top-level `highlights` array (max 3), generate **3 slides** in the technical deck, inserted after the PR Detail slides and before Minor & Personal:
+
+**Slide 1 — Problem & Approach:**
+- Background: white, accent bar
+- Title: "Deep Dive: [title]" at (0.7", 0.4"), 22pt bold PRIMARY
+- Left 60% (x=0.7" to x=7.8"):
+  - "PROBLEM" label: 9pt uppercase bold DANGER at y=1.3", text: 12pt SECONDARY below (~1.5" block)
+  - "APPROACH" label: 9pt uppercase bold ACCENT, text: 12pt SECONDARY below (~1.5" block)
+- Right 40% (x=8.2" to x=12.6"): Visual anchor (same rendering as executive theme slides)
+
+**Slide 2 — What Changed:**
+- Background: white, accent bar
+- Title: "What Changed" at (0.7", 0.4"), 22pt bold PRIMARY
+- Subtitle: "[title]" at (0.7", 0.85"), 14pt MUTED
+- List all matched PRs for this highlight starting at y=1.5":
+  - Each PR: repo badge (small rounded rectangle, ACCENT fill, 9pt white) + `what_changed` text (14pt SECONDARY) + `why` text (12pt MUTED italic)
+  - If 1-2 PRs: show with more detail (2 lines each)
+  - If 3+ PRs: compact single-line format
+- Screenshot placeholder at bottom (y=4.5" to y=6.8") if any matched PR has `screenshot_worthy: true`. Text: "Screenshot: [screenshot_hint]"
+
+**Slide 3 — Results & Impact:**
+- Background: white, accent bar
+- Title: "Results & Impact" at (0.7", 0.4"), 22pt bold PRIMARY
+- Subtitle: "[title]" at (0.7", 0.85"), 14pt MUTED
+- "RESULT" label: 9pt uppercase bold SUCCESS at y=1.3", text: 14pt SECONDARY below (3 sentences max)
+- Visual anchor: rendered large and centered at (3", 3.5"), width 7"
+- Screenshot placeholder at bottom-right (x=8", y=5", w=4.6", h=2") if screenshot_hint available
+
+If `highlights` is empty or missing, skip Deep Dive slides entirely.
 
 ### 5c. Execute the script
 
