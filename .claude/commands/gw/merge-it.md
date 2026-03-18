@@ -5,7 +5,14 @@ description: Ship the current changes end-to-end: branch, PR, review, fix, prese
 
 ## Step 0 — Update check
 
-Run `~/.gw-skills/check-update.sh` using Bash. If the output contains `UPDATE_AVAILABLE`, tell the user how many commits behind they are and ask: "gw-skills has updates available. Run /gw:update to install them, or continue?" If they want to update, invoke `/gw:update` and stop. Otherwise continue. If the script is missing or fails, skip silently.
+Resolve the gw-skills repo directory and run its update check script:
+
+```bash
+GW_REPO="$(cd "$(readlink ~/.claude/commands/gw)/../../.." 2>/dev/null && pwd)" || GW_REPO="$HOME/.gw-skills"
+bash "$GW_REPO/check-update.sh" 2>/dev/null || true
+```
+
+If the output contains `UPDATE_AVAILABLE`, tell the user how many commits behind they are and ask: "gw-skills has updates available. Run /gw:update to install them, or continue?" If they want to update, invoke `/gw:update` and stop. Otherwise continue. If the script is missing or fails, skip silently.
 
 ---
 
