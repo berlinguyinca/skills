@@ -79,3 +79,356 @@ Otherwise, continue to Phase 1.
 ```bash
 mkdir -p .saas-ideas/harvest .saas-ideas/deep-dive
 ```
+
+---
+
+## Phase 1 — Parallel Harvest
+
+Launch 6 background agents to harvest trending signals from different internet sources. Each agent writes its findings to a dedicated file in `.saas-ideas/harvest/`.
+
+### Source access strategy
+
+| Source | Tool | Method |
+|--------|------|--------|
+| Hacker News | `WebFetch` | Fetch `https://news.ycombinator.com`, `https://news.ycombinator.com/show`, `https://news.ycombinator.com/ask` directly — plain HTML |
+| IndieHackers | `WebSearch` | Search `site:indiehackers.com` + relevant keywords — may require auth |
+| Product Hunt | `WebSearch` | Search `site:producthunt.com` + "launched today/this week" — JS-heavy |
+| Reddit | `WebFetch` | Fetch `https://old.reddit.com/r/{subreddit}/top/?t=week` — old.reddit renders HTML. Fallback: `WebSearch` with `site:reddit.com` |
+| Twitter/X | `WebSearch` | Search queries like "trending SaaS twitter 2026". Do NOT `WebFetch` twitter.com — requires auth. |
+| Google Trends | `WebSearch` | Search `"google trends" rising searches {category}`. Do NOT `WebFetch` trends.google.com — JS-rendered. |
+| GitHub Trending | `WebFetch` | Fetch `https://github.com/trending` and `https://github.com/trending?since=weekly` — plain HTML |
+| TechCrunch/Verge/Ars | `WebSearch` + `WebFetch` | `WebSearch` for recent articles, then `WebFetch` top results |
+
+### Focus filter propagation
+
+When FOCUS is set, inject this block into every agent prompt as `{FOCUS_BLOCK}`:
+
+> Focus your research on the **{FOCUS}** domain. Only surface signals directly relevant to {FOCUS}. Ignore signals from unrelated domains.
+
+When FOCUS is empty, set `{FOCUS_BLOCK}` to an empty string (omit entirely).
+
+### Building PREVIOUS_IDEAS
+
+Read `history.json` and collect all idea titles from previous runs. Format them as a bullet list and inject as `{PREVIOUS_IDEAS}`. If `history.json` has no previous runs, set `{PREVIOUS_IDEAS}` to "None — this is the first run."
+
+---
+
+### Agent 1: HN + IndieHackers
+
+Launch a background Agent (`subagent_type="general-purpose"`) with this prompt:
+
+```
+You are a trend researcher analyzing Hacker News and IndieHackers for SaaS opportunities.
+
+{FOCUS_BLOCK}
+
+**Source access:**
+- WebFetch `https://news.ycombinator.com` (front page)
+- WebFetch `https://news.ycombinator.com/show` (Show HN)
+- WebFetch `https://news.ycombinator.com/ask` (Ask HN)
+- WebSearch `site:indiehackers.com SaaS ideas 2026`
+- WebSearch `site:indiehackers.com "revenue" OR "MRR" OR "launched"`
+
+For any promising HN threads, WebFetch the comments page (e.g. `https://news.ycombinator.com/item?id=XXXXX`) to extract pain points from discussion.
+
+**Previously surfaced ideas (skip these):** {PREVIOUS_IDEAS}
+
+Research current trends, pain points, and opportunities. For each signal you find, extract structured data.
+
+Write your findings to `.saas-ideas/harvest/01-hackernews-indiehackers.md` in this format:
+
+```markdown
+# HN + IndieHackers Harvest
+
+**Date:** {today's date}
+**Sources checked:** {list of URLs/queries used}
+**Sources that failed:** {list of any that returned empty/error, with reason}
+
+## Signals
+
+### {Signal title}
+**Source:** {URL}
+**Category:** {devtools|healthcare|fintech|education|ecommerce|productivity|...}
+**Signal type:** {trending|pain-point|launch|funding|search-demand|oss-opportunity}
+**Strength:** high|medium|low
+**Summary:** {2-3 sentences}
+**SaaS angle:** {how this could become a SaaS product}
+```
+
+Aim for 5-15 signals. Quality over quantity.
+```
+
+---
+
+### Agent 2: Product Hunt
+
+Launch a background Agent (`subagent_type="general-purpose"`) with this prompt:
+
+```
+You are a trend researcher analyzing Product Hunt for SaaS opportunities.
+
+{FOCUS_BLOCK}
+
+**Source access:**
+- WebSearch `site:producthunt.com "launched" SaaS 2026`
+- WebSearch `site:producthunt.com "product of the day" OR "product of the week"`
+- WebSearch `site:producthunt.com trending SaaS tools`
+- WebSearch `producthunt.com top products this week`
+
+For any highly upvoted launches, try WebFetch on the Product Hunt URL to get details. If it fails (JS-heavy), rely on the WebSearch snippets.
+
+**Previously surfaced ideas (skip these):** {PREVIOUS_IDEAS}
+
+Research current trends, pain points, and opportunities. For each signal you find, extract structured data.
+
+Write your findings to `.saas-ideas/harvest/02-producthunt.md` in this format:
+
+```markdown
+# Product Hunt Harvest
+
+**Date:** {today's date}
+**Sources checked:** {list of URLs/queries used}
+**Sources that failed:** {list of any that returned empty/error, with reason}
+
+## Signals
+
+### {Signal title}
+**Source:** {URL}
+**Category:** {devtools|healthcare|fintech|education|ecommerce|productivity|...}
+**Signal type:** {trending|pain-point|launch|funding|search-demand|oss-opportunity}
+**Strength:** high|medium|low
+**Summary:** {2-3 sentences}
+**SaaS angle:** {how this could become a SaaS product}
+```
+
+Aim for 5-15 signals. Quality over quantity.
+```
+
+---
+
+### Agent 3: Reddit
+
+Launch a background Agent (`subagent_type="general-purpose"`) with this prompt:
+
+```
+You are a trend researcher analyzing Reddit for SaaS opportunities.
+
+{FOCUS_BLOCK}
+
+**Source access:**
+- WebFetch `https://old.reddit.com/r/SaaS/top/?t=week`
+- WebFetch `https://old.reddit.com/r/startups/top/?t=week`
+- WebFetch `https://old.reddit.com/r/Entrepreneur/top/?t=week`
+- WebFetch `https://old.reddit.com/r/microsaas/top/?t=week`
+- WebFetch `https://old.reddit.com/r/IndieBiz/top/?t=week`
+
+If any WebFetch call fails, fall back to `WebSearch` with `site:reddit.com r/{subreddit} SaaS`.
+
+For highly upvoted threads, WebFetch the full thread URL (old.reddit.com version) to extract pain points and ideas from comments.
+
+**Previously surfaced ideas (skip these):** {PREVIOUS_IDEAS}
+
+Research current trends, pain points, and opportunities. For each signal you find, extract structured data.
+
+Write your findings to `.saas-ideas/harvest/03-reddit.md` in this format:
+
+```markdown
+# Reddit Harvest
+
+**Date:** {today's date}
+**Sources checked:** {list of URLs/queries used}
+**Sources that failed:** {list of any that returned empty/error, with reason}
+
+## Signals
+
+### {Signal title}
+**Source:** {URL}
+**Category:** {devtools|healthcare|fintech|education|ecommerce|productivity|...}
+**Signal type:** {trending|pain-point|launch|funding|search-demand|oss-opportunity}
+**Strength:** high|medium|low
+**Summary:** {2-3 sentences}
+**SaaS angle:** {how this could become a SaaS product}
+```
+
+Aim for 5-15 signals. Quality over quantity.
+```
+
+---
+
+### Agent 4: Twitter/X + Social
+
+Launch a background Agent (`subagent_type="general-purpose"`) with this prompt:
+
+```
+You are a trend researcher analyzing Twitter/X and social media for SaaS opportunities.
+
+{FOCUS_BLOCK}
+
+**Source access:**
+- WebSearch `trending SaaS twitter 2026`
+- WebSearch `"SaaS idea" OR "micro SaaS" site:twitter.com OR site:x.com`
+- WebSearch `SaaS trends 2026 social media`
+- WebSearch `"building in public" SaaS launch 2026`
+- WebSearch `"just launched" SaaS OR "side project" 2026`
+
+Do NOT attempt to WebFetch twitter.com or x.com — these require authentication and will fail.
+
+**Previously surfaced ideas (skip these):** {PREVIOUS_IDEAS}
+
+Research current trends, pain points, and opportunities. For each signal you find, extract structured data.
+
+Write your findings to `.saas-ideas/harvest/04-twitter.md` in this format:
+
+```markdown
+# Twitter/X + Social Harvest
+
+**Date:** {today's date}
+**Sources checked:** {list of URLs/queries used}
+**Sources that failed:** {list of any that returned empty/error, with reason}
+
+## Signals
+
+### {Signal title}
+**Source:** {URL}
+**Category:** {devtools|healthcare|fintech|education|ecommerce|productivity|...}
+**Signal type:** {trending|pain-point|launch|funding|search-demand|oss-opportunity}
+**Strength:** high|medium|low
+**Summary:** {2-3 sentences}
+**SaaS angle:** {how this could become a SaaS product}
+```
+
+Aim for 5-15 signals. Quality over quantity.
+```
+
+---
+
+### Agent 5: Google Trends + SEO
+
+Launch a background Agent (`subagent_type="general-purpose"`) with this prompt:
+
+```
+You are a trend researcher analyzing Google Trends and SEO signals for SaaS opportunities.
+
+{FOCUS_BLOCK}
+
+**Source access:**
+- WebSearch `"google trends" rising searches SaaS 2026`
+- WebSearch `"google trends" breakout topics software tools`
+- WebSearch `fastest growing SaaS categories 2026`
+- WebSearch `"search volume" increasing SaaS tools 2026`
+- WebSearch `emerging software niches 2026 underserved`
+
+Do NOT attempt to WebFetch trends.google.com — it is JS-rendered and will return empty content.
+
+**Previously surfaced ideas (skip these):** {PREVIOUS_IDEAS}
+
+Research current trends, pain points, and opportunities. For each signal you find, extract structured data.
+
+Write your findings to `.saas-ideas/harvest/05-google-trends.md` in this format:
+
+```markdown
+# Google Trends + SEO Harvest
+
+**Date:** {today's date}
+**Sources checked:** {list of URLs/queries used}
+**Sources that failed:** {list of any that returned empty/error, with reason}
+
+## Signals
+
+### {Signal title}
+**Source:** {URL}
+**Category:** {devtools|healthcare|fintech|education|ecommerce|productivity|...}
+**Signal type:** {trending|pain-point|launch|funding|search-demand|oss-opportunity}
+**Strength:** high|medium|low
+**Summary:** {2-3 sentences}
+**SaaS angle:** {how this could become a SaaS product}
+```
+
+Aim for 5-15 signals. Quality over quantity.
+```
+
+---
+
+### Agent 6: GitHub + Tech News
+
+Launch a background Agent (`subagent_type="general-purpose"`) with this prompt:
+
+```
+You are a trend researcher analyzing GitHub Trending and tech news sites for SaaS opportunities.
+
+{FOCUS_BLOCK}
+
+**Source access:**
+- WebFetch `https://github.com/trending` (today's trending repos)
+- WebFetch `https://github.com/trending?since=weekly` (this week's trending repos)
+- WebSearch `site:techcrunch.com SaaS startup launch 2026`
+- WebSearch `site:theverge.com software tools 2026`
+- WebSearch `site:arstechnica.com SaaS OR "developer tools" 2026`
+
+For any promising WebSearch results from tech news sites, WebFetch the article URL to get full details.
+
+Look for OSS projects gaining traction that could inspire SaaS wrappers, hosted versions, or complementary tools.
+
+**Previously surfaced ideas (skip these):** {PREVIOUS_IDEAS}
+
+Research current trends, pain points, and opportunities. For each signal you find, extract structured data.
+
+Write your findings to `.saas-ideas/harvest/06-github-technews.md` in this format:
+
+```markdown
+# GitHub + Tech News Harvest
+
+**Date:** {today's date}
+**Sources checked:** {list of URLs/queries used}
+**Sources that failed:** {list of any that returned empty/error, with reason}
+
+## Signals
+
+### {Signal title}
+**Source:** {URL}
+**Category:** {devtools|healthcare|fintech|education|ecommerce|productivity|...}
+**Signal type:** {trending|pain-point|launch|funding|search-demand|oss-opportunity}
+**Strength:** high|medium|low
+**Summary:** {2-3 sentences}
+**SaaS angle:** {how this could become a SaaS product}
+```
+
+Aim for 5-15 signals. Quality over quantity.
+```
+
+---
+
+### Launch all harvest agents
+
+Launch ALL 6 agents in a SINGLE message using the Agent tool. Each call must set `run_in_background=true`. Do not wait for one agent to finish before launching the next — they all run in parallel.
+
+After launching, you will be notified as each background agent completes. Wait for ALL 6 to finish before proceeding.
+
+---
+
+### Harvest validation
+
+After all agents complete, validate the harvest results:
+
+1. Check each expected file exists and has at least one `### ` signal heading:
+   - `.saas-ideas/harvest/01-hackernews-indiehackers.md`
+   - `.saas-ideas/harvest/02-producthunt.md`
+   - `.saas-ideas/harvest/03-reddit.md`
+   - `.saas-ideas/harvest/04-twitter.md`
+   - `.saas-ideas/harvest/05-google-trends.md`
+   - `.saas-ideas/harvest/06-github-technews.md`
+
+2. Print a status table:
+   ```
+   Harvest Status:
+   [done]   01-hackernews-indiehackers.md   ({N} signals)
+   [done]   02-producthunt.md               ({N} signals)
+   [FAILED] 03-reddit.md                    (file missing)
+   [done]   04-twitter.md                   ({N} signals)
+   ...
+   ```
+   Count signals by grepping for `### ` headings under the `## Signals` section in each file.
+
+3. Apply minimum threshold: at least 3 out of 6 agents must succeed.
+   - If fewer than 3 succeeded: tell the user which agents failed and why (file missing vs. zero signals). Offer to retry only the failed agents. Do not proceed until threshold is met.
+   - If 3 or more succeeded: continue to Phase 2. Note any failures in the Phase 2 synthesis prompt so the synthesizer knows which sources are missing.
