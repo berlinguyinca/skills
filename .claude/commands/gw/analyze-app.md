@@ -741,3 +741,118 @@ If yes:
 git add doc/analysis-report-*.pptx
 git commit -m "docs: add analysis findings presentation"
 ```
+
+## Step 9 — Skill Recommendations & Auto-Install
+
+Skip this step if SKIP_RECOMMEND is true.
+
+### 9a. Detect skill relevance signals
+
+Scan the project for signals that map to specific skills. Run these checks in parallel:
+
+| Signal | Detection | Recommended Skill | Category |
+|--------|-----------|-------------------|----------|
+| No test-before-code git patterns | Git log analysis (same as coding-defaults enforcer) | `superpowers:test-driven-development` | Process |
+| No E2E/Playwright tests | Missing playwright.config, no @playwright/test dep | `superpowers:test-driven-development` | Process |
+| Complex multi-step task ahead (from Priority 1 items) | 3+ Priority 1 items with effort > Quick Win | `superpowers:writing-plans` | Process |
+| Multiple independent subsystems | 3+ specialist dimensions flagged CRITICAL | `superpowers:dispatching-parallel-agents` | Process |
+| Bug or failure patterns detected | Test failures, error patterns in logs | `superpowers:systematic-debugging` | Process |
+| No PR review workflow | Missing `.github/CODEOWNERS`, no PR templates | `superpowers:requesting-code-review` | Process |
+| Active feature branches | 2+ non-default branches | `superpowers:using-git-worktrees` | Process |
+| No presentation/docs workflow | No `doc/` directory with `.pptx` files, no merge-it usage | `gw:merge-it` | Workflow |
+| No periodic review | No weekly review config at `~/.config/gw-skills/weekly-review.json` | `gw:weekly-review` | Workflow |
+| SaaS signals detected (from Step 1) | APP_TYPE = saas or SaaS signals present | `gw:saas-idea` | Workflow |
+| No project planning | Missing `.planning/` directory | `gsd:new-project` | Planning |
+| Existing GSD project with stale phases | `.planning/` exists but no recent phase activity | `gsd:progress` | Planning |
+| No CI/CD pipeline | Missing `.github/workflows/`, `Jenkinsfile`, `.gitlab-ci.yml` | `superpowers:verification-before-completion` | Process |
+
+### 9b. Check what's already available
+
+1. Check which gw-skills are installed: `ls ~/.claude/commands/gw/ 2>/dev/null`
+2. Check which GSD skills are installed: `ls ~/.claude/commands/gsd/ 2>/dev/null`
+3. Check if superpowers are available: glob for `~/.claude/plugins/cache/claude-plugins-official/superpowers/` or check if any `superpowers:*` skills appear in the skill list. Superpowers are globally available when installed — they don't need per-project setup.
+4. Read the project's `CLAUDE.md` if it exists — check if any skill references are already documented there
+
+Filter out skills that are already installed or referenced in CLAUDE.md.
+
+### 9c. Present recommendations
+
+Display a recommendations table, grouped by category:
+
+```
+Recommended Skills for {project_name}:
+
+Process Skills:
+  1. [INSTALL] superpowers:test-driven-development
+     Why: No TDD patterns detected, 3 test files have ceremonial assertions
+  2. [AVAILABLE] superpowers:writing-plans
+     Why: 5 Priority 1 items need coordinated implementation
+  3. [INSTALL] superpowers:systematic-debugging
+     Why: Test failures detected in 2 modules
+
+Workflow Skills:
+  4. [INSTALL] gw:merge-it
+     Why: No presentation workflow — changes go undocumented
+  5. [AVAILABLE] gw:weekly-review
+     Why: Already installed, recommend configuring for this repo
+
+Planning Skills:
+  6. [INSTALL] gsd:new-project
+     Why: No project planning structure detected
+
+[INSTALL] = not yet referenced in project | [AVAILABLE] = installed but not used
+
+Install all recommended [a], select by number [1,3,6], skip [s]?
+```
+
+- **[INSTALL]** means the skill exists in the user's environment but isn't referenced in the project's CLAUDE.md
+- **[AVAILABLE]** means it's already referenced or the user already uses it
+
+### 9d. Install selected skills
+
+For skills the user approves:
+
+**For superpowers skills:** These are already available globally. "Installing" means adding a reference to the project's `CLAUDE.md` so they're top-of-mind. Append to `CLAUDE.md` (create if it doesn't exist):
+
+```markdown
+## Recommended Skills
+
+The following skills were identified by `gw:analyze-app` as beneficial for this project:
+
+- `superpowers:test-driven-development` — Use TDD for all new features and bug fixes
+- `superpowers:writing-plans` — Plan multi-step tasks before coding
+- `superpowers:systematic-debugging` — Use scientific debugging for failures
+```
+
+**For gw: skills:** gw-skills is necessarily already installed (the user is running `gw:analyze-app`). Just add the recommended skill references to CLAUDE.md so they're discoverable for the project.
+
+**For gsd: skills:** Check if GSD is installed (`~/.claude/commands/gsd/` exists).
+- If yes: skills are already available, just add to CLAUDE.md recommendations.
+- If not: tell the user: "GSD workflow tools are available at the GSD repository. Run `/gsd:help` for installation instructions."
+
+### 9e. Configure thinking mode
+
+If the project has complex architectural issues (3+ CRITICAL findings across different dimensions), suggest enabling extended thinking:
+
+```
+This project has complex cross-cutting issues. For best results when implementing fixes:
+- Use extended thinking mode if available (model-dependent)
+- Pair with superpowers:brainstorming before major architectural changes
+- Use superpowers:writing-plans for multi-phase implementations
+```
+
+### 9f. Summary
+
+Print a final summary:
+
+```
+Skills configured for {project_name}:
+  - {N} skills recommended
+  - {N} references added to CLAUDE.md
+  - {N} already available (no action needed)
+
+Next steps:
+  - Run /gw:merge-it when ready to ship changes
+  - Run /gsd:new-project to create a structured implementation plan
+  - Use superpowers:test-driven-development for all new code
+```
