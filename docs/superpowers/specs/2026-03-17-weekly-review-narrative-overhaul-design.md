@@ -200,6 +200,10 @@ The new `executive` value:
         "before": {"value": "Hours", "detail": "Manual recovery, FIFO queue"},
         "after": {"value": "30 min", "detail": "Auto-recovery, priority queue"}
       }
+      // Other visual_anchor variants:
+      // "type": "metric_callout", "value": "1000x", "label": "Queue Speedup"
+      // "type": "count_cards", "cards": [{"value": "3", "label": "Bugs Fixed"}, ...]
+      // "type": "evidence_list", "items": ["Refactored config system", "Improved error messages", ...]
     }
   ],
   "whats_next": [
