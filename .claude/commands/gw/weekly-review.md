@@ -237,11 +237,20 @@ Transform developer PR titles into plain-English, user-facing language. Produce:
 
 - **headline**: A single-sentence summary of the week's most impactful achievement (e.g. "Pipeline reliability upgrade eliminates manual intervention for stuck samples")
 - **kpi_cards**: 4 key metrics as label+value pairs for a dashboard row (e.g. `[{"label": "PRs Shipped", "value": "15"}, {"label": "Bugs Fixed", "value": "3"}, {"label": "Repos Active", "value": "4"}, {"label": "Test Coverage", "value": "34/39 modules"}]`)
-- **highlights**: 3-5 items, each a JSON object `{"short_label": "...", "impact_score": N, "category": "Feature|Bug Fix|Improvement"}`. The `short_label` is MAX 8 WORDS (chart label, not a sentence). `impact_score` is 1-5 (5=highest). Example: `{"short_label": "Auto-recovery for stuck samples", "impact_score": 5, "category": "Feature"}`
-- **coming_soon**: org open PRs as JSON objects `{"short_label": "...", "scope": "small|medium|large", "repo": "..."}`. `short_label` is MAX 6 WORDS.
-- **side_projects**: 1 sentence max. e.g. "4 updates to ai-sync, 3 commits to llm-proxy."
+- **highlights**: 3-5 items, each a JSON object:
+  ```json
+  {
+    "short_label": "Auto-recovery for stuck samples",  // MAX 8 WORDS — chart label
+    "impact_score": 5,                                   // 1-5, 5=highest
+    "category": "Feature",                               // Feature|Bug Fix|Improvement
+    "user_impact": "Lab users no longer need to manually restart stuck samples — the system detects and recovers them automatically within 30 minutes."  // 1-2 SENTENCES, plain English, explains why this matters to a non-technical stakeholder
+  }
+  ```
+- **bug_fixes**: list of `{"short_label": "...", "user_explanation": "..."}`. `short_label` MAX 8 WORDS (chart label). `user_explanation` is 1 sentence explaining what was broken and how it affects users, in plain English.
+- **coming_soon**: org open PRs as JSON objects `{"short_label": "...", "scope": "small|medium|large", "repo": "...", "user_impact": "..."}`. `short_label` MAX 6 WORDS. `user_impact` is 1 sentence explaining why this matters.
+- **side_projects**: 2-3 sentences about personal repo activity. e.g. "Shipped 4 updates to ai-sync, a tool for synchronizing AI coding assistant configurations across machines. Key improvement: pull no longer overwrites local changes."
 
-**Rules:** No jargon, no code references, no file paths. All text meant for slides must be ULTRA SHORT — chart labels, not sentences. Think 6-8 words max per item. The charts tell the story, not the text.
+**Rules:** No jargon, no code references, no file paths. Chart labels are SHORT (6-8 words). But every chart has accompanying plain-English explanatory text (1-2 sentences) that tells stakeholders why it matters. Think of the audience as a lab director who wants to understand impact, not implementation.
 
 ### 4d. Generate technical narrative (org-first)
 
@@ -286,8 +295,9 @@ Write all content from Step 4 to `/tmp/weekly_review_data.json` with this struct
   "executive": {
     "headline": "...",
     "kpi_cards": [{"label": "...", "value": "..."}],
-    "highlights": [{"short_label": "...", "impact_score": 5, "category": "Feature"}],
-    "coming_soon": [{"short_label": "...", "scope": "medium", "repo": "..."}],
+    "highlights": [{"short_label": "...", "impact_score": 5, "category": "Feature", "user_impact": "1-2 sentence explanation of why this matters to users"}],
+    "bug_fixes": [{"short_label": "...", "user_explanation": "What was broken and how it affects users"}],
+    "coming_soon": [{"short_label": "...", "scope": "medium", "repo": "...", "user_impact": "Why this matters"}],
     "side_projects": "..."
   },
   "technical": {
@@ -421,27 +431,33 @@ plt.rcParams.update({
 
 ---
 
-### CRITICAL DESIGN PRINCIPLE: VISUALS OVER TEXT
+### DESIGN PRINCIPLE: VISUAL + CONTEXT
 
-**Every slide should be 70%+ visual content (charts, shapes, cards, icons) and at most 30% text.** If a slide would be mostly bullet points, convert it to a chart or infographic instead. People don't read slides — they glance at pictures. Text is captions for visuals, not the content itself.
+**The executive deck tells a story to non-technical stakeholders.** Each slide pairs a visual (chart, dashboard, diagram) with brief explanatory text that answers "why does this matter?" Charts alone are too cryptic for a lab director — they need 1-2 sentences of context per visual.
 
-- Bullets: max 3 per slide, max 12 words each. Think newspaper headlines, not paragraphs.
-- Charts fill 60-80% of the slide area. Title + chart + small caption, nothing else.
-- Use matplotlib for ALL data visualization. Every data point should be a chart, not a sentence.
-- KPI cards use BIG numbers (40pt+) with tiny labels — the number IS the message.
+**Balance rule: ~50% visual, ~50% concise text.** Charts grab attention, text provides meaning.
+
+- Every chart slide includes 2-3 sentences explaining what the audience is looking at and why it's important.
+- Bullets: max 5 per slide, max 20 words each. Plain English, user-impact focused.
+- KPI cards use BIG numbers (40pt+) with tiny labels.
+- Use matplotlib for data visualization. Charts should be clear enough to understand in 3 seconds.
+
+**The technical deck is more chart-heavy** (~70% visual) since the audience understands the data.
 
 ---
 
-### Executive deck — `CWD/weekly-review-executive-YYYY-MM-DD.pptx` (max 6 slides)
+### Executive deck — `CWD/weekly-review-executive-YYYY-MM-DD.pptx` (max 10 slides)
 
 | # | Slide | Content |
 |---|-------|---------|
 | 1 | **Title** | "Development Update" large title. Org name(s) + date range as subtitle. Clean, minimal. |
-| 2 | **Dashboard** | **Full visual dashboard — the centerpiece slide.** Top row: 4 KPI cards (rounded rects, BIG number 40pt + tiny label 11pt). Middle: area chart of commits-by-date spanning full width (~10" wide). Bottom: single-line `headline` as 14pt italic caption. This one slide tells the whole story at a glance. |
-| 3 | **What We Shipped** | **Matplotlib horizontal bar chart filling 75% of slide.** Y-axis = short highlight labels (max 8 words each, derived from `highlights`). X-axis = impact score (assign 1-5 based on scope). Bars colored by category (ACCENT=feature, DANGER=fix, SUCCESS=improvement). Title: "Key Deliverables". NO bullet list — the chart IS the content. Below chart: 1-line caption with total PR count. |
-| 4 | **Where We Worked** | **Two charts side by side.** Left (50%): donut chart of `impact_areas` with total in center. Right (50%): donut chart of `category_counts` with total in center. Title: "Work Distribution". Two tiny legends below each chart. No other text. |
-| 5 | **What's Next** | **Pipeline/roadmap visual.** Matplotlib horizontal bar/Gantt-like chart where each open PR is a row, bar width = rough scope (small/medium/large from description length), colored by repo. Title: "Coming Soon". Each bar labeled with short PR title (max 6 words). **Skip if no open PRs.** |
-| 6 | **Side Projects** | Only if personal activity exists. Single sentence in MUTED 14pt: "Also this week: N updates to ai-sync, N commits to llm-proxy." **Skip if no personal activity. Keep to 1-2 lines max.** |
+| 2 | **Dashboard** | **Visual dashboard — the overview slide.** Top row: 4 KPI cards (rounded rects, BIG number 40pt + tiny label 11pt). Middle: area chart of commits-by-date spanning full width (~10" wide). Bottom: `headline` as 16pt italic caption — this one sentence frames the entire week's narrative. |
+| 3 | **What We Shipped** | **Left 55%: horizontal bar chart** of highlights (short_label on y-axis, impact_score on x-axis, colored by category). **Right 40%: 3-5 plain-English bullets** explaining the top items and their user/lab impact. Each bullet is 1 sentence, max 20 words, answering "what does this mean for users?" Title: "Key Deliverables". |
+| 4 | **Highlights Detail** | **Top 3 highlights expanded.** For each: a short title (bold, 16pt) + 1-2 sentences explaining the user-facing benefit in plain English (14pt). Use numbered items or small accent-colored cards. No jargon. Think: "Lab users now get their results 2x faster because the system automatically handles stuck samples instead of waiting for manual fixes." This is the slide people actually read and discuss. |
+| 5 | **Bug Fixes & Reliability** | **Left: small bar or icon chart** showing bug fix count and categories. **Right: 2-4 plain-English bullets** explaining what was broken and how it's now fixed, from the user's perspective. E.g. "Processing servers were running out of disk space — this is now cleaned up automatically." **Skip if no bug fixes.** |
+| 6 | **Where We Worked** | **Two charts side by side.** Left (50%): donut chart of `impact_areas` with total in center. Right (50%): donut chart of `category_counts` with total in center. Title: "Work Distribution". Below each chart: 1-sentence caption explaining the distribution. |
+| 7 | **What's Next** | **Top half: Gantt-like horizontal bar chart** where each open PR is a row, bar width = scope, colored by repo. **Bottom half: 2-3 bullet descriptions** of the most important upcoming items and their expected impact. Title: "Coming Soon". **Skip if no open PRs.** |
+| 8 | **Side Projects** | Only if personal activity exists. Brief section in MUTED: 2-3 sentences about personal repo activity. **Skip if no personal activity.** |
 
 ---
 
