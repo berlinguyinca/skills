@@ -175,25 +175,25 @@ Transform developer PR titles into plain-English, user-facing language. Produce:
 
 - **headline**: A single-sentence summary of the week's most impactful achievement (e.g. "Pipeline reliability upgrade eliminates manual intervention for stuck samples")
 - **kpi_cards**: 4 key metrics as label+value pairs for a dashboard row (e.g. `[{"label": "PRs Shipped", "value": "15"}, {"label": "Bugs Fixed", "value": "3"}, {"label": "Repos Active", "value": "4"}, {"label": "Test Coverage", "value": "34/39 modules"}]`)
-- **highlights**: 3-5 most impactful org changes in plain English, focused on user/lab impact
-- **features_improvements**: org features and improvements, plain English
-- **bug_fixes**: org bug fixes — what was broken, how it's fixed, from user perspective
-- **coming_soon**: org open PRs described as upcoming work
-- **side_projects**: 1-3 sentence summary of personal repo activity (if any). Keep it very brief, e.g. "Also shipped 4 updates to ai-sync (config sync tool) including multi-environment support."
+- **highlights**: 3-5 items, each a JSON object `{"short_label": "...", "impact_score": N, "category": "Feature|Bug Fix|Improvement"}`. The `short_label` is MAX 8 WORDS (chart label, not a sentence). `impact_score` is 1-5 (5=highest). Example: `{"short_label": "Auto-recovery for stuck samples", "impact_score": 5, "category": "Feature"}`
+- **coming_soon**: org open PRs as JSON objects `{"short_label": "...", "scope": "small|medium|large", "repo": "..."}`. `short_label` is MAX 6 WORDS.
+- **side_projects**: 1 sentence max. e.g. "4 updates to ai-sync, 3 commits to llm-proxy."
 
-**Rules:** No jargon, no code references, no file paths, no technical implementation details in the executive deck. Focus entirely on user/lab impact. Think of the audience as a lab director or program manager. Organization work is the main story.
+**Rules:** No jargon, no code references, no file paths. All text meant for slides must be ULTRA SHORT — chart labels, not sentences. Think 6-8 words max per item. The charts tell the story, not the text.
 
 ### 4d. Generate technical narrative (org-first)
 
-**Organization PRs get individual slides. Personal PRs are grouped onto one summary slide.**
+**Organization PRs get individual slides. Personal PRs are grouped onto one compact table.**
 
 For each significant org merged PR, produce:
-- What changed and why (2-3 sentences)
+- **what_changed**: MAX 15 WORDS. One sentence. (e.g. "Added retry with backoff to materialized view refresh, auto-recreates when missing")
+- **why**: MAX 15 WORDS. One sentence. (e.g. "Concurrent test runs caused deadlocks, Python logging silently failed")
 - Technical impact area (e.g. "Queue Management", "Data Pipeline", "API", "Infrastructure")
 - Technical category (Feature/Bug Fix/etc.)
 - Additions/deletions stats (if available)
+- **screenshot_worthy**: boolean — true if the PR introduces a visible tool, UI, CLI output, report, dashboard, or API endpoint that could be demonstrated with a screenshot. Indicators: new CLI commands, TUI interfaces, HTML reports, REST endpoints, table/chart output, web UI changes.
 
-For personal PRs, produce a single grouped summary with repo name, PR count, and 1-line description per PR.
+For personal PRs, produce a single grouped summary with repo name, PR count, and 1-line (max 8 words) description per PR.
 
 Also produce:
 - **Overview stats** (split by org vs personal):
@@ -224,10 +224,8 @@ Write all content from Step 4 to `/tmp/weekly_review_data.json` with this struct
   "executive": {
     "headline": "...",
     "kpi_cards": [{"label": "...", "value": "..."}],
-    "highlights": ["...", "..."],
-    "features_improvements": ["...", "..."],
-    "bug_fixes": ["...", "..."],
-    "coming_soon": ["...", "..."],
+    "highlights": [{"short_label": "...", "impact_score": 5, "category": "Feature"}],
+    "coming_soon": [{"short_label": "...", "scope": "medium", "repo": "..."}],
     "side_projects": "..."
   },
   "technical": {
@@ -258,7 +256,9 @@ Write all content from Step 4 to `/tmp/weekly_review_data.json` with this struct
         "additions": 0,
         "deletions": 0,
         "merged_at": "...",
-        "is_minor": false
+        "is_minor": false,
+        "screenshot_worthy": false,
+        "screenshot_hint": "Description of what screenshot would show, e.g. 'CLI table output of node-status command'"
       }
     ],
     "personal_prs": [
@@ -348,36 +348,44 @@ plt.rcParams.update({
 
 ---
 
-### Executive deck — `CWD/weekly-review-executive-YYYY-MM-DD.pptx` (max 8 slides)
+### CRITICAL DESIGN PRINCIPLE: VISUALS OVER TEXT
 
-| # | Slide | Layout | Content |
-|---|-------|--------|---------|
-| 1 | **Title** | Centered | Large title "Development Update", org name(s) below, date range, subtle accent bar at bottom |
-| 2 | **KPI Dashboard** | 4-column card layout | Four metric cards in a row (from `kpi_cards`), each card is a rounded-corner rectangle with large number on top + label below. Below the cards: the `headline` as a subtitle sentence. |
-| 3 | **Activity Timeline** | Chart + caption | Matplotlib area chart of commits-by-date (x=dates, y=commit count, filled area in ACCENT with alpha=0.3). Caption below: total commits and repos. If only 1-2 dates have data, use a bar chart instead. |
-| 4 | **Highlights** | Bullet list with icons | 3-5 most impactful org changes. Each bullet prefixed with a colored "●" (ACCENT). Large text, generous spacing. This is the slide people read. |
-| 5 | **New Features & Improvements** | Two-column layout | Left column: feature bullets (SUCCESS colored dots). Right column: improvement bullets (ACCENT colored dots). **Skip if empty.** |
-| 6 | **Bug Fixes & Reliability** | Bullet list | What was fixed, user impact. DANGER colored dots. **Skip if empty.** |
-| 7 | **Coming Soon** | Bullet list with WARNING dots | Open PRs described as upcoming org work. **Skip if no org open PRs.** |
-| 8 | **Side Projects** | Brief summary | Only if personal repo activity exists. Gray-toned slide. 1-3 sentences about personal repos. A subtle "Also this week..." framing. **Skip if no personal activity.** |
+**Every slide should be 70%+ visual content (charts, shapes, cards, icons) and at most 30% text.** If a slide would be mostly bullet points, convert it to a chart or infographic instead. People don't read slides — they glance at pictures. Text is captions for visuals, not the content itself.
+
+- Bullets: max 3 per slide, max 12 words each. Think newspaper headlines, not paragraphs.
+- Charts fill 60-80% of the slide area. Title + chart + small caption, nothing else.
+- Use matplotlib for ALL data visualization. Every data point should be a chart, not a sentence.
+- KPI cards use BIG numbers (40pt+) with tiny labels — the number IS the message.
 
 ---
 
-### Technical deck — `CWD/weekly-review-technical-YYYY-MM-DD.pptx` (max 30 slides)
+### Executive deck — `CWD/weekly-review-executive-YYYY-MM-DD.pptx` (max 6 slides)
 
-| # | Slide | Layout | Content |
-|---|-------|--------|---------|
-| 1 | **Title** | Full context | Title, author, sources, date range. Clean, informational. |
-| 2 | **Stats Dashboard** | 2×3 grid of metric cards + chart | Six stat cards (org PRs, org commits, org repos, personal PRs, total additions, total deletions) arranged in 2 rows of 3. Each card: large value + small label. Below or beside: horizontal bar chart of commits-by-repo (sorted descending, ACCENT colored). |
-| 3 | **Activity Timeline** | Stacked area or multi-line chart | Commits-by-date as area chart. If data allows, break down by repo (stacked areas, one color per repo with legend). X-axis = dates, Y-axis = commits. Title: "Commit Activity". |
-| 4 | **Impact Areas** | Donut chart + legend | Donut/ring chart of `impact_areas` (center shows total PR count). Legend on the right with area name + count. Title: "Work Distribution by Area". Uses distinct colors from the palette. **Skip if only 1 area.** |
-| 5 | **Category Breakdown** | Horizontal bar chart | Horizontal bars for category_counts (Feature, Bug Fix, Improvement, Docs, Maintenance). Color-coded: Feature=ACCENT, Bug Fix=DANGER, Improvement=SUCCESS, Docs=WARNING, Maintenance=MUTED. Each bar labeled with count. Title: "PR Categories". |
-| 6 | **Architecture Notes** | Text with diagram-like layout | Architecture narrative as clean text. If changes span repos, show a simple flow: colored boxes for each repo with arrow connections described in text. **Skip if not applicable.** |
-| 7–N | **Org PR Detail slides** | Two-panel layout | **One slide per significant (non-minor) org merged PR.** Layout: Top: PR title (HEADING) + repo badge (MUTED small text) + category pill (colored rounded rect). Body left (60%): "What changed" paragraph + "Why" paragraph (in SUCCESS). Body right (40%): stats card showing +additions/-deletions (if available), impact area badge, merged date. Minor org PRs grouped onto a single "Minor Changes" slide with compact bullets. **Cap at 20 individual slides.** |
-| N+1 | **Personal Projects** | Compact grouped slide | Gray-toned header "Side Projects". Table or compact list: repo name, PR count, 1-liner per PR. De-emphasized styling (MUTED colors, smaller text). **Skip if no personal PRs.** |
-| N+2 | **Open PRs — In Progress** | Card-per-PR layout | Each open org PR as a card: title, repo, status summary. Cards arranged in 2-column grid. **Skip if none.** |
-| N+3 | **Code Volume** | Waterfall or grouped bar chart | Additions vs deletions by repo. Green bars up (additions), red bars down (deletions). Net change labeled. Title: "Code Volume by Repository". Only show repos with changes. |
-| Last | **Links & References** | Grouped URL list | PR URLs grouped by repo. Repo name as blue header, PR title + URL as muted text below. Compact layout, small font. |
+| # | Slide | Content |
+|---|-------|---------|
+| 1 | **Title** | "Development Update" large title. Org name(s) + date range as subtitle. Clean, minimal. |
+| 2 | **Dashboard** | **Full visual dashboard — the centerpiece slide.** Top row: 4 KPI cards (rounded rects, BIG number 40pt + tiny label 11pt). Middle: area chart of commits-by-date spanning full width (~10" wide). Bottom: single-line `headline` as 14pt italic caption. This one slide tells the whole story at a glance. |
+| 3 | **What We Shipped** | **Matplotlib horizontal bar chart filling 75% of slide.** Y-axis = short highlight labels (max 8 words each, derived from `highlights`). X-axis = impact score (assign 1-5 based on scope). Bars colored by category (ACCENT=feature, DANGER=fix, SUCCESS=improvement). Title: "Key Deliverables". NO bullet list — the chart IS the content. Below chart: 1-line caption with total PR count. |
+| 4 | **Where We Worked** | **Two charts side by side.** Left (50%): donut chart of `impact_areas` with total in center. Right (50%): donut chart of `category_counts` with total in center. Title: "Work Distribution". Two tiny legends below each chart. No other text. |
+| 5 | **What's Next** | **Pipeline/roadmap visual.** Matplotlib horizontal bar/Gantt-like chart where each open PR is a row, bar width = rough scope (small/medium/large from description length), colored by repo. Title: "Coming Soon". Each bar labeled with short PR title (max 6 words). **Skip if no open PRs.** |
+| 6 | **Side Projects** | Only if personal activity exists. Single sentence in MUTED 14pt: "Also this week: N updates to ai-sync, N commits to llm-proxy." **Skip if no personal activity. Keep to 1-2 lines max.** |
+
+---
+
+### Technical deck — `CWD/weekly-review-technical-YYYY-MM-DD.pptx` (max 25 slides)
+
+| # | Slide | Content |
+|---|-------|---------|
+| 1 | **Title** | Title, author, sources, date range. |
+| 2 | **Stats Dashboard** | **Full-slide visual dashboard.** Top row: 6 metric cards (2×3 grid) — big numbers, tiny labels. Bottom half: horizontal bar chart of commits-by-repo (sorted desc, ACCENT colored, bar labels). This is the "at a glance" slide. |
+| 3 | **Commit Heatmap** | **Full-slide matplotlib chart.** Area chart of commits-by-date. Large, fills ~80% of slide. Clean axes, grid, date labels on x-axis. Title: "Commit Activity". |
+| 4 | **Work Distribution** | **Two charts side-by-side, each ~45% of slide width.** Left: donut chart of `impact_areas` (ring, center = total PRs). Right: horizontal color-coded bar chart of `category_counts`. Title: "Where & What". |
+| 5 | **Code Volume** | **Full-slide grouped bar chart.** For each repo: green bar (additions) up, red bar (deletions) beside it. Net change as annotation above each group. Title: "Code Volume". |
+| 6 | **Architecture** | **Visual repo-relationship diagram** built with matplotlib. Each repo as a colored circle/node (size = commit count). Lines between repos if PRs reference both. Annotations with short description of cross-repo patterns. Fallback: if only 1 repo, just show a single labeled circle with key stats around it. **Skip if trivial.** |
+| 7–N | **PR Detail slides** | **One slide per significant non-minor org PR. MAX 3 lines of text per slide.** Layout: Title (22pt, 1 line). One-sentence "what changed" (14pt, max 15 words). One-sentence "why" (14pt italic SUCCESS, max 15 words). Right side: colored category badge + impact area badge + merge date. If additions/deletions available: +/- badge. **If `screenshot_worthy` is true**: add a large gray dashed-border placeholder rectangle (60% of slide, centered) with text "Screenshot: {screenshot_hint}" in MUTED 14pt — this signals the presenter to paste an actual screenshot before presenting. **Cap at 15 slides.** |
+| N+1 | **Minor & Personal** | **Combined into one compact slide.** Two sections: "Minor Changes" (small table: title, repo, category — max 5 rows). "Side Projects" (small table: title, repo, one-liner — max 5 rows). Tables use MUTED styling. **Skip if neither exists.** |
+| N+2 | **Open PRs** | **Visual pipeline.** Matplotlib horizontal bar chart where each open PR is a bar, width = rough scope, colored by repo. Bar labels = short PR title (max 6 words). Title: "In Progress". **Skip if none.** |
+| Last | **Links** | Compact URL reference. Repo name as small blue header, PR links as 9pt MUTED text. Minimal space — this is a reference slide, not for presenting. |
 
 ---
 
