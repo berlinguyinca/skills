@@ -17,7 +17,7 @@ If the output contains `UPDATE_AVAILABLE`, tell the user how many commits behind
 
 ---
 
-Generate two polished PowerPoint presentations from GitHub activity: an **executive deck** (max 8 slides, visual, plain English, no jargon) and a **technical deck** (max 30 slides, detailed, for IT/dev staff). Both decks should look professional enough to present in a meeting — clean layout, data visualizations, consistent design system.
+Generate two polished PowerPoint presentations from GitHub activity: an **executive deck** (5-6 slides, visual, plain English, no jargon) and a **technical deck** (max 30 slides, detailed, for IT/dev staff). Both decks should look professional enough to present in a meeting — clean layout, data visualizations, consistent design system.
 
 Supports pulling activity from **multiple GitHub orgs and repos** simultaneously via a persistent config file.
 
@@ -536,29 +536,20 @@ plt.rcParams.update({
 
 **The executive deck tells a story to non-technical stakeholders.** Each slide pairs a visual (chart, dashboard, diagram) with brief explanatory text that answers "why does this matter?" Charts alone are too cryptic for a lab director — they need 1-2 sentences of context per visual.
 
-**Balance rule: ~50% visual, ~50% concise text.** Charts grab attention, text provides meaning.
-
-- Every chart slide includes 2-3 sentences explaining what the audience is looking at and why it's important.
-- Bullets: max 5 per slide, max 20 words each. Plain English, user-impact focused.
-- KPI cards use BIG numbers (40pt+) with tiny labels.
-- Use matplotlib for data visualization. Charts should be clear enough to understand in 3 seconds.
+**Balance rule: every slide has one job.** The headline slide sets the week's story with 3 outcome KPIs. Theme slides pair evidence bullets with a visual anchor. The What's Next slide is scannable rows. No charts for the sake of charts — only visuals that add insight.
 
 **The technical deck is more chart-heavy** (~70% visual) since the audience understands the data.
 
 ---
 
-### Executive deck — `CWD/weekly-review-executive-YYYY-MM-DD.pptx` (max 10 slides)
+### Executive deck — `CWD/weekly-review-executive-YYYY-MM-DD.pptx` (5-6 slides)
 
 | # | Slide | Content |
 |---|-------|---------|
-| 1 | **Title** | "Development Update" large title. Org name(s) + date range as subtitle. Clean, minimal. |
-| 2 | **Headline & Summary** | The `headline` as large 22pt text at top — this frames the week's story. Below: 3-4 KPI cards with **outcome-oriented metrics** that a non-technical executive cares about. NOT commits/PRs — instead use metrics like "Systems Improved", "Issues Resolved", "New Capabilities", "Reliability Gains". E.g. `{"label": "New Capabilities", "value": "5"}, {"label": "Issues Resolved", "value": "3"}, {"label": "Systems Improved", "value": "4"}, {"label": "Upcoming", "value": "5"}`. Below cards: 2-3 sentence executive summary of the week's impact in plain English. |
-| 3 | **What We Delivered** | **Left 55%: horizontal bar chart** of highlights (short_label on y-axis, impact_score on x-axis, colored by category). **Right 40%: 3-5 plain-English bullets** explaining the top items and their user/lab impact. Each bullet is 1 sentence, max 20 words, answering "what does this mean for users?" Title: "Key Deliverables". |
-| 4 | **Impact Details** | **Top 3 highlights expanded.** For each: a short title (bold, 16pt) + 1-2 sentences explaining the user-facing benefit in plain English (14pt). Use numbered items or small accent-colored cards. No jargon. Think: "Lab users now get their results 2x faster because the system automatically handles stuck samples instead of waiting for manual fixes." This is the slide people actually read and discuss. |
-| 5 | **Issues Fixed** | **2-4 plain-English bullets** explaining what was broken and how it's now fixed, from the user's perspective. Each starts with what users experienced ("Processing servers were running out of disk space") followed by the resolution ("this is now cleaned up automatically"). No charts — just clear, readable explanations. **Skip if no bug fixes.** |
-| 6 | **Where We Focused** | **Donut chart of `impact_areas`** with total in center. Title: "Focus Areas". Below: 1-2 sentence caption explaining what the areas mean in plain language (e.g. "Most work focused on making the sample processing pipeline more reliable and self-healing"). Skip category_counts donut — that's a developer metric. |
-| 7 | **What's Coming** | **2-4 plain-English bullets** describing the most important upcoming work and their expected user impact. Each item: bold short title + 1 sentence of context. Title: "Coming Soon". **Skip if no open PRs.** |
-| 8 | **Side Projects** | Only if personal activity exists. Brief section in MUTED: 2-3 sentences about personal repo activity. **Skip if no personal activity.** |
+| 1 | **Title** | "Development Update" large title. Org name(s) + date range as subtitle. Light background (#F8F9FA). Clean, minimal. |
+| 2 | **Headline & KPIs** | Light gray background (#F8F9FA). The `headline.text` as 28pt bold text at top. `headline.subtitle` as 16pt gray text below. 3 KPI cards at bottom — white rounded rectangles with subtle border (#E0E0E0), large number (36pt bold, color from `kpis[].color` token mapped to hex), small uppercase label (11pt, MUTED) below. Color token mapping: `"accent"` → #3498DB, `"success"` → #27AE60, `"danger"` → #E74C3C, `"warning"` → #F39C12. |
+| 3-4 | **Theme Slides** (2, or 3 if data supports it) | White background. Theme `title` as 24pt bold at top, `subtitle` as 14pt gray below. **Left column (60%):** 2-3 evidence bullets, each with a 3px blue (#3498DB) left border. Bold `claim` (14pt, PRIMARY) + gray `detail` (12pt, MUTED) below. **Right column (40%):** Visual anchor, rendered by type: **`before_after`**: Two stacked rounded rectangles — red top (#FDF2F2 bg, #E74C3C text) with "Before" label + value + detail, arrow "↓" between, green bottom (#F0FAF4 bg, #27AE60 text) with "After" label + value + detail. **`metric_callout`**: Single large centered number (36pt bold, ACCENT) with label (14pt, MUTED). **`count_cards`**: 2-3 small stat boxes side by side, each with bold number + small label. **`evidence_list`**: Compact bulleted list of items in SECONDARY 12pt. |
+| 5 | **What's Next** | White background. Title "What's Next" (24pt bold). Max 4 rows, each on a light gray (#F8F9FA) row background with rounded corners. Each row: status pill (small rounded rectangle — TESTING = #F39C12, PLANNED = #3498DB, white text, 9pt bold) + title (14pt bold, PRIMARY) + detail (12pt, MUTED). |
 
 ---
 
