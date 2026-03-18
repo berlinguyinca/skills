@@ -20,6 +20,7 @@ rm -rf ~/.config/gw-skills  # remove saved config (source list, etc.)
 | Skill | Description |
 |-------|-------------|
 | `/gw:analyze-app` | Analyze any application across specialist dimensions (UX, security, architecture, etc.) with role-adapted agents. Auto-detects app type (web, server, cli, mobile, library) and spawns 5-6 parallel specialists. |
+| `/gw:saas-idea` | Harvest trending SaaS opportunities from the internet, score and rank them, then deep-dive with full business plan, marketing playbook, tech spec, implementation prompts, and pitch deck. Targets complete prototype deployment on AWS with PostgreSQL, Stripe, and Google OAuth. |
 | `/gw:merge-it` | Ship current changes end-to-end: branch, PR, self-review, fix, generate presentation, merge. |
 | `/gw:weekly-review` | Generate executive and technical PowerPoint presentations from GitHub activity (commits & PRs) across multiple orgs and repos. |
 | `/gw:update` | Update all gw-skills to the latest version. |
@@ -111,6 +112,45 @@ Run from inside any project directory. Auto-detects the app type and spawns 5-6 
 | `--type <type>` | Force app type instead of auto-detecting (`web`, `server`, `cli`, `mobile`, `library`) |
 
 If GSD is installed, automatically creates a project or milestone from the recommended improvement phases.
+
+### /gw:saas-idea
+
+```
+/gw:saas-idea [--focus <niche>] [--fresh] [--budget low|medium|high] [--pick <N>] [--skip-gsd]
+```
+
+Harvests trends from 8+ internet sources (Hacker News, Product Hunt, Reddit, Twitter/X, Google Trends, GitHub Trending, tech news, IndieHackers), scores SaaS ideas on a balanced scorecard (market demand, feasibility, revenue potential, competition, uniqueness), and generates a deep-dive for the selected idea.
+
+**Fixed tech stack:** PostgreSQL, Google OAuth, Stripe, AWS, Terraform. Deployed as subdomain under `codingandmore.net`.
+
+**Output files** are saved to `.saas-ideas/` in the current directory:
+- `SHORTLIST.md` — Top 10 ranked ideas with scores
+- `deep-dive/BUSINESS-PLAN.md` — Full business plan with competitive analysis
+- `deep-dive/MARKETING-PLAYBOOK.md` — Go-to-market playbook with 10+ related forums
+- `deep-dive/TECH-SPEC.md` — Architecture & MVP spec
+- `deep-dive/IMPLEMENTATION-PROMPTS.md` — Ready-to-use Claude Code prompts for building
+- `deep-dive/pitch-deck.pptx` — Investor/co-founder pitch deck
+- `REPORT.md` — Executive summary
+- `history.json` — Run history for freshness tracking
+
+#### Options
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--focus <niche>` | Narrow to a domain (e.g., "healthcare", "devtools") | All domains |
+| `--fresh` | Force fresh harvest even if recent data exists | Re-use if <24h |
+| `--budget low\|medium\|high` | Team size: solo / small team / funded | `medium` |
+| `--pick <N>` | Deep-dive on idea #N from previous shortlist | Interactive |
+| `--skip-gsd` | Skip GSD project/milestone creation | Auto-detect |
+
+#### Examples
+
+```
+/gw:saas-idea                          # full run, all domains
+/gw:saas-idea --focus devtools         # focus on developer tools
+/gw:saas-idea --pick 3                 # deep-dive on idea #3 from last run
+/gw:saas-idea --fresh --budget low     # force fresh harvest, solo dev scope
+```
 
 ### /gw:merge-it
 
