@@ -353,12 +353,45 @@ Write all content from Step 4 to `/tmp/weekly_review_data.json` with this struct
   "start_date": "YYYY-MM-DD",
   "end_date": "YYYY-MM-DD",
   "executive": {
-    "headline": "...",
-    "kpi_cards": [{"label": "...", "value": "..."}],
-    "highlights": [{"short_label": "...", "impact_score": 5, "category": "Feature", "user_impact": "1-2 sentence explanation of why this matters to users"}],
-    "bug_fixes": [{"short_label": "...", "user_explanation": "What was broken and how it affects users"}],
-    "coming_soon": [{"short_label": "...", "scope": "medium", "repo": "...", "user_impact": "Why this matters"}],
-    "side_projects": "..."
+    "metadata": {
+      "date_range": "2026-03-11 – 2026-03-17",
+      "org": "metabolomics-us",
+      "repos": ["repo1", "repo2"]
+    },
+    "headline": {
+      "text": "Sample processing got dramatically faster",
+      "subtitle": "Auto-recovery, smarter scheduling, and a 1000x query speedup",
+      "kpis": [
+        {"value": "30 min", "label": "Auto-Recovery", "color": "accent"},
+        {"value": "1000x", "label": "Queue Speedup", "color": "accent"},
+        {"value": "3", "label": "Bugs Eliminated", "color": "success"}
+      ]
+    },
+    "themes": [
+      {
+        "title": "Turnaround Time Overhaul",
+        "subtitle": "Faster results for lab users, less manual work for operators",
+        "evidence": [
+          {
+            "claim": "Stuck samples auto-recover in 30 minutes",
+            "detail": "Previously required manual operator intervention"
+          }
+        ],
+        "visual_anchor": {
+          "type": "before_after",
+          "before": {"value": "Hours", "detail": "Manual recovery, FIFO queue"},
+          "after": {"value": "30 min", "detail": "Auto-recovery, priority queue"}
+        }
+      }
+    ],
+    "whats_next": [
+      {
+        "title": "Interactive node dashboard",
+        "detail": "Terminal UI for processing nodes",
+        "status": "testing"
+      }
+    ],
+    "side_projects": ""
   },
   "technical": {
     "stats": {
