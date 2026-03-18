@@ -583,6 +583,65 @@ plt.rcParams.update({
 - Accept output directory as `sys.argv[1]` (default to current directory)
 - Print the absolute paths of both generated files on success
 
+**Executive deck renderer — new slide types:**
+
+The executive section of the Python renderer must generate these slides from the `executive` key in the JSON:
+
+**Slide 1 (Title):** Same as before — "Development Update", org names, date range. Use BG_LIGHT fill for slide background.
+
+**Slide 2 (Headline + KPIs):**
+- Background: BG_LIGHT (#F8F9FA) — add a full-slide rounded rectangle with BG_LIGHT fill behind everything
+- Headline text: 28pt bold PRIMARY, positioned at (0.7", 0.5"), width 11", word wrap
+- Subtitle: 16pt MUTED, below headline
+- 3 KPI cards at bottom: white rounded rectangles with CARD_BORDER (#E0E0E0) border, centered horizontally
+  - Card width: 3.5", height: 1.4", gap: 0.5" between cards
+  - Value: 36pt bold, color from token mapping (accent→ACCENT, success→SUCCESS, danger→DANGER, warning→WARNING)
+  - Label: 11pt uppercase MUTED, centered below value
+
+**Slides 3-4 (Theme slides):**
+- Background: white
+- Title: 24pt bold PRIMARY at (0.7", 0.4")
+- Subtitle: 14pt MUTED at (0.7", 0.85")
+- Left column (60%, from x=0.7" to x=7.8"):
+  - Evidence bullets starting at y=1.5", each bullet block is ~1.2" tall
+  - Each bullet: blue accent bar shape (0.04" wide, ~0.8" tall, ACCENT fill) at left edge
+  - Claim text: 14pt bold PRIMARY, indented 0.15" right of accent bar
+  - Detail text: 12pt MUTED, same indent, below claim
+- Right column (40%, from x=8.2" to x=12.6"):
+  - Visual anchor rendering by type:
+  - `before_after`: Two stacked rounded rectangles
+    - "Before" box: fill RGBColor(0xFD, 0xF2, 0xF2), y starts at 1.5". Label "BEFORE" in 9pt DANGER uppercase, value in 22pt bold DANGER, detail in 11pt MUTED. Height: 1.6"
+    - Arrow "↓" text between boxes in 18pt MUTED, centered
+    - "After" box: fill RGBColor(0xF0, 0xFA, 0xF4). Same layout as before but SUCCESS colors. Height: 1.6"
+  - `metric_callout`: Single centered block. Value in 48pt bold ACCENT, label in 14pt MUTED below.
+  - `count_cards`: 2-3 small rounded rectangles side by side, each with bold number (24pt ACCENT) and label (10pt MUTED).
+  - `evidence_list`: Bulleted text list, each item 12pt SECONDARY with bullet character "•".
+
+**Slide 5 (What's Next):**
+- Title "What's Next" at (0.7", 0.4"), 24pt bold PRIMARY
+- Each item is a row with light gray (#F8F9FA) rounded rectangle background
+  - Row height: 0.8", gap: 0.3" between rows, starting at y=1.3"
+  - Status pill: small rounded rectangle (width: 1.1", height: 0.35"), centered vertically in row
+    - "testing" → WARNING fill, white 9pt bold text "TESTING"
+    - "planned" → ACCENT fill, white 9pt bold text "PLANNED"
+  - Title: 14pt bold PRIMARY, positioned right of pill
+  - Detail: 12pt MUTED, right-aligned or after title
+
+**Removed from executive renderer:**
+- The `make_hbar_highlights()` chart call and "Key Deliverables" slide
+- The "Impact Details" expanded text slide
+- The "Issues Resolved" slide (bug fixes are now folded into themes)
+- The `make_donut_chart()` call and "Focus Areas" slide
+- The "In Testing & Coming Soon" paragraph-style slide
+- The "Side Projects" slide
+- The `extract_status_tag()` helper (no longer needed for executive deck)
+- The hardcoded `exec_summary` paragraph
+
+**Kept for executive renderer:**
+- `new_slide()`, `add_accent_bar()`, `add_text_box()`, `add_paragraph()`, `set_run()`, `add_rounded_card()`, `trunc()` helpers
+- `SLIDE_W`, `SLIDE_H`, `FONT`, and all color constants
+- The title slide (Slide 1) — just update background to BG_LIGHT
+
 ### 5c. Execute the script
 
 ```bash
