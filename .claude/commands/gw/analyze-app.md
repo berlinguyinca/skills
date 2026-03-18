@@ -143,7 +143,7 @@ Each specialist has a name, file slug, one-line role, categories, tags (which AP
 |---|---|---|---|---|
 | 4 | Software Architect | `architecture` | web,server,cli,mobile,library,saas | Boundaries, data flow, API design, patterns, scalability |
 | 5 | Complexity Analyst | `complexity` | web,server,cli,mobile,library,saas | File metrics, coupling, **code duplication** (flag as red flag), dependency health, maintenance burden |
-| 6 | UX Designer | `usability` | web,mobile | Navigation, loading/error states, forms, a11y, responsive, feedback |
+| 6 | UX Designer | `usability` | web,mobile,saas | Navigation, loading/error states, forms, a11y, responsive, feedback |
 | 7 | Web Designer | `visual-design` | web | Design system, color, typography, spacing, dark mode, polish |
 | 8 | Mobile UX Designer | `mobile-ux` | mobile | Navigation, touch, platform conventions, offline, accessibility |
 | 9 | Mobile Performance | `mobile-perf` | mobile | Rendering, battery/network, memory, startup, bundle size |
