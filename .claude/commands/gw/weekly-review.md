@@ -405,6 +405,14 @@ Layout:
 - Cap table rows at 10 per slide
 - Use matplotlib with `Agg` backend (non-interactive) for all charts
 - Save chart images to temp files and embed as images in slides using `slide.shapes.add_picture()`
+- **Skip degenerate charts:** Before rendering any chart, check if it would be meaningless:
+  - Donut/pie chart with only 1 category → skip, show as a single KPI card instead
+  - Bar chart where all bars have the same value → skip, mention the uniform value as text
+  - Area/line chart with only 1 data point → skip, show as a single stat
+  - Area/line chart where all values are identical (flat line) → skip, show as text "N commits/day (steady)"
+  - Any chart with 0 total data → skip entirely
+  - Bar chart with only 1 bar → skip, show as a KPI card
+  - Replace skipped charts with a clean text card or merge the data into an adjacent slide
 - Handle empty sections gracefully — skip slides that would have no content
 - Every slide gets the left accent bar (thin colored rectangle at x=0, full height)
 - Use `RGBColor` for all colors, `Pt` for font sizes, `Inches` for positioning
