@@ -222,7 +222,7 @@ Store all harvested assets in the JSON as:
 
 **Integration rules for the generated deck:**
 - When building PR detail slides: if a harvested asset's `related_pr_url` matches the PR being rendered (or `source_file` contains the branch name from the PR), embed the harvested image on that slide instead of (or alongside) the screenshot placeholder. Size it to fill 50-60% of the slide.
-- When building the executive "What We Shipped" slide: if any harvested assets contain before/after comparisons or dashboard screenshots, add a bonus "Demo" slide right after with the best 2-3 harvested images arranged in a grid with tiny captions.
+- When building executive theme slides: if any harvested assets contain before/after comparisons relevant to a theme, use the asset image as the visual anchor instead of a rendered shape. If assets include dashboard screenshots, consider adding a bonus slide (max 1) after the theme slides.
 - When building the technical deck: create a "Visuals from PRs" slide if 3+ assets were harvested — arrange in a 2x2 or 3x2 grid with repo + slide title as caption under each image.
 - If no `.pptx` files are found, skip this step silently — no error, no message.
 
@@ -273,13 +273,15 @@ Write one bold sentence capturing the week's most impactful story. Use specific 
 
 #### Produce the following JSON structure:
 
-- **headline**: One bold sentence (see above).
-- **subtitle**: One supporting sentence with additional context.
-- **kpis**: Exactly 3 outcome-oriented KPI cards. Each is `{"value": "...", "label": "...", "color": "accent|success|danger|warning"}`.
-  - KPI values are OUTCOMES with real numbers from PR evidence: "30 min" (auto-recovery time), "1000x" (speedup), "3" (bugs eliminated).
-  - NOT activity counts: "12 PRs", "7 features", "45 commits" are meaningless to a lab director.
-  - Always 3 cards. If only 2 strong quantitative outcomes exist, the 3rd can be qualitative (e.g., value: "Fixed", label: "macOS Dev Builds").
-  - Color mapping: `"accent"` = #3498DB, `"success"` = #27AE60, `"danger"` = #E74C3C, `"warning"` = #F39C12.
+- **metadata**: Object with `date_range` (string, e.g. "2026-03-11 – 2026-03-17"), `org` (primary org name), `repos` (array of repo names queried). Derived from the source configuration in Step 1.
+- **headline**: Object containing:
+  - `text`: One bold sentence (see above).
+  - `subtitle`: One supporting sentence with additional context.
+  - `kpis`: Exactly 3 outcome-oriented KPI cards. Each is `{"value": "...", "label": "...", "color": "accent|success|danger|warning"}`.
+    - KPI values are OUTCOMES with real numbers from PR evidence: "30 min" (auto-recovery time), "1000x" (speedup), "3" (bugs eliminated).
+    - NOT activity counts: "12 PRs", "7 features", "45 commits" are meaningless to a lab director.
+    - Always 3 cards. If only 2 strong quantitative outcomes exist, the 3rd can be qualitative (e.g., value: "Fixed", label: "macOS Dev Builds").
+    - Color mapping: `"accent"` = #3498DB, `"success"` = #27AE60, `"danger"` = #E74C3C, `"warning"` = #F39C12.
 - **themes**: Array of 2-3 theme objects, each containing:
   ```json
   {
@@ -292,8 +294,9 @@ Write one bold sentence capturing the week's most impactful story. Use specific 
       }
     ],
     "visual_anchor": {
-      "type": "before_after|metric_callout|count_cards|evidence_list",
-      ...
+      "type": "before_after",
+      "before": {"value": "Hours", "detail": "Manual recovery"},
+      "after": {"value": "30 min", "detail": "Auto-recovery, priority queue"}
     }
   }
   ```
@@ -304,7 +307,7 @@ Write one bold sentence capturing the week's most impactful story. Use specific 
     - `"count_cards"`: Use when the theme is about breadth. Fields: `cards: [{value, label}, ...]`.
     - `"evidence_list"` (fallback): Use when no quantitative anchor fits. Fields: `items: ["string", ...]`.
 - **whats_next**: Array of max 4 items from open PRs, each: `{"title": "...", "detail": "...", "status": "testing|planned"}`. Title is max 8 words. Detail is max 10 words. Status is lowercase.
-- **side_projects**: 1-2 sentences about personal repo activity, or empty string if none.
+- **side_projects**: 1-2 sentences about personal repo activity, or empty string if none. This field is included in the JSON but is not rendered as its own slide. If non-empty, append it as a footnote line at the bottom of the What's Next slide in 11pt MUTED.
 
 **Rules:** No jargon, no code references, no file paths. Every claim must cite specific evidence from PR descriptions. Generic statements like "improved reliability" are not acceptable.
 
@@ -534,7 +537,7 @@ plt.rcParams.update({
 
 ### DESIGN PRINCIPLE: VISUAL + CONTEXT
 
-**The executive deck tells a story to non-technical stakeholders.** Each slide pairs a visual (chart, dashboard, diagram) with brief explanatory text that answers "why does this matter?" Charts alone are too cryptic for a lab director — they need 1-2 sentences of context per visual.
+**The executive deck tells a story to non-technical stakeholders.** Each slide has a clear visual element — KPI cards, evidence-and-anchor layouts, or status rows — paired with concise explanatory text that answers "why does this matter?"
 
 **Balance rule: every slide has one job.** The headline slide sets the week's story with 3 outcome KPIs. Theme slides pair evidence bullets with a visual anchor. The What's Next slide is scannable rows. No charts for the sake of charts — only visuals that add insight.
 
@@ -548,7 +551,7 @@ plt.rcParams.update({
 |---|-------|---------|
 | 1 | **Title** | "Development Update" large title. Org name(s) + date range as subtitle. Light background (#F8F9FA). Clean, minimal. |
 | 2 | **Headline & KPIs** | Light gray background (#F8F9FA). The `headline.text` as 28pt bold text at top. `headline.subtitle` as 16pt gray text below. 3 KPI cards at bottom — white rounded rectangles with subtle border (#E0E0E0), large number (36pt bold, color from `kpis[].color` token mapped to hex), small uppercase label (11pt, MUTED) below. Color token mapping: `"accent"` → #3498DB, `"success"` → #27AE60, `"danger"` → #E74C3C, `"warning"` → #F39C12. |
-| 3-4 | **Theme Slides** (2, or 3 if data supports it) | White background. Theme `title` as 24pt bold at top, `subtitle` as 14pt gray below. **Left column (60%):** 2-3 evidence bullets, each with a 3px blue (#3498DB) left border. Bold `claim` (14pt, PRIMARY) + gray `detail` (12pt, MUTED) below. **Right column (40%):** Visual anchor, rendered by type: **`before_after`**: Two stacked rounded rectangles — red top (#FDF2F2 bg, #E74C3C text) with "Before" label + value + detail, arrow "↓" between, green bottom (#F0FAF4 bg, #27AE60 text) with "After" label + value + detail. **`metric_callout`**: Single large centered number (36pt bold, ACCENT) with label (14pt, MUTED). **`count_cards`**: 2-3 small stat boxes side by side, each with bold number + small label. **`evidence_list`**: Compact bulleted list of items in SECONDARY 12pt. |
+| 3-4 | **Theme Slides** (2, or 3 if data supports it) | White background. Theme `title` as 24pt bold at top, `subtitle` as 14pt gray below. **Left column (60%):** 2-3 evidence bullets, each with a 3px blue (#3498DB) left border. Bold `claim` (14pt, PRIMARY) + gray `detail` (12pt, MUTED) below. **Right column (40%):** Visual anchor, rendered by type: **`before_after`**: Two stacked rounded rectangles — red top (#FDF2F2 bg, #E74C3C text) with "Before" label + value + detail, arrow "↓" between, green bottom (#F0FAF4 bg, #27AE60 text) with "After" label + value + detail. **`metric_callout`**: Single large centered number (48pt bold, ACCENT) with label (14pt, MUTED). **`count_cards`**: 2-3 small stat boxes side by side, each with bold number + small label. **`evidence_list`**: Compact bulleted list of items in SECONDARY 12pt. |
 | 5 | **What's Next** | White background. Title "What's Next" (24pt bold). Max 4 rows, each on a light gray (#F8F9FA) row background with rounded corners. Each row: status pill (small rounded rectangle — TESTING = #F39C12, PLANNED = #3498DB, white text, 9pt bold) + title (14pt bold, PRIMARY) + detail (12pt, MUTED). |
 
 ---
