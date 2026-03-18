@@ -243,34 +243,70 @@ Use a tiered classification:
 2. **Title keywords fallback:** `fix`/`bug`/`error`/`patch` → Bug Fix, `add`/`new`/`feat`/`create` → Feature, `improve`/`update`/`refactor`/`optimize` → Improvement, `doc`/`readme` → Docs, `bump`/`dep`/`upgrade` → Maintenance
 3. **Remainder** → Other
 
-### 4c. Generate executive narrative (org-first)
+### 4c. Generate executive narrative (org-first, theme-based)
 
 **Organization work dominates the narrative.** Personal repos get a brief mention at most.
 
-**Use the PR body context extracted in Step 3a-ii to write rich, specific, evidence-based narratives** — not generic summaries from titles alone. The executive deck must make a compelling case for why this work matters. Pull specific numbers, before/after comparisons, and concrete outcomes from the PR descriptions:
+**Use the PR body context extracted in Step 3a-ii to build a top-down, theme-based narrative** — not a list of PRs. The executive deck must make someone glance at it and think "this team ships real value."
 
-- BAD (generic): "Improved the scheduling system"
-- GOOD (specific, evidence-based): "Sample processing now prioritizes the newest lab data first and auto-recovers stuck items within 30 minutes — previously these required manual intervention, affecting ~5% of daily throughput"
+#### Theme Synthesis
 
-Transform developer PR descriptions into plain-English, stakeholder-facing language. Produce:
+Read all merged PR data and identify **2-3 natural themes** — clusters of related work that tell a coherent story together. Themes emerge from the data; they are NOT predetermined categories like "Bug Fix" or "Feature."
 
-- **headline**: A single-sentence summary of the week's most impactful achievement. Use specific numbers from the PR bodies when available. (e.g. "Pipeline reliability overhaul: auto-recovery, capacity limiting, and operator dry-run mode eliminate manual intervention for stuck samples")
-- **kpi_cards**: 4 **outcome-oriented** metrics that a non-technical executive cares about. Do NOT use developer metrics like commit counts, PR counts, or repo counts — those are meaningless to a lab director. Instead use impact-focused labels like: `[{"label": "New Capabilities", "value": "5"}, {"label": "Issues Resolved", "value": "3"}, {"label": "Systems Improved", "value": "4"}, {"label": "Upcoming", "value": "5"}]`. Other good labels: "Reliability Gains", "Tools Delivered", "Workflows Automated", "Bottlenecks Removed".
-- **highlights**: 3-5 items, each a JSON object:
+**Examples of good themes:**
+- "Turnaround Time Overhaul" (groups: scheduler priority PR, auto-recovery PR, batch optimization PR)
+- "Reliability & Stability" (groups: deadlock fix, temp file cleanup, build fix)
+- "Operator Tooling" (groups: dry-run mode, CLI commands, monitoring endpoints)
+
+**Examples of bad themes (too generic):**
+- "Features" / "Bug Fixes" / "Improvements" — these are categories, not themes
+- "Backend Work" / "Various Updates" — too vague to tell a story
+
+Always produce exactly 2 themes. Add a 3rd only when the data clearly supports 3 distinct stories. Never exceed 3.
+
+#### Headline Generation
+
+Write one bold sentence capturing the week's most impactful story. Use specific numbers from PR bodies when available. This is the sentence people remember.
+
+- BAD: "Several improvements to the processing pipeline"
+- GOOD: "Sample processing got dramatically faster — auto-recovery, smarter scheduling, and a 1000x query speedup"
+
+#### Produce the following JSON structure:
+
+- **headline**: One bold sentence (see above).
+- **subtitle**: One supporting sentence with additional context.
+- **kpis**: Exactly 3 outcome-oriented KPI cards. Each is `{"value": "...", "label": "...", "color": "accent|success|danger|warning"}`.
+  - KPI values are OUTCOMES with real numbers from PR evidence: "30 min" (auto-recovery time), "1000x" (speedup), "3" (bugs eliminated).
+  - NOT activity counts: "12 PRs", "7 features", "45 commits" are meaningless to a lab director.
+  - Always 3 cards. If only 2 strong quantitative outcomes exist, the 3rd can be qualitative (e.g., value: "Fixed", label: "macOS Dev Builds").
+  - Color mapping: `"accent"` = #3498DB, `"success"` = #27AE60, `"danger"` = #E74C3C, `"warning"` = #F39C12.
+- **themes**: Array of 2-3 theme objects, each containing:
   ```json
   {
-    "short_label": "Auto-recovery for stuck samples",  // MAX 8 WORDS — chart label
-    "impact_score": 5,                                   // 1-5, 5=highest
-    "category": "Feature",                               // Feature|Bug Fix|Improvement
-    "user_impact": "Lab users no longer need to manually restart stuck samples — the system detects and recovers them automatically within 30 minutes, eliminating ~5% daily throughput loss from stuck items."  // 1-2 SENTENCES with SPECIFIC EVIDENCE from the PR body (numbers, timeouts, before/after). Not generic platitudes.
+    "title": "Turnaround Time Overhaul",
+    "subtitle": "Faster results for lab users, less manual work for operators",
+    "evidence": [
+      {
+        "claim": "Stuck samples auto-recover in 30 minutes",
+        "detail": "Previously required manual operator intervention, stalling results for hours"
+      }
+    ],
+    "visual_anchor": {
+      "type": "before_after|metric_callout|count_cards|evidence_list",
+      ...
+    }
   }
   ```
-  The `user_impact` must draw on concrete details from the PR body: timeout values, capacity limits, test counts, endpoint counts, performance improvements, coverage numbers. If the PR body says "retry up to 3 times with 500ms/1s/2s backoff", translate that into impact: "The system now automatically retries failed operations up to 3 times before alerting, reducing false alarms."
-- **bug_fixes**: list of `{"short_label": "...", "user_explanation": "..."}`. `short_label` MAX 8 WORDS. `user_explanation` is 1-2 sentences: FIRST what users experienced (the symptom), THEN the resolution. Pull specifics from the PR body — if it says "/tmp/ fills with gigabytes of stale data", say exactly that.
-- **coming_soon**: org open PRs as JSON objects `{"short_label": "...", "scope": "small|medium|large", "repo": "...", "user_impact": "..."}`. `short_label` MAX 6 WORDS. `user_impact` is 1 sentence with specifics from the open PR description (e.g. "Interactive terminal dashboard for monitoring all processing nodes across the cluster with one-click shutdown").
-- **side_projects**: 2-3 sentences about personal repo activity. e.g. "Shipped 4 updates to ai-sync, a tool for synchronizing AI coding assistant configurations across machines. Key improvement: pull no longer overwrites local changes."
+  - Each theme has 2-3 evidence items. Each evidence item has a bold `claim` (max 10 words) and a gray `detail` (max 25 words) with specific numbers from PR bodies.
+  - `visual_anchor` type selection:
+    - `"before_after"`: Use when there's a measurable improvement. Fields: `before: {value, detail}`, `after: {value, detail}`.
+    - `"metric_callout"`: Use when one big number tells the story. Fields: `value`, `label`.
+    - `"count_cards"`: Use when the theme is about breadth. Fields: `cards: [{value, label}, ...]`.
+    - `"evidence_list"` (fallback): Use when no quantitative anchor fits. Fields: `items: ["string", ...]`.
+- **whats_next**: Array of max 4 items from open PRs, each: `{"title": "...", "detail": "...", "status": "testing|planned"}`. Title is max 8 words. Detail is max 10 words. Status is lowercase.
+- **side_projects**: 1-2 sentences about personal repo activity, or empty string if none.
 
-**Rules:** No jargon, no code references, no file paths. Chart labels are SHORT (6-8 words). Every explanatory text must cite **specific evidence from the PR descriptions** — numbers, measurements, concrete before/after differences. Generic statements like "improved reliability" are not acceptable; "auto-recovers stuck samples within 30 minutes instead of requiring manual restart" is. Think of the audience as a lab director who wants to understand impact with supporting evidence.
+**Rules:** No jargon, no code references, no file paths. Every claim must cite specific evidence from PR descriptions. Generic statements like "improved reliability" are not acceptable.
 
 ### 4d. Generate technical narrative (org-first)
 
