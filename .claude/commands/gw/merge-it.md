@@ -204,6 +204,14 @@ If `uv` is not available, fall back to: `python3 -m pip install python-pptx && p
 
 Tell the user where the file was saved.
 
+After generating the presentation, commit it to the branch so it becomes part of the PR:
+
+- Run: `git add doc/changes-presentation-<branch-name>.pptx`
+- Run: `git commit -m "docs: add changes presentation for <branch-name>"`
+- Run: `git push`
+
+This ensures the presentation is tracked in the repo as project documentation.
+
 #### 7c: Check CI status
 
 Before merging, check the status of PR checks:
