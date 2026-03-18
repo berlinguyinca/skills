@@ -1,7 +1,7 @@
 ---
 name: analyze-app
 description: Analyze any application across specialist dimensions with role-adapted agents
-argument-hint: "[--skip-cloud] [--skip-gsd] [--skip-testing] [--skip-security] [--type web|server|cli|mobile|library|saas] [--scope full|recent|recent:N|timeframe:<spec>] [--team auto|ask|N]"
+argument-hint: "[--skip-cloud] [--skip-gsd] [--skip-testing] [--skip-security] [--skip-seo] [--skip-test-review] [--skip-defaults] [--skip-fix] [--skip-pptx] [--skip-recommend] [--type web|server|cli|mobile|library|saas] [--scope full|recent|recent:N|timeframe:<spec>] [--team auto|ask|N]"
 ---
 
 ## Step 0 — Update check
@@ -24,6 +24,12 @@ Parse the arguments: "$ARGUMENTS"
 - If "--skip-gsd" is present, set SKIP_GSD=true
 - If "--skip-testing" is present, set SKIP_TESTING=true
 - If "--skip-security" is present, set SKIP_SECURITY=true
+- If "--skip-seo" is present, set SKIP_SEO=true
+- If "--skip-test-review" is present, set SKIP_TEST_REVIEW=true
+- If "--skip-defaults" is present, set SKIP_DEFAULTS=true
+- If "--skip-fix" is present, set SKIP_FIX=true
+- If "--skip-pptx" is present, set SKIP_PPTX=true
+- If "--skip-recommend" is present, set SKIP_RECOMMEND=true
 - If "--type X" is present, set FORCED_TYPE=X (one of: web, server, cli, mobile, library, saas)
 - If "--scope X" is present, set SCOPE_MODE=X (one of: full, recent, recent:N, timeframe:<spec>). Default: full
 - If "--team X" is present: if X is a number, set TEAM_MODE=auto and TEAM_SIZE_OVERRIDE=X (overrides complexity-based sizing). If X is "auto" or "ask", set TEAM_MODE=X. Default: ask
@@ -116,7 +122,7 @@ Compute the project size with a fast glob `**/*` excluding `node_modules`, `.git
 - Infrastructure code present (Terraform, K8s manifests, Docker)
 - 2+ frameworks detected
 
-**Minimum:** 3 (Security + Testing + 1 domain specialist)
+**Minimum:** `max(3, count_of_active_mandatory_specialists)` — ensures all non-skipped mandatory specialists always fit
 **Maximum:** 10
 
 If TEAM_SIZE_OVERRIDE is set (from `--team N`), use that value instead (still clamped to 3–10).
@@ -136,33 +142,36 @@ Each specialist has a name, file slug, one-line role, categories, tags (which AP
 | 1 | Security Engineer | `security` | --skip-security | all | Auth, injection, input validation, secrets, API security, dependencies/CVEs |
 | 2 | Testing/QA Analyst | `testing-qa` | --skip-testing | all | Coverage (unit/integration/e2e, **flag <80% as CRITICAL**), code duplication (**flag as WARNING**), test quality, CI/CD pipeline, test infra, test patterns |
 | 3 | Cloud Cost Analyst | `cloud-cost` | --skip-cloud | all | Compute, database, networking, caching/CDN, reserved capacity, storage |
+| 4 | SEO Specialist | `seo` | --skip-seo | all | Meta tags, Open Graph, structured data (schema.org), Core Web Vitals, crawlability (robots.txt, sitemap.xml), canonical URLs, semantic HTML, heading hierarchy, image alt text, internal linking, URL structure |
+| 5 | Test Sense-Checker | `test-review` | --skip-test-review | all | Assertion quality (behavior vs implementation), mock overuse, tautological assertions, flaky patterns, dead/skipped tests, test-to-code coupling, test naming clarity |
+| 6 | Coding Defaults Enforcer | `coding-defaults` | --skip-defaults | all | TDD evidence, Playwright setup & CLI tools, visual regression tests (screenshots, baselines), browser simulation (real browsers vs jsdom), test recording/tracing |
 
 ### Domain Specialists (selected by tag match + relevance order)
 
 | # | Specialist | Slug | Tags | Categories |
 |---|---|---|---|---|
-| 4 | Software Architect | `architecture` | web,server,cli,mobile,library,saas | Boundaries, data flow, API design, patterns, scalability |
-| 5 | Complexity Analyst | `complexity` | web,server,cli,mobile,library,saas | File metrics, coupling, **code duplication** (flag as red flag), dependency health, maintenance burden |
-| 6 | UX Designer | `usability` | web,mobile,saas | Navigation, loading/error states, forms, a11y, responsive, feedback |
-| 7 | Web Designer | `visual-design` | web | Design system, color, typography, spacing, dark mode, polish |
-| 8 | Mobile UX Designer | `mobile-ux` | mobile | Navigation, touch, platform conventions, offline, accessibility |
-| 9 | Mobile Performance | `mobile-perf` | mobile | Rendering, battery/network, memory, startup, bundle size |
-| 10 | CLI UX Specialist | `cli-ux` | cli | Command structure, help/docs, I/O, progress, config, errors |
-| 11 | Cross-Platform Engineer | `cross-platform` | cli,mobile | Platform compat, distribution, file system, shell integration |
-| 12 | SRE / Reliability | `reliability` | server,saas | Health checks, error recovery, observability, degradation, deployment |
-| 13 | DevOps / SysAdmin | `operations` | server,saas | Config management, resource limits, process mgmt, backup, monitoring |
-| 14 | Performance Engineer | `performance` | server,saas | DB perf, API latency, memory/CPU, concurrency, caching, load testing |
-| 15 | API Design Reviewer | `api-design` | library | Public API surface, type safety, error handling, versioning |
-| 16 | Documentation Reviewer | `documentation` | library | README, API docs, migration guides, examples |
-| 17 | Compatibility Analyst | `compatibility` | library | Runtime compat, bundler compat, peer deps, package config |
+| 7 | Software Architect | `architecture` | web,server,cli,mobile,library,saas | Boundaries, data flow, API design, patterns, scalability |
+| 8 | Complexity Analyst | `complexity` | web,server,cli,mobile,library,saas | File metrics, coupling, **code duplication** (flag as red flag), dependency health, maintenance burden |
+| 9 | UX Designer | `usability` | web,mobile,saas | Navigation, loading/error states, forms, a11y, responsive, feedback |
+| 10 | Web Designer | `visual-design` | web | Design system, color, typography, spacing, dark mode, polish |
+| 11 | Mobile UX Designer | `mobile-ux` | mobile | Navigation, touch, platform conventions, offline, accessibility |
+| 12 | Mobile Performance | `mobile-perf` | mobile | Rendering, battery/network, memory, startup, bundle size |
+| 13 | CLI UX Specialist | `cli-ux` | cli | Command structure, help/docs, I/O, progress, config, errors |
+| 14 | Cross-Platform Engineer | `cross-platform` | cli,mobile | Platform compat, distribution, file system, shell integration |
+| 15 | SRE / Reliability | `reliability` | server,saas | Health checks, error recovery, observability, degradation, deployment |
+| 16 | DevOps / SysAdmin | `operations` | server,saas | Config management, resource limits, process mgmt, backup, monitoring |
+| 17 | Performance Engineer | `performance` | server,saas | DB perf, API latency, memory/CPU, concurrency, caching, load testing |
+| 18 | API Design Reviewer | `api-design` | library | Public API surface, type safety, error handling, versioning |
+| 19 | Documentation Reviewer | `documentation` | library | README, API docs, migration guides, examples |
+| 20 | Compatibility Analyst | `compatibility` | library | Runtime compat, bundler compat, peer deps, package config |
 
 ### SaaS Business Specialists
 
 | # | Specialist | Slug | Tags | Categories |
 |---|---|---|---|---|
-| 18 | Revenue Strategist | `revenue` | saas | Pricing model, monetization, payment integration, feature gating, revenue leakage |
-| 19 | Growth/Marketing Analyst | `growth` | saas | SEO, analytics/tracking, onboarding flow, acquisition, conversion funnels |
-| 20 | Sales Engineer | `sales-readiness` | saas | API/integration readiness, enterprise features (SSO, SCIM, audit), multi-tenancy, compliance |
+| 21 | Revenue Strategist | `revenue` | saas | Pricing model, monetization, payment integration, feature gating, revenue leakage |
+| 22 | Growth/Marketing Analyst | `growth` | saas | Analytics/tracking, onboarding flow, acquisition, conversion funnels |
+| 23 | Sales Engineer | `sales-readiness` | saas | API/integration readiness, enterprise features (SSO, SCIM, audit), multi-tenancy, compliance |
 
 ### Relevance Order by APP_TYPE
 
@@ -183,7 +192,7 @@ Stability and user experience are the highest priorities. The order below reflec
 
 ### Assembly algorithm
 
-1. Start with mandatory specialists (Security, Testing/QA, Cloud Cost) — remove any that have their skip flag set
+1. Start with mandatory specialists (Security, Testing/QA, Cloud Cost, SEO, Test Sense-Checker, Coding Defaults Enforcer) — remove any that have their skip flag set
 2. From the relevance-ordered list for the current APP_TYPE, add specialists until TEAM_SIZE is reached
 3. Assign output file numbers sequentially: `01-{slug}.md`, `02-{slug}.md`, etc.
 
@@ -194,11 +203,13 @@ Project: {name} ({APP_TYPE}, {size} — {file_count} files)
 Scope: {full | N files from recent commits | N files from timeframe}
 
 Proposed team ({TEAM_SIZE} specialists):
-  1. Security Engineer         [mandatory]
-  2. Testing/QA Analyst        [mandatory]
-  3. Cloud Cost Analyst        [mandatory]
-  4. Software Architect
-  5. UX Designer
+  1. Security Engineer           [mandatory]
+  2. Testing/QA Analyst          [mandatory]
+  3. Cloud Cost Analyst          [mandatory]
+  4. SEO Specialist              [mandatory]
+  5. Test Sense-Checker          [mandatory]
+  6. Coding Defaults Enforcer    [mandatory]
+  7. Software Architect
   ...
 
 Accept [enter], expand [e], or customize [c]?
@@ -269,6 +280,67 @@ Write your report in this exact format:
 **Verdict:** {One sentence overall assessment of this dimension}
 
 Write your report to .analysis/{NN}-{SLUG}.md
+```
+
+### Specialist-specific prompt additions
+
+When building the agent prompt for these specialists, **append** the following instructions after the generic template:
+
+**SEO Specialist (`seo`):**
+```
+ADDITIONAL SEO INSTRUCTIONS:
+- Check <meta> tags (title, description, viewport, charset), OG/Twitter cards, structured data (JSON-LD / schema.org)
+- Check for robots.txt, sitemap.xml, canonical URLs
+- SPA without SSR/SSG = CRITICAL finding (invisible to crawlers without pre-rendering)
+- Check for Lighthouse/PageSpeed CI integration (e.g. in GitHub Actions, CI config)
+- Verify semantic HTML: proper heading hierarchy (single h1, h2>h3), landmark elements, image alt text
+- Check internal linking structure, URL patterns (human-readable, no hash-only routing)
+- For CLI/library apps (no web frontend): only check docs site SEO if one exists. If no docs site, produce a "Not Applicable" report explaining why and suggesting docs site creation.
+```
+
+**Test Sense-Checker (`test-review`):**
+```
+ADDITIONAL TEST REVIEW INSTRUCTIONS:
+- READ actual test files — do not just count them. Examine assertions line by line.
+- Flag these anti-patterns:
+  * toBeDefined-only assertions (testing existence, not behavior)
+  * Over-mocked tests (>3 mocks in a single test = WARNING, all deps mocked = CRITICAL)
+  * Implementation-detail testing (testing private methods, internal state, CSS selectors)
+  * No-assertion tests (test body with no expect/assert)
+  * Snapshot tests >50 lines (brittle, rarely reviewed)
+  * Mismatched test descriptions (describe/it text doesn't match what's tested)
+  * Dead/permanently-skipped tests (.skip, xit, @disabled for >30 days)
+  * Flaky patterns: time-dependent, order-dependent, shared mutable state
+- Produce a "Test Health Score":
+  * Meaningful (>70% of tests validate correct behavior)
+  * Mixed (30-70%)
+  * Ceremonial (<30% — tests exist for coverage metrics only)
+- IMPORTANT: Testing/QA Analyst covers coverage metrics. YOUR focus is whether tests validate correct behavior, not whether they exist.
+```
+
+**Coding Defaults Enforcer (`coding-defaults`):**
+```
+ADDITIONAL CODING DEFAULTS INSTRUCTIONS:
+- TDD Evidence:
+  * Check git history for test-before-code patterns (test commits preceding implementation commits)
+  * Check test file naming conventions (*.test.ts, *.spec.ts, test_*.py)
+  * Check for test directory structure mirroring source directory structure
+  * No TDD evidence in a project with >10 source files = WARNING
+- Playwright:
+  * Check for playwright.config.ts/js, @playwright/test in dependencies
+  * Check for test files using Playwright (*.spec.ts in e2e/ or tests/ dirs)
+  * Check for npx playwright codegen / show-trace usage in scripts or docs
+  * Check CI integration (playwright in GitHub Actions / CI config)
+  * Web app without Playwright or equivalent E2E framework = WARNING
+- Visual Regression:
+  * Check for toHaveScreenshot() calls, Percy, Chromatic, BackstopJS, or similar
+  * Check for .png baseline files in test directories
+  * Web app with UI components but no visual regression testing = WARNING
+- Browser Simulation:
+  * Flag if jsdom/happy-dom is the ONLY test environment for a web app (WARNING — not real browser testing)
+  * Check for webServer config in Playwright/test config
+  * Check for tracing setup (trace: 'on-first-retry' or similar)
+- Web app with ZERO end-to-end tests = CRITICAL
 ```
 
 When FILE_SCOPE is non-empty, the FILE_SCOPE_BLOCK is:
@@ -391,19 +463,148 @@ For non-saas APP_TYPEs, omit `{SAAS_SYNTHESIS_SECTIONS}` entirely.
 
 ---
 
-## Step 5 — Present results
+## Step 5 — Catch-and-Fix Phase
 
-After the synthesis agent completes:
+Skip this entire step if SKIP_FIX is true.
+
+### 5a. Extract actionable issues
+
+Read `.analysis/REPORT.md`. Pull all Priority 1 and Priority 2 items. **Exclude:**
+- Large architectural changes (effort = "Large")
+- INFO-level items
+- Items requiring external service changes (third-party APIs, DNS, CDN config)
+
+Build an ISSUES list with: issue number, title, severity, effort, target file(s), and source dimension(s).
+
+### 5b. Generate fix plan
+
+For each actionable issue, determine:
+- **Target files** with specific line numbers
+- **Change description** (what exactly to modify)
+- **Risk level** (Low = isolated change, Medium = touches shared code, High = cross-cutting)
+- **Dependencies** (other fixes that must happen first or simultaneously)
+
+Group fixes by target file. Present as a table:
+
+```
+Fix Plan ({N} actionable issues):
+
+| # | Issue | Files | Risk | Effort | Dependencies |
+|---|-------|-------|------|--------|-------------|
+| 1 | {title} | path/file.ts:42 | Low | Quick Win | — |
+| 2 | {title} | path/file.ts:88, other.ts:12 | Medium | Quick Win | #1 |
+| ... | ... | ... | ... | ... | ... |
+```
+
+### 5c. Approval gate
+
+Present the fix plan and ask:
+
+```
+Approve all [a], select specific by number [1,3,5], skip [s], or reject [r]?
+```
+
+- **Approve all**: proceed with all fixes
+- **Select specific**: proceed with only the numbered fixes
+- **Skip**: skip the fix phase entirely, continue to Step 6
+- **Reject**: skip the fix phase entirely, continue to Step 6
+
+**Do NOT proceed without explicit user approval.**
+
+### 5d. Spawn fix agents
+
+For each approved fix group (grouped by target file), launch a background Agent (`subagent_type="general-purpose"`):
+
+```
+You are a surgical code fixer. Apply ONLY the specified fixes — do not refactor, reformat, or improve surrounding code.
+
+Fix to apply:
+{FIX_DESCRIPTION}
+
+Target file(s): {FILE_PATHS}
+
+RULES:
+- Read the target file(s) first using the Read tool
+- Make the minimal change needed to fix the issue
+- Do NOT refactor surrounding code
+- Do NOT add comments explaining the fix
+- Do NOT change formatting of untouched lines
+- Use the Edit tool for all changes
+- After applying fixes, write a summary to .analysis/fixes/{NN}-fix-summary.md containing:
+  * What was changed
+  * Files modified with line numbers
+  * Before/after snippets (brief)
+```
+
+### 5e. Verify fixes
+
+After all fix agents complete:
+
+1. **Auto-detect test suite:** Look for `package.json` scripts (test/test:unit/test:e2e), `pytest.ini`/`pyproject.toml` [tool.pytest], `Cargo.toml`, `go.mod`, `Makefile` (test target). Run the first matching command:
+   - `npm test` / `yarn test` / `pnpm test`
+   - `pytest`
+   - `cargo test`
+   - `go test ./...`
+   - `make test`
+
+2. **Present results table:**
+   ```
+   Fix Verification:
+   | # | Fix | Status | Details |
+   |---|-----|--------|---------|
+   | 1 | {title} | PASS | All tests pass |
+   | 2 | {title} | FAIL | test_auth.py:42 — AssertionError |
+   | ... | ... | ... | ... |
+   ```
+
+3. **On test failure**, ask:
+   ```
+   Tests failed after fixes. Options:
+   - Auto-fix [a] (max 2 retries)
+   - Revert all fixes [ra]
+   - Revert specific [r1,r3]
+   - Continue anyway [c]
+   ```
+   - Auto-fix: spawn a fix agent targeting the failing test, retry up to 2 times
+   - Revert: use `git checkout -- {files}` to revert specified files
+   - Continue: proceed with failing tests (user accepts the state)
+
+4. **On success:** All tests pass — fixes are ready.
+
+### 5f. Update synthesis report
+
+Launch a foreground Agent (`subagent_type="general-purpose"`) to update the report:
+
+```
+You are updating the analysis report after fixes were applied.
+
+Read .analysis/REPORT.md and all .analysis/fixes/*-fix-summary.md files.
+
+Update REPORT.md:
+1. Add a "## Fixes Applied" section after the Scorecard, listing each fix with status (PASS/FAIL/REVERTED)
+2. In Priority 1 and Priority 2 sections, mark fixed items with [FIXED] prefix on their title
+3. Update the Scorecard health ratings if fixes improved a dimension (e.g., Security went from "Needs Work" to "Fair")
+4. Update the Executive Summary to reflect fixes applied (e.g., "X of Y critical issues were automatically resolved")
+
+Write the updated report back to .analysis/REPORT.md
+```
+
+---
+
+## Step 6 — Present results
+
+After the synthesis (and optional fix) phase completes:
 
 1. Read `.analysis/REPORT.md`
 2. Print the Executive Summary and Scorecard table from the report
 3. Print the Priority 1 items (just titles and effort)
 4. Print compound wins (just titles)
-5. Print file listing with line counts
+5. If fixes were applied, print fix summary: issues fixed vs total, skipped items, test status
+6. Print file listing with line counts
 
 ---
 
-## Step 6 — GSD Integration
+## Step 7 — GSD Integration
 
 Skip this step if SKIP_GSD is true.
 
