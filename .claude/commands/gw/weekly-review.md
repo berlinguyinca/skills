@@ -106,6 +106,20 @@ gh pr list --repo ORG/REPO --state merged --search "merged:>=START_DATE" \
 
 Filter results to only include PRs merged on or before the `--to` date. Merge results from all sources.
 
+### 3a-ii. Enrich org PRs with full context
+
+The `body` field from PR search contains the full PR description — this is **critical** for the executive narrative. For each **org** merged PR, carefully read the `body` to extract:
+
+- **The problem statement** — what was broken, slow, or missing before this change? Look for "## Problem", "## Summary", "## Why", or the first paragraph.
+- **The solution impact** — what's different now for users/operators? Look for "## Summary" bullet points, "## Changes", or descriptions of new capabilities.
+- **Quantitative evidence** — test counts, performance numbers, coverage percentages, capacity limits, timeout values. E.g. "34/39 modules above 70%", "100k samples: minutes → milliseconds", "retry up to 3 times with 500ms/1s/2s backoff".
+- **New tools or commands introduced** — CLI commands, API endpoints, config flags, TUI interfaces. These are concrete deliverables stakeholders can see.
+- **Test plan results** — checked boxes (`[x]`) indicate verified work vs unchecked (`[ ]`) pending validation.
+
+Store these extracted details in a `context` field per PR for use in Step 4. This context is what transforms vague chart labels into compelling executive narratives. Without it, the executive deck is generic — with it, you can write things like "Processing nodes now auto-recover stuck samples within 30 minutes (previously required manual restart, affecting ~5% of daily throughput)."
+
+**For org-wide sources**, the `body` field is already included in `gh search prs`. For single-repo sources, it's in `gh pr list`. No additional API calls needed — just read and extract from what's already fetched.
+
 ### 3b. Open PRs (currently open, authored by user)
 
 For each source:
@@ -233,9 +247,14 @@ Use a tiered classification:
 
 **Organization work dominates the narrative.** Personal repos get a brief mention at most.
 
-Transform developer PR titles into plain-English, user-facing language. Produce:
+**Use the PR body context extracted in Step 3a-ii to write rich, specific, evidence-based narratives** — not generic summaries from titles alone. The executive deck must make a compelling case for why this work matters. Pull specific numbers, before/after comparisons, and concrete outcomes from the PR descriptions:
 
-- **headline**: A single-sentence summary of the week's most impactful achievement (e.g. "Pipeline reliability upgrade eliminates manual intervention for stuck samples")
+- BAD (generic): "Improved the scheduling system"
+- GOOD (specific, evidence-based): "Sample processing now prioritizes the newest lab data first and auto-recovers stuck items within 30 minutes — previously these required manual intervention, affecting ~5% of daily throughput"
+
+Transform developer PR descriptions into plain-English, stakeholder-facing language. Produce:
+
+- **headline**: A single-sentence summary of the week's most impactful achievement. Use specific numbers from the PR bodies when available. (e.g. "Pipeline reliability overhaul: auto-recovery, capacity limiting, and operator dry-run mode eliminate manual intervention for stuck samples")
 - **kpi_cards**: 4 **outcome-oriented** metrics that a non-technical executive cares about. Do NOT use developer metrics like commit counts, PR counts, or repo counts — those are meaningless to a lab director. Instead use impact-focused labels like: `[{"label": "New Capabilities", "value": "5"}, {"label": "Issues Resolved", "value": "3"}, {"label": "Systems Improved", "value": "4"}, {"label": "Upcoming", "value": "5"}]`. Other good labels: "Reliability Gains", "Tools Delivered", "Workflows Automated", "Bottlenecks Removed".
 - **highlights**: 3-5 items, each a JSON object:
   ```json
@@ -243,14 +262,15 @@ Transform developer PR titles into plain-English, user-facing language. Produce:
     "short_label": "Auto-recovery for stuck samples",  // MAX 8 WORDS — chart label
     "impact_score": 5,                                   // 1-5, 5=highest
     "category": "Feature",                               // Feature|Bug Fix|Improvement
-    "user_impact": "Lab users no longer need to manually restart stuck samples — the system detects and recovers them automatically within 30 minutes."  // 1-2 SENTENCES, plain English, explains why this matters to a non-technical stakeholder
+    "user_impact": "Lab users no longer need to manually restart stuck samples — the system detects and recovers them automatically within 30 minutes, eliminating ~5% daily throughput loss from stuck items."  // 1-2 SENTENCES with SPECIFIC EVIDENCE from the PR body (numbers, timeouts, before/after). Not generic platitudes.
   }
   ```
-- **bug_fixes**: list of `{"short_label": "...", "user_explanation": "..."}`. `short_label` MAX 8 WORDS (chart label). `user_explanation` is 1 sentence explaining what was broken and how it affects users, in plain English.
-- **coming_soon**: org open PRs as JSON objects `{"short_label": "...", "scope": "small|medium|large", "repo": "...", "user_impact": "..."}`. `short_label` MAX 6 WORDS. `user_impact` is 1 sentence explaining why this matters.
+  The `user_impact` must draw on concrete details from the PR body: timeout values, capacity limits, test counts, endpoint counts, performance improvements, coverage numbers. If the PR body says "retry up to 3 times with 500ms/1s/2s backoff", translate that into impact: "The system now automatically retries failed operations up to 3 times before alerting, reducing false alarms."
+- **bug_fixes**: list of `{"short_label": "...", "user_explanation": "..."}`. `short_label` MAX 8 WORDS. `user_explanation` is 1-2 sentences: FIRST what users experienced (the symptom), THEN the resolution. Pull specifics from the PR body — if it says "/tmp/ fills with gigabytes of stale data", say exactly that.
+- **coming_soon**: org open PRs as JSON objects `{"short_label": "...", "scope": "small|medium|large", "repo": "...", "user_impact": "..."}`. `short_label` MAX 6 WORDS. `user_impact` is 1 sentence with specifics from the open PR description (e.g. "Interactive terminal dashboard for monitoring all processing nodes across the cluster with one-click shutdown").
 - **side_projects**: 2-3 sentences about personal repo activity. e.g. "Shipped 4 updates to ai-sync, a tool for synchronizing AI coding assistant configurations across machines. Key improvement: pull no longer overwrites local changes."
 
-**Rules:** No jargon, no code references, no file paths. Chart labels are SHORT (6-8 words). But every chart has accompanying plain-English explanatory text (1-2 sentences) that tells stakeholders why it matters. Think of the audience as a lab director who wants to understand impact, not implementation.
+**Rules:** No jargon, no code references, no file paths. Chart labels are SHORT (6-8 words). Every explanatory text must cite **specific evidence from the PR descriptions** — numbers, measurements, concrete before/after differences. Generic statements like "improved reliability" are not acceptable; "auto-recovers stuck samples within 30 minutes instead of requiring manual restart" is. Think of the audience as a lab director who wants to understand impact with supporting evidence.
 
 ### 4d. Generate technical narrative (org-first)
 
