@@ -42,10 +42,16 @@ The BUDGET flag modifies behavior in Phases 2-4:
 
 ### 1a. Check for existing data
 
-Check if `.saas-ideas/` directory exists. If it does and `--pick` was NOT set and `--fresh` was NOT set, ask the user: "`.saas-ideas/` already exists from a previous run. Harvest fresh data, re-use existing shortlist, or view existing REPORT.md?" Handle each choice:
-- If they choose to view: read and present `.saas-ideas/REPORT.md` and stop.
-- If they choose to re-use: skip to interactive selection on existing `SHORTLIST.md` (skip Phase 1 and Phase 2).
-- If they choose fresh: continue to Phase 1.
+Check if `.saas-ideas/` directory exists. If it does and `--pick` was NOT set and `--fresh` was NOT set:
+- Check which files exist: `REPORT.md`, `SHORTLIST.md`
+- Build the prompt dynamically based on what exists:
+  - Always offer: "Harvest fresh data"
+  - If `SHORTLIST.md` exists: also offer "Re-use existing shortlist"
+  - If `REPORT.md` exists: also offer "View existing REPORT.md"
+- Handle each choice:
+  - If they choose to view (and `REPORT.md` exists): read and present `.saas-ideas/REPORT.md` and stop.
+  - If they choose to re-use (and `SHORTLIST.md` exists): skip to interactive selection on existing `SHORTLIST.md` (skip Phase 1 and Phase 2).
+  - If they choose fresh: continue to Phase 1.
 
 ### 1b. Initialize history
 
