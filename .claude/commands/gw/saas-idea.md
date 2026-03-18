@@ -796,6 +796,24 @@ For each channel:
 - Feedback loop: how community input feeds product roadmap
 - Ambassador program: structure, rewards, recruitment
 
+## 11. Related Forums & Communities
+
+Use WebSearch to find forums, communities, and online spaces where the target audience for this SaaS idea already congregates. For each, provide:
+
+| Forum/Community | URL | Platform | Audience Size | Relevance | Engagement Strategy |
+|-----------------|-----|----------|---------------|-----------|-------------------|
+| ... | ... | Reddit/Discord/Slack/Forum/Facebook Group/etc. | ... | high/medium | How to participate authentically |
+
+Find at least 10 relevant communities. Include:
+- Subreddits where the target problem is discussed
+- Discord/Slack communities in the niche
+- Industry-specific forums (Stack Overflow tags, niche forums)
+- Facebook/LinkedIn groups
+- Indie hacker / maker communities where this idea could get early traction
+- Any niche-specific Q&A sites or discussion boards
+
+For each community, write a specific engagement strategy: what kind of posts to make, how to offer value before promoting, what content to share, and how to build reputation.
+
 Write the complete marketing playbook to `.saas-ideas/deep-dive/MARKETING-PLAYBOOK.md`.
 ```
 
@@ -819,7 +837,16 @@ Use WebSearch to research current best practices, framework comparisons, and hos
 Write a technical specification covering ALL 8 sections below. Be concrete — name specific technologies, services, and tools.
 
 ## 1. Recommended Stack
-Choose technologies optimized for:
+
+The following technologies are MANDATORY — do not substitute:
+- **Database:** PostgreSQL (use managed service appropriate to BUDGET — RDS for medium/high, Supabase or Neon free tier for low)
+- **Auth:** Google OAuth (via next-auth, passport-google-oauth20, or equivalent)
+- **Payments:** Stripe (Checkout, Billing, or Payment Intents as appropriate)
+- **Hosting:** AWS (ECS/Fargate for medium/high, Amplify or Lightsail for low)
+- **Infrastructure as Code:** Terraform (all infra must be codified)
+- **Domain:** Deploy as subdomain under `codingandmore.net` (e.g., `{app-name}.codingandmore.net`)
+
+Choose the remaining technologies optimized for:
 - AI-assisted development speed (Claude Code, Cursor, Copilot compatibility)
 - Solo/small-team productivity
 - Time to MVP
@@ -828,10 +855,6 @@ Choose technologies optimized for:
 For each layer, name the specific technology and give a 1-2 sentence rationale:
 - **Frontend:** framework, UI library, styling
 - **Backend:** language, framework, API style (REST/GraphQL/tRPC)
-- **Database:** primary DB, cache layer if needed
-- **Auth:** service or library
-- **Payments:** provider and library
-- **Hosting:** platform
 - **AI tooling:** which AI coding tools to use and how
 
 ## 2. Architecture Overview
@@ -866,12 +889,20 @@ For each entity:
 Provide this as a structured list or pseudo-schema, not raw SQL.
 
 ## 5. Third-Party Services
-For each service category, recommend specific providers:
+
+MANDATORY services (do not substitute):
+- **Auth:** Google OAuth
+- **Payments:** Stripe
+- **Hosting/Infra:** AWS + Terraform
+- **Database:** PostgreSQL (AWS RDS, Supabase, or Neon)
+
+For remaining services, recommend specific providers:
 
 | Category | Service | Tier/Plan | Monthly Cost | Why |
 |----------|---------|-----------|-------------|-----|
-| Auth | ... | ... | ... | ... |
-| Payments | ... | ... | ... | ... |
+| Auth | Google OAuth | Free | $0 | Mandatory |
+| Payments | Stripe | Standard | 2.9% + $0.30/txn | Mandatory |
+| Database | PostgreSQL (RDS/Supabase/Neon) | ... | ... | Mandatory |
 | Email (transactional) | ... | ... | ... | ... |
 | Email (marketing) | ... | ... | ... | ... |
 | Analytics | ... | ... | ... | ... |
@@ -879,15 +910,20 @@ For each service category, recommend specific providers:
 | Logging | ... | ... | ... | ... |
 | File storage | ... | ... | ... | ... |
 
-Calibrate to BUDGET:
+Calibrate non-mandatory services to BUDGET:
 - low: free-tier services only, minimize vendor count
 - medium: paid tiers OK where they save significant time
 - high: best-in-class services, optimize for team velocity
 
-## 6. Infrastructure
-- Hosting setup: describe the deployment architecture
-- CI/CD pipeline: tools and workflow
-- Environment strategy: local, staging, production
+## 6. Infrastructure (AWS + Terraform)
+
+All infrastructure MUST be defined in Terraform. Provide Terraform module structure.
+
+- **AWS deployment architecture:** describe the specific AWS services used (ECS/Fargate, RDS PostgreSQL, S3, CloudFront, Route53, ACM, etc.)
+- **Domain:** configure as `{app-name}.codingandmore.net` via Route53 + ACM certificate
+- **Terraform module layout:** list the `.tf` files and what each defines
+- **CI/CD pipeline:** GitHub Actions → build → test → deploy to AWS
+- **Environment strategy:** local (Docker Compose), staging (`staging.{app-name}.codingandmore.net`), production (`{app-name}.codingandmore.net`)
 - Estimated monthly infrastructure cost at scale:
 
 | Users | Compute | Database | Storage | Services | Total/month |
@@ -942,6 +978,16 @@ You are a prompt engineer specializing in AI-assisted software development. Your
 **Focus domain:** {FOCUS}
 
 Each prompt you write must be fully self-contained — it should include all necessary context so a developer can paste it directly and get working results. Do not reference external documents within the prompts themselves; embed all needed context inline.
+
+**MANDATORY stack (hardcoded in all prompts):**
+- Database: PostgreSQL
+- Auth: Google OAuth
+- Payments: Stripe
+- Hosting: AWS
+- Infrastructure: Terraform
+- Domain: `{app-name}.codingandmore.net`
+
+**Goal: Complete working prototype.** The prompts should aim to produce fully deployable code, not just scaffolding. Each phase prompt should generate actual working code that can be tested and deployed.
 
 Write implementation prompts covering ALL 5 categories below.
 
@@ -1120,7 +1166,7 @@ Generate a complete Python script that uses `python-pptx` to create a 10-slide i
 | 5 | **Business Model** | Pricing tiers as a comparison table (light gray alternating rows). Revenue projections note below. |
 | 6 | **Competitive Landscape** | 2x2 positioning matrix with axes labeled. Place competitors and the product as positioned shapes. Source from BUSINESS-PLAN.md competitive analysis. |
 | 7 | **Go-to-Market** | Launch strategy as a horizontal timeline with 4-5 phases. Each phase is a rounded rectangle with title and key action. Source from MARKETING-PLAYBOOK.md. |
-| 8 | **Tech Architecture** | Stack diagram showing frontend/backend/infra layers as stacked rounded rectangles. MVP timeline as bullet points. Include note: 'AI-accelerated development workflow via Claude Code'. Source from TECH-SPEC.md. |
+| 8 | **Tech Architecture** | Stack diagram showing frontend/backend/infra layers as stacked rounded rectangles. Highlight: PostgreSQL, Google OAuth, Stripe, AWS, Terraform. MVP timeline as bullet points. Include note: 'AI-accelerated development → deployed at {app-name}.codingandmore.net'. Source from TECH-SPEC.md. |
 | 9 | **Traction Plan** | Month-by-month growth targets for months 1-6 as a simple table. Key milestones highlighted in accent blue. |
 | 10 | **The Ask / Next Steps** | What's needed to start — bullet points for resources, budget, timeline. Bold call-to-action at bottom. |
 
@@ -1231,6 +1277,16 @@ Check if `~/.claude/commands/gsd/` exists. If it does:
    - **If no (greenfield):** Automatically invoke `/gsd:new-project` and reference `.saas-ideas/deep-dive/TECH-SPEC.md` as the requirements source. Tell the user you are creating a GSD project from the tech spec. Include project context: "This project was generated by /gw:saas-idea. Superpowers workflow: brainstorm → plan → TDD → review → verify for each phase."
 
 If GSD commands don't exist, say: "Full plan available in `.saas-ideas/`. Install GSD to auto-scaffold the project." and stop.
+
+**Prototype generation goal:** The GSD project/milestone should target generating a **complete working prototype** — not just plans. The implementation prompts and GSD phases should aim to produce deployable code with:
+- Working auth (Google OAuth)
+- Working payments (Stripe integration)
+- Core feature functionality
+- PostgreSQL database with migrations
+- Terraform configs for AWS deployment
+- Deployed to `{app-name}.codingandmore.net`
+
+Tell the user: "GSD will scaffold a project targeting a fully deployable prototype at `{app-name}.codingandmore.net`."
 
 ---
 
