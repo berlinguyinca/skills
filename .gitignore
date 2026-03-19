@@ -1,0 +1,9 @@
+.DS_Store
+*.pptx
+.env
+.env.*
+.analysis/
+.saas-ideas/
+.competitors/
+.research/
+/tmp/

@@ -57,19 +57,20 @@ Follow these steps IN ORDER. Do not skip steps or proceed past approval gates wi
 Before starting the workflow, verify the environment:
 
 1. Run `gh auth status` to confirm GitHub CLI is authenticated. If it fails, stop and tell the user to run `gh auth login`.
-2. Check if there are any staged or unstaged changes (`git status --porcelain`). If the output is empty AND we're on the default branch, tell the user: "No changes detected. Stage or modify files first." and stop.
-3. Check if the user is already on a non-default feature branch with commits ahead of the default branch:
+2. Check for detached HEAD state: if `git symbolic-ref HEAD 2>/dev/null` fails, tell the user: "HEAD is detached. Please checkout a branch first (e.g., `git checkout main`)." and stop.
+3. Check if there are any staged or unstaged changes (`git status --porcelain`). If the output is empty AND we're on the default branch, tell the user: "No changes detected. Stage or modify files first." and stop.
+4. Check if the user is already on a non-default feature branch with commits ahead of the default branch:
    - Run `git log <default-branch>..HEAD --oneline` to see if there are commits
    - If yes, ask the user: "You're already on branch `<current-branch>` with N commits ahead of `<default-branch>`. Continue from here (skip to Step 2), or start fresh?"
    - If they continue, skip Step 1 and proceed to Step 2
-4. Check if there's already an open PR for the current branch:
+5. Check if there's already an open PR for the current branch:
    - Run `gh pr view --json number,url,state 2>/dev/null`
    - If a PR exists and is open, ask the user: "PR #N already exists for this branch (<url>). Resume the review/merge workflow from Step 4?"
    - If they confirm, skip to Step 4
 
 ### Step 1: Create a branch
 
-- Determine a descriptive branch name from the staged/unstaged changes (e.g., `fix/path-rewriter-escaping` or `feat/auto-update`)
+- Determine a descriptive branch name from the staged/unstaged changes (e.g., `fix/path-rewriter-escaping` or `feat/auto-update`). Sanitize the branch name for use in filenames: replace `/` with `-`, strip characters not in `[a-zA-Z0-9._-]`.
 - Run: `git checkout -b <branch-name>`
 - Stage and commit all relevant changes with a clear commit message
 - If the commit fails (e.g., pre-commit hook rejects it), show the error and ask how to proceed — do NOT force past hooks
@@ -148,10 +149,10 @@ Present the plan summary and ask:
 - Implement each approved fix
 - Detect and run the project's test suite using this priority order:
   1. **package.json** — look for `scripts.test`, `scripts.test:unit`, or `scripts.test:ci`. Run via `npm test` (or `yarn test` / `pnpm test` if a `yarn.lock` or `pnpm-lock.yaml` is present)
-  2. **Makefile** — check for `test`, `check`, or `verify` targets. Run via `make test`
-  3. **pyproject.toml** — check for `[tool.pytest]` section. Run via `pytest`
-  4. **Cargo.toml** — run `cargo test`
-  5. **go.mod** — run `go test ./...`
+  2. **pyproject.toml** / **pytest** — check for `[tool.pytest]` section in `pyproject.toml`, or `pytest.ini`, or `setup.cfg` with pytest config. Run via `pytest`
+  3. **Cargo.toml** — run `cargo test`
+  4. **go.mod** — run `go test ./...`
+  5. **Makefile** — check for `test`, `check`, or `verify` targets. Run via `make test`
   6. If no test runner is detected, tell the user: "No test runner detected — skipping tests."
 - If tests fail, show the output and ask: "Tests failed. Fix and retry, continue anyway, or abort?"
 - Commit fixes with a clear message referencing the review
@@ -165,13 +166,22 @@ Create a `.pptx` file using Python and the `python-pptx` library.
 
 Write and execute a Python script that builds the presentation with these requirements:
 
-**Theme:**
-- Light background: white (`#FFFFFF`) or very light gray (`#F5F5F5`)
-- Primary text: dark gray (`#333333`)
-- Accent color: soft blue (`#4A90D9`)
-- Secondary accent: light green (`#27AE60`) for improvements
-- Font: Calibri or Arial throughout
-- Slide dimensions: widescreen 16:9
+**Design system** (canonical gw-skills palette):
+```
+PRIMARY      = RGBColor(0x2C, 0x3E, 0x50)  # dark blue-gray — titles, headers
+SECONDARY    = RGBColor(0x34, 0x49, 0x5E)  # medium blue-gray — body text
+ACCENT       = RGBColor(0x34, 0x98, 0xDB)  # bright blue — highlights, KPIs
+SUCCESS      = RGBColor(0x27, 0xAE, 0x60)  # green — improvements, fixed items
+DANGER       = RGBColor(0xE7, 0x4C, 0x3C)  # red — critical issues
+WARNING      = RGBColor(0xF3, 0x9C, 0x12)  # amber — warnings
+MUTED        = RGBColor(0x95, 0xA5, 0xA6)  # gray — captions, labels
+BG_WHITE     = RGBColor(0xFF, 0xFF, 0xFF)
+BG_LIGHT     = RGBColor(0xF8, 0xF9, 0xFA)
+```
+
+- Font: Calibri throughout
+- Slide dimensions: 16:9 widescreen (13.333" x 7.5")
+- Accent bar: 0.06" wide ACCENT strip at left edge of every slide
 
 **Slide structure:**
 
@@ -192,7 +202,7 @@ Write and execute a Python script that builds the presentation with these requir
    - Use colored boxes or a simple chart
 5. **Closing slide** — "Ready for production" with the PR link and merge status
 
-Create the `doc/` directory in the project root if it doesn't exist. Save the file as `doc/changes-presentation-<branch-name>.pptx`.
+Create the `docs/gw/` directory in the project root if it doesn't exist. Save the file as `docs/gw/changes-presentation-<branch-name>.pptx`.
 
 Execute the script:
 
@@ -206,7 +216,7 @@ Tell the user where the file was saved.
 
 After generating the presentation, commit it to the branch so it becomes part of the PR:
 
-- Run: `git add doc/changes-presentation-<branch-name>.pptx`
+- Run: `git add docs/gw/changes-presentation-<branch-name>.pptx`
 - Run: `git commit -m "docs: add changes presentation for <branch-name>"`
 - Run: `git push`
 
@@ -234,7 +244,7 @@ Before merging, check the status of PR checks:
   ```
   Done! PR #<number> merged into <base-branch> via <strategy>.
   Branch <branch-name> has been deleted.
-  Presentation saved to: doc/changes-presentation-<branch-name>.pptx (if generated)
+  Presentation saved to: docs/gw/changes-presentation-<branch-name>.pptx (if generated)
   ```
 - If not confirmed, leave the PR open and inform the user
 
@@ -242,7 +252,7 @@ Before merging, check the status of PR checks:
 
 - If any step fails, show the error clearly and ask the user how to proceed
 - Never force-push or use destructive git operations without asking
-- If `python-pptx` is unavailable and both `uv` and `pip` fail, fall back to creating an HTML presentation file instead
+- If `python-pptx` is unavailable and both `uv` and `pip` fail, tell the user: "PowerPoint generation failed — python-pptx is required. Install it with `pip install python-pptx` or use `--skip-presentation` to skip."
 - If `gh` commands fail with authentication errors, suggest `gh auth login`
 - If `git push` fails with permission errors, show the remote URL and suggest checking access
 - If PR creation fails because a PR already exists for the branch, show the existing PR URL and offer to continue with it

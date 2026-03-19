@@ -4,14 +4,14 @@
 
 **Goal:** Create the `/gw:saas-idea` skill file that orchestrates internet trend harvesting, SaaS idea scoring, and full deep-dive generation with business plan, marketing playbook, tech spec, implementation prompts, and pitch deck.
 
-**Architecture:** Single skill file (`.claude/commands/gw/saas-idea.md`) containing orchestrator instructions that spawn parallel harvest agents, a synthesis agent, parallel deep-dive agents, and a pitch deck agent. Follows the same patterns as `analyze-app.md` and `weekly-review.md`.
+**Architecture:** Single skill file (`.claude/commands/gw/saas-idea.md`) containing orchestrator instructions that spawn parallel harvest agents, a synthesis agent, parallel deep-dive agents, and a pitch deck agent. Follows the same patterns as `review-app.md` and `weekly-review.md`.
 
 **Tech Stack:** Claude Code skill markdown, Agent tool, WebSearch/WebFetch, python-pptx for pitch deck generation.
 
 **Spec:** `docs/superpowers/specs/2026-03-17-saas-idea-generator-design.md`
 
 **Reference files:**
-- `.claude/commands/gw/analyze-app.md` — parallel agent pattern, error handling, GSD integration
+- `.claude/commands/gw/review-app.md` — parallel agent pattern, error handling, GSD integration
 - `.claude/commands/gw/weekly-review.md` — PowerPoint generation pattern, design system
 - `.claude/commands/gw/merge-it.md` — argument parsing pattern
 - `.claude/commands/gw/update.md` — Step 0 update check pattern
@@ -48,7 +48,7 @@ argument-hint: "[--focus <niche>] [--fresh] [--budget low|medium|high] [--pick <
 
 - [ ] **Step 2: Add Step 0 — Update check**
 
-Copy the update check boilerplate verbatim from `analyze-app.md` lines 7-17. This is identical across all `gw:` skills.
+Copy the update check boilerplate verbatim from `review-app.md` lines 7-17. This is identical across all `gw:` skills.
 
 - [ ] **Step 3: Add introductory paragraph and argument parsing**
 
@@ -338,7 +338,7 @@ Add a new row to the table at line ~20:
 
 - [ ] **Step 2: Add Skill Reference section**
 
-Add a new `### /gw:saas-idea` section after the `/gw:analyze-app` reference (around line 112) with:
+Add a new `### /gw:saas-idea` section after the `/gw:review-app` reference (around line 112) with:
 - Usage syntax
 - Description paragraph
 - Flags table (all 5 flags with descriptions and defaults)

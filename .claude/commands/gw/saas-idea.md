@@ -1,7 +1,7 @@
 ---
 name: saas-idea
 description: Harvest trending SaaS opportunities from the internet, score and rank them, then deep-dive into the best idea with full business plan, marketing playbook, and implementation prompts
-argument-hint: "[--focus <niche>] [--fresh] [--budget low|medium|high] [--pick <N>] [--skip-gsd] [--auto] [--build] [--verify]"
+argument-hint: "[--focus <niche>] [--fresh] [--budget low|medium|high] [--pick <N>] [--skip-gsd] [--auto] [--build] [--verify] [--team auto|ask|N] [--skip-debate]"
 ---
 
 ## Step 0 — Update check
@@ -28,6 +28,8 @@ Parse the arguments: "$ARGUMENTS"
 - If "--auto" is present, set AUTO_SELECT=true. Default: false
 - If "--build" is present, set BUILD_MODE=true AND AUTO_SELECT=true (build implies auto). Default: false
 - If "--verify" is present, set VERIFY_MODE=true. Default: false
+- If "--team X" is present: if X is a number, set TEAM_MODE=auto and TEAM_SIZE_OVERRIDE=X (clamped to 3-10). If X is "auto" or "ask", set TEAM_MODE=X. Default: auto
+- If "--skip-debate" is present, set SKIP_DEBATE=true. Default: false
 
 ### Flag validation
 
@@ -449,7 +451,7 @@ After all agents complete, validate the harvest results:
    Count signals by grepping for `### ` headings under the `## Signals` section in each file.
 
 3. Apply minimum threshold: at least 3 out of 6 agents must succeed.
-   - If fewer than 3 succeeded: tell the user which agents failed and why (file missing vs. zero signals). Offer to retry only the failed agents. Do not proceed until threshold is met.
+   - If fewer than 3 succeeded: tell the user which agents failed and why (file missing vs. zero signals). Offer to retry only the failed agents (max 2 retries per failed agent). After 2 failures for the same agent, continue with available reports. Do not proceed until threshold is met or all retries are exhausted.
    - If 3 or more succeeded: continue to Phase 2. Note any failures in the Phase 2 synthesis prompt so the synthesizer knows which sources are missing.
 
 ---
@@ -557,6 +559,177 @@ Sort ideas by composite score descending. Write the top 10 to `.saas-ideas/SHORT
 
 Replace YYYY-MM-DD with today's actual date. Fill all {N} placeholders with real counts.
 ```
+
+---
+
+## Phase 2.5 — Idea Debate
+
+Skip this phase if `SKIP_DEBATE=true` OR `AUTO_SELECT=true` (--auto and --build imply speed — skip debate).
+
+### 2.5a. Load workforce
+
+Resolve the gw-skills repo path:
+
+```bash
+GW_REPO="$(cd "$(readlink ~/.claude/commands/gw)/../../.." 2>/dev/null && pwd)" || GW_REPO="$HOME/.gw-skills"
+```
+
+Read all persona files from:
+1. `$GW_REPO/workforce/_defaults/*.md` — pre-shipped personas
+2. `$GW_REPO/workforce/*.md` (excluding `_defaults/`) — user-added personas
+
+Parse frontmatter from each: `name`, `background`, `perspective`, `priorities`, `debate_style`, `search_skills`.
+
+### 2.5b. Suggest team
+
+Default team for saas-idea evaluation:
+
+| CONTEXT | Suggested Team |
+|---------|---------------|
+| saas-idea | Business Analyst, Financial Analyst, Product Manager, Devil's Advocate, Software Architect |
+
+If TEAM_SIZE_OVERRIDE is set, resize using relevance order. If TEAM_MODE is "ask", show the full roster and wait for approval. Otherwise auto-proceed.
+
+**If TEAM_MODE is "auto" (default):** Print a brief summary:
+
+```
+Debate team ({N} specialists): {Name1}, {Name2}, {Name3}, ... — auto-proceeding (use --team ask for interactive selection)
+```
+
+**If TEAM_MODE is "ask":** Show the roster with accept/resize/add/customize options and wait.
+
+### 2.5c. Round 1 — Position Statements
+
+```bash
+mkdir -p .saas-ideas/debate/round1 .saas-ideas/debate/round2
+```
+
+Launch all team agents in parallel (`run_in_background=true`). Each agent reads `.saas-ideas/SHORTLIST.md` (top 5 ideas) and writes their position to `.saas-ideas/debate/round1/{PERSONA_SLUG}.md`.
+
+Agent prompt template:
+
+```
+You are {PERSONA_NAME}, a specialist with the following profile:
+- Background: {PERSONA_BACKGROUND}
+- Perspective: {PERSONA_PERSPECTIVE}
+- Priorities: {PERSONA_PRIORITIES}
+- Debate style: {PERSONA_DEBATE_STYLE}
+
+## Context
+
+You are evaluating SaaS ideas from a shortlist.
+
+## Your Task
+
+1. Read the SaaS idea shortlist at `.saas-ideas/SHORTLIST.md` (focus on the top 5 ideas).
+2. From your specialist perspective, which idea would you pursue and why?
+3. Flag red flags on any ideas — risks others might miss.
+4. Provide a feasibility and risk assessment for your top pick.
+
+## Output
+
+Write your position to: `.saas-ideas/debate/round1/{PERSONA_SLUG}.md`
+
+Use this format:
+
+---
+persona: {PERSONA_NAME}
+round: 1
+date: {TODAY_DATE}
+---
+
+# Round 1 — Position Statement: {PERSONA_NAME}
+
+## My Pick: #{N} — {Idea Name}
+
+**Why (from my perspective):** {explanation}
+
+## Red Flags
+
+- **#{N} {Idea Name}:** {concern from this persona's perspective}
+
+## Feasibility & Risk Assessment
+
+- **Technical feasibility:** {assessment}
+- **Market risk:** {assessment}
+- **Revenue timeline:** {assessment}
+```
+
+### 2.5d. Round 2 — Cross-Examination
+
+The supervisor (orchestrator) reads all Round 1 positions. Identifies the top 3 disagreements — ideas where agents strongly disagree. The devil's advocate challenges the strongest consensus.
+
+Launch all team agents again in parallel (`run_in_background=true`) with:
+- Their persona details
+- All colleagues' Round 1 positions (concatenated)
+- The identified disagreements
+- A devil's advocate challenge targeting THIS persona's stance
+
+Each writes to `.saas-ideas/debate/round2/{PERSONA_SLUG}.md`:
+
+```
+---
+persona: {PERSONA_NAME}
+round: 2
+date: {TODAY_DATE}
+---
+
+# Round 2 — Cross-Examination: {PERSONA_NAME}
+
+## Response to Disagreements
+
+{Respond to each identified disagreement — hold, concede, or refine}
+
+## Response to Devil's Advocate Challenge
+
+{Rebuttal or concession}
+
+## Mind Changes
+
+- {What changed, if anything}
+
+## Updated Pick (if changed)
+
+{State updated pick or "Unchanged"}
+```
+
+### 2.5e. Round 3 — Supervisor Synthesis
+
+A single foreground agent reads ALL Round 1 + Round 2 files and writes `.saas-ideas/CONSENSUS.md`:
+
+```markdown
+# Idea Debate Consensus
+
+**Date:** {date}
+**Team:** {N} specialists, 2 debate rounds
+**Shortlist evaluated:** Top 5 ideas from SHORTLIST.md
+
+## Consensus Recommendation
+
+**Idea:** #{N} — {Idea Name}
+**Consensus strength:** {N}/{N} specialists agree
+**Why:** {synthesis of arguments}
+
+## Risk-Adjusted Ranking
+
+| Rank | Idea | Original Score | Debate Adjustment | Key Insight |
+|------|------|---------------|-------------------|-------------|
+| 1 | {name} | X.X | +/- Y | {what the debate revealed} |
+| 2 | {name} | X.X | +/- Y | {insight} |
+| ... | ... | ... | ... | ... |
+
+## What Would Change the Recommendation
+
+- {condition that would shift the consensus}
+
+## Dissenting Views
+
+- {persona}: {their disagreement and why it matters}
+```
+
+### 2.5f. Present results
+
+Show the debate consensus alongside the shortlist. If the debate consensus #1 differs from the scoring #1, highlight the discrepancy. The debate consensus #1 becomes the default selection (overriding the scoring #1 for the recommendation).
 
 ### Idea selection
 
@@ -1227,7 +1400,7 @@ After all 4 agents complete, validate the results:
    ```
 
 3. Apply criticality-aware retry logic:
-   - **CRITICAL agents** (Business Plan, Tech Spec): if either fails, offer to retry before proceeding. These are essential for the downstream deliverables.
+   - **CRITICAL agents** (Business Plan, Tech Spec): if either fails, offer to retry before proceeding (max 2 retries per agent). These are essential for the downstream deliverables. If BOTH Business Plan AND Tech Spec fail after retries, stop and tell the user: "Critical deliverables could not be generated. Check network/context limits and retry with `/gw:saas-idea --pick N`."
    - **Non-critical agents** (Marketing Playbook, Implementation Prompts): if either fails, note the failure and continue. The user can regenerate these later.
 
 ---
@@ -1319,11 +1492,24 @@ Launch a single **foreground** Agent (subagent_type="general-purpose") with this
 - `TECH-SPEC.md`
 - `IMPLEMENTATION-PROMPTS.md`
 
-Generate a complete Python script that uses `python-pptx` to create a 10-slide investor pitch deck saved to `.saas-ideas/deep-dive/pitch-deck.pptx`.
+Generate a complete Python script that uses `python-pptx` to create a 10-slide investor pitch deck saved to `docs/gw/pitch-deck.pptx`.
 
-**Design system:**
-- Colors: Dark blue `#1B2A4A` for headers, white `#FFFFFF` for body text, accent blue `#3B82F6` for highlights and emphasis, light gray `#F1F5F9` for alternating rows and backgrounds
-- Fonts: Calibri for body text, Calibri Bold for headings
+**Design system** (canonical gw-skills palette):
+```
+PRIMARY      = RGBColor(0x2C, 0x3E, 0x50)  # dark blue-gray — titles, headers
+SECONDARY    = RGBColor(0x34, 0x49, 0x5E)  # medium blue-gray — body text
+ACCENT       = RGBColor(0x34, 0x98, 0xDB)  # bright blue — highlights, KPIs
+SUCCESS      = RGBColor(0x27, 0xAE, 0x60)  # green — good health, positive signals
+DANGER       = RGBColor(0xE7, 0x4C, 0x3C)  # red — risks, critical issues
+WARNING      = RGBColor(0xF3, 0x9C, 0x12)  # amber — warnings, cautions
+MUTED        = RGBColor(0x95, 0xA5, 0xA6)  # gray — captions, labels
+BG_WHITE     = RGBColor(0xFF, 0xFF, 0xFF)
+BG_LIGHT     = RGBColor(0xF8, 0xF9, 0xFA)
+```
+
+- Font: Calibri throughout
+- Slide dimensions: 16:9 widescreen (13.333" x 7.5")
+- Accent bar: 0.06" wide ACCENT strip at left edge of every slide
 - Layout: Title + subtitle top bar on each slide, content area with generous margins (at least 0.75" on all sides), slide numbers bottom-right
 
 **10 slides:**
@@ -1349,7 +1535,7 @@ Generate a complete Python script that uses `python-pptx` to create a 10-slide i
 - Create helper functions: `add_title_bar(slide, title, subtitle)`, `add_slide_number(slide, num)`, `set_cell_style(cell, bold, color)`
 - Each slide should be a separate function for clarity
 - The script must be self-contained — read the markdown files, extract relevant content, and build all 10 slides
-- Write the output file to `.saas-ideas/deep-dive/pitch-deck.pptx`
+- Write the output file to `docs/gw/pitch-deck.pptx`
 - Print the absolute path of the generated file on success
 
 Write the script to `/tmp/saas_pitch_deck_gen.py`, then execute it.
@@ -1358,6 +1544,7 @@ Write the script to `/tmp/saas_pitch_deck_gen.py`, then execute it.
 
 1. Try:
    ```bash
+   mkdir -p docs/gw
    uv run --with python-pptx python3 /tmp/saas_pitch_deck_gen.py
    ```
 
@@ -1366,7 +1553,7 @@ Write the script to `/tmp/saas_pitch_deck_gen.py`, then execute it.
    pip install python-pptx && python3 /tmp/saas_pitch_deck_gen.py
    ```
 
-3. If both fail, generate an HTML file at `.saas-ideas/deep-dive/pitch-deck.html` instead with the same 10-slide content as a styled HTML presentation. Note the limitation to the user: 'Generated HTML pitch deck as fallback — python-pptx was not available.'
+3. If both fail, generate an HTML file at `docs/gw/pitch-deck.html` instead with the same 10-slide content as a styled HTML presentation. Note the limitation to the user: 'Generated HTML pitch deck as fallback — python-pptx was not available.'
 
 If the Python script fails: show the error output, examine the script for issues, fix, and retry once. If it fails again, fall back to HTML."
 
@@ -1396,7 +1583,7 @@ Read all deep-dive files from `.saas-ideas/deep-dive/`. Also read `.saas-ideas/S
 | deep-dive/MARKETING-PLAYBOOK.md | Go-to-market playbook |
 | deep-dive/TECH-SPEC.md | Architecture & MVP spec |
 | deep-dive/IMPLEMENTATION-PROMPTS.md | Ready-to-use Claude Code prompts |
-| deep-dive/pitch-deck.pptx | Investor/co-founder pitch deck |
+| docs/gw/pitch-deck.pptx | Investor/co-founder pitch deck |
 
 ## Quick Start
 1. Review the business plan
@@ -1481,10 +1668,10 @@ Print the following to the user:
      .saas-ideas/deep-dive/MARKETING-PLAYBOOK.md  ({N} KB)
      .saas-ideas/deep-dive/TECH-SPEC.md           ({N} KB)
      .saas-ideas/deep-dive/IMPLEMENTATION-PROMPTS.md ({N} KB)
-     .saas-ideas/deep-dive/pitch-deck.pptx        ({N} KB)
+     docs/gw/pitch-deck.pptx                      ({N} KB)
    ```
 
-3. Print: "Pitch deck saved to `.saas-ideas/deep-dive/pitch-deck.pptx`"
+3. Print: "Pitch deck saved to `docs/gw/pitch-deck.pptx`"
 
 4. If VERIFY_MODE was true: read `.saas-ideas/deep-dive/VERIFICATION.md` and include a one-line verification summary (e.g., "Verification: 4/4 checks passed" or "Verification: 3/4 checks passed — Budget Consistency FAIL").
 
