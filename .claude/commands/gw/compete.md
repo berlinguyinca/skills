@@ -290,3 +290,100 @@ Research Status:
 For any `[FAILED]` entries, offer: "Retry failed research? [y/n]" — if yes, re-launch only the failed agents.
 
 ---
+
+## Step 5 — Team Assembly
+
+### 5a. Load workforce
+
+Resolve the gw-skills repo path (same pattern as Step 0):
+
+```bash
+GW_REPO="$(cd "$(readlink ~/.claude/commands/gw)/../../.." 2>/dev/null && pwd)" || GW_REPO="$HOME/.gw-skills"
+```
+
+Read all persona files from:
+1. `$GW_REPO/workforce/_defaults/*.md` — pre-shipped personas
+2. `$GW_REPO/workforce/*.md` (excluding `_defaults/`) — user-added personas
+
+Parse frontmatter from each: `name`, `background`, `perspective`, `priorities`, `debate_style`.
+
+### 5b. Suggest team composition
+
+Based on APP_TYPE, suggest the best subset. Use this table:
+
+| APP_TYPE | Suggested Team |
+|----------|---------------|
+| web | UX Specialist, UI Designer, Web Designer, Product Manager, Backend Engineer, End User Advocate |
+| server | Software Architect, Backend Engineer, Performance Engineer, Security Engineer, DevOps Engineer |
+| cli | Software Architect, UX Specialist, End User Advocate, Backend Engineer |
+| mobile | UX Specialist, UI Designer, Performance Engineer, Security Engineer, Product Manager |
+| library | Software Architect, Backend Engineer, QA Engineer, End User Advocate |
+| saas | Product Manager, Business Analyst, UX Specialist, Security Engineer, Backend Engineer, Performance Engineer |
+
+Custom personas are always shown as available additions.
+
+### 5c. Approval gate
+
+Show this exact format:
+
+```
+Project: {project_name} ({APP_TYPE}, {file_count} files)
+
+Suggested team ({N} specialists):
+  1. UX Specialist        [recommended]
+  2. Product Manager       [recommended]
+  3. Backend Engineer      [recommended]
+  ...
+
+Also available:
+  7. Software Architect
+  8. Woodworker (custom)
+  9. Mass Spectrometrist (custom)
+  ...
+
+Accept [enter], resize [N], add by number [+7,8], or customize [c]?
+```
+
+Explain each option:
+- **Accept:** proceed with suggested team
+- **Resize [N]:** adjust team size (add/remove from relevance order)
+- **Add [+N,N]:** add specific personas to the suggested team
+- **Customize [c]:** show full roster, pick by number
+
+If `--team N` was set, auto-size to N using the relevance order (still show for confirmation).
+
+**APPROVAL GATE — Stop and wait for user confirmation before proceeding to Step 6.**
+
+### Workforce management commands
+
+For `--hire`:
+1. Slugify the name (e.g., "Mass Spectrometrist" → `mass-spectrometrist`)
+2. Create `$GW_REPO/workforce/mass-spectrometrist.md` with frontmatter:
+   - `name`: from --hire flag
+   - `background`: from --background flag
+   - `perspective`: auto-derived from background (key concerns and viewpoint)
+   - `priorities`: auto-derived (what this persona cares most about)
+   - `debate_style`: auto-derived (how they argue and what evidence they cite)
+3. Print: "Hired {Name}. Available in all future `/gw:compete` runs."
+
+For `--fire`:
+1. Find matching file in `$GW_REPO/workforce/` (NOT `_defaults/`)
+2. Delete the file
+3. Print: "Removed {Name} from workforce."
+4. If user tries to fire a default persona: "Can't fire default personas. They ship with the skill."
+
+For `--roster`:
+List all personas grouped by source:
+
+```
+Workforce Roster ({N} personas):
+  [default] Software Architect — System design, scalability, technical debt
+  [default] UX Specialist — User flows, friction, accessibility
+  ...
+  [custom]  Woodworker — Craftsmanship, ergonomics, "does it feel right"
+  [custom]  Mass Spectrometrist — Data precision, calibration, scientific defensibility
+```
+
+End with `---` separator.
+
+---
