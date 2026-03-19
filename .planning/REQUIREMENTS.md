@@ -1,97 +1,102 @@
-# Requirements: MOS (My Own Stuff)
+# Requirements: gw-skills
 
-**Defined:** 2026-03-10
-**Core Value:** One command produces a meeting-ready PowerPoint that accurately captures the week's development work
+**Defined:** 2026-03-19
+**Core Value:** One slash command assembles a specialist team, runs parallel analysis, and produces actionable deliverables
+**Source:** gw:review-app analysis (2026-03-19) — 18 findings across 6 dimensions
 
-## v1 Requirements
+## v1.1 Requirements
 
-Requirements for initial release. Each maps to roadmap phases.
+Requirements for Quality & Safety milestone. Each maps to roadmap phases.
 
-### Data Collection
+### Repository Hygiene
 
-- [ ] **DATA-01**: Skill computes the reporting time window as previous Wednesday 00:00 through Tuesday 12:00 noon, anchored to user's local timezone
-- [ ] **DATA-02**: Skill fetches all merged PRs authored by the user across all repos in `metabolomics-us` org within the time window
-- [ ] **DATA-03**: Skill counts commits per repo authored by the user within the time window
-- [ ] **DATA-04**: Skill uses merged PRs as primary data source (not commit search) to avoid missing work on non-default branches
+- [x] **REPO-01**: Repository has a .gitignore preventing accidental commit of secrets, .DS_Store, and generated output directories
+- [ ] **REPO-02**: ShellCheck config exists and all 3 shell scripts pass linting without errors
+- [ ] **REPO-03**: Markdown linting config exists for consistent formatting across 45+ Markdown files
 
-### Categorization
+### Input Validation
 
-- [ ] **CATG-01**: Skill categorizes each PR as bug fix, new feature, or new tool
-- [ ] **CATG-02**: Categorization uses PR labels as primary signal (e.g., `bug`, `enhancement`)
-- [ ] **CATG-03**: Categorization falls back to commit message / PR title keyword matching when labels are absent
-- [ ] **CATG-04**: Uncategorizable PRs are labeled "other" rather than silently dropped
+- [ ] **INPT-01**: All 7 skill files reject shell metacharacters in named parameters (--focus, --add, --hire, etc.)
+- [ ] **INPT-02**: Slug generation across all skills enforces consistent rules (lowercase, no path traversal, no empty/dot-prefixed results)
+- [ ] **INPT-03**: Integer parameters (--pick, --team) validate as positive integers with range checking
+- [ ] **INPT-04**: Agent prompt templates include directive to treat interpolated values as literal data
 
-### Presentation
+### Testing
 
-- [ ] **PRES-01**: Skill generates a .pptx file saved to the current working directory
-- [ ] **PRES-02**: PowerPoint includes a summary slide with total PR count, commit count, and 3-5 key highlights
-- [ ] **PRES-03**: PowerPoint includes a PR detail table slide with columns: title, repo, category, description
-- [ ] **PRES-04**: PowerPoint includes a breakdown chart slide showing bug vs feature vs tool counts
-- [ ] **PRES-05**: PowerPoint includes a timeline slide showing when PRs merged across the week
-- [ ] **PRES-06**: Slides handle weeks with zero activity gracefully (empty state, not an error)
-- [ ] **PRES-07**: Slides handle weeks with 15+ PRs without text overflow or layout breakage
+- [ ] **TEST-01**: BATS test suite covers install.sh (fresh install, reinstall over symlink, reinstall over directory)
+- [ ] **TEST-02**: BATS test suite covers uninstall.sh (symlink removal, non-symlink refusal)
+- [ ] **TEST-03**: BATS test suite covers check-update.sh (up-to-date, behind, network failure, timeout)
+- [ ] **TEST-04**: Persona file structural validator checks required frontmatter fields
 
-### Skill Integration
+### CI/CD
 
-- [ ] **SKIL-01**: Skill is invocable as `/mos:progress` in Claude Code
-- [ ] **SKIL-02**: Skill runs without manual dependency installation (uses `uv run --with` or equivalent)
-- [ ] **SKIL-03**: Skill uses `gh` CLI for all GitHub queries (leverages existing auth)
+- [ ] **CICD-01**: GitHub Actions workflow runs ShellCheck on all .sh files on push/PR
+- [ ] **CICD-02**: GitHub Actions workflow runs BATS test suite on push/PR
+- [ ] **CICD-03**: GitHub Actions workflow validates persona file frontmatter on push/PR
+
+### Security
+
+- [ ] **SECR-01**: PPTX-generating skills use mktemp -d instead of hardcoded /tmp/ paths
+- [ ] **SECR-02**: python-pptx dependency is version-pinned in all skill files
+- [ ] **SECR-03**: gw:update warns about data loss before suggesting git reset --hard
+- [ ] **SECR-04**: gw:weekly-review validates download_url domain before curl
+
+### Shared Patterns
+
+- [ ] **SHRD-01**: Duplicated GW_REPO resolution pattern extracted into a shared script
+- [ ] **SHRD-02**: Duplicated workforce loading instructions reference a single canonical source
+- [ ] **SHRD-03**: PPTX design system defined once and referenced by all 6 presentation-generating skills
+- [ ] **SHRD-04**: --hire/--fire/--roster redirect messages are identical across all skills that use them
 
 ## v2 Requirements
 
-Deferred to future release. Tracked but not in current roadmap.
+Deferred to future milestone.
 
-### Customization
-
-- **CUST-01**: User can configure the time window (not just Wed-Tue)
-- **CUST-02**: User can customize slide theme/colors
-
-### Distribution
-
-- **DIST-01**: Skill can email the PowerPoint after generation
-- **DIST-02**: Skill can output to PDF or Google Slides format
+- **ADVS-01**: Full E2E test for at least one skill (simulated Claude Code invocation)
+- **ADVS-02**: Persona file migration script for schema changes
+- **ADVS-03**: Shell script portability testing across macOS and Linux
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Automated scheduling (cron/launchd) | User wants manual invocation control |
-| Team-wide activity reporting | Different data model, privacy concerns, contradicts personal prep use case |
-| AI-generated narrative prose per PR | Adds latency, costs tokens, risks hallucination — PR titles are sufficient |
-| Commit-level detail in slides | Commit noise obscures the meaningful unit (the PR) |
-| Configurable templates/theming | Most users never change defaults; hardcode a clean neutral design |
-| Real-time/live data in slides | PowerPoint is static; generate fresh on demand instead |
+| Rewriting skills in a programming language | Skills are Markdown instructions for Claude — this is by design |
+| Multi-user authentication | Single-user tool, trust-the-operator model |
+| Automated CI deployment | Skills are distributed via git clone + symlink |
+| Full input sanitization in Claude's prompt execution | Claude Code's sandbox handles this; skill-level validation is defense-in-depth |
 
 ## Traceability
 
-Which phases cover which requirements. Updated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DATA-01 | Phase 1 | Pending |
-| DATA-02 | Phase 1 | Pending |
-| DATA-03 | Phase 1 | Pending |
-| DATA-04 | Phase 1 | Pending |
-| CATG-01 | Phase 3 | Pending |
-| CATG-02 | Phase 3 | Pending |
-| CATG-03 | Phase 3 | Pending |
-| CATG-04 | Phase 3 | Pending |
-| PRES-01 | Phase 2 | Pending |
-| PRES-02 | Phase 2 | Pending |
-| PRES-03 | Phase 2 | Pending |
-| PRES-04 | Phase 2 | Pending |
-| PRES-05 | Phase 5 | Pending |
-| PRES-06 | Phase 5 | Pending |
-| PRES-07 | Phase 5 | Pending |
-| SKIL-01 | Phase 4 | Pending |
-| SKIL-02 | Phase 4 | Pending |
-| SKIL-03 | Phase 4 | Pending |
+| REPO-01 | Phase 6 | Complete |
+| REPO-02 | Phase 6 | Pending |
+| REPO-03 | Phase 9 | Pending |
+| INPT-01 | Phase 7 | Pending |
+| INPT-02 | Phase 7 | Pending |
+| INPT-03 | Phase 7 | Pending |
+| INPT-04 | Phase 7 | Pending |
+| TEST-01 | Phase 7 | Pending |
+| TEST-02 | Phase 7 | Pending |
+| TEST-03 | Phase 7 | Pending |
+| TEST-04 | Phase 9 | Pending |
+| CICD-01 | Phase 7 | Pending |
+| CICD-02 | Phase 7 | Pending |
+| CICD-03 | Phase 9 | Pending |
+| SECR-01 | Phase 7 | Pending |
+| SECR-02 | Phase 6 | Pending |
+| SECR-03 | Phase 6 | Pending |
+| SECR-04 | Phase 6 | Pending |
+| SHRD-01 | Phase 8 | Pending |
+| SHRD-02 | Phase 8 | Pending |
+| SHRD-03 | Phase 8 | Pending |
+| SHRD-04 | Phase 8 | Pending |
 
 **Coverage:**
-- v1 requirements: 18 total
-- Mapped to phases: 18
+- v1.1 requirements: 22 total
+- Mapped to phases: 22
 - Unmapped: 0 ✓
 
 ---
-*Requirements defined: 2026-03-10*
-*Last updated: 2026-03-10 after roadmap creation*
+*Requirements defined: 2026-03-19*
+*Last updated: 2026-03-19 after initial definition*
