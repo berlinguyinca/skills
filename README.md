@@ -23,6 +23,7 @@ rm -rf ~/.config/gw-skills  # remove saved config (source list, etc.)
 | `/gw:saas-idea` | Harvest trending SaaS opportunities from the internet, score and rank them, then deep-dive with full business plan, marketing playbook, tech spec, implementation prompts, and pitch deck. Targets complete prototype deployment on AWS with PostgreSQL, Stripe, and Google OAuth. |
 | `/gw:merge-it` | Ship current changes end-to-end: branch, PR, self-review, fix, generate presentation, merge. |
 | `/gw:weekly-review` | Generate executive and technical PowerPoint presentations from GitHub activity (commits & PRs) across multiple orgs and repos. |
+| `/gw:compete` | Competitive feature analysis with structured team debate, TDD test scaffolds, and implementation planning. Maintains a persistent workforce of configurable personas. |
 | `/gw:update` | Update all gw-skills to the latest version. |
 
 ## Updating
@@ -56,7 +57,7 @@ Generates two PowerPoint presentations from GitHub activity:
 - **Executive deck** (max 5 slides) — plain English, no jargon, focused on user/lab impact
 - **Technical deck** (max 30 slides) — detailed per-PR breakdowns, stats, charts, for IT staff
 
-Output files are saved to the current working directory as `weekly-review-executive-YYYY-MM-DD.pptx` and `weekly-review-technical-YYYY-MM-DD.pptx`.
+Output files are saved to `docs/gw/weekly-review-executive-YYYY-MM-DD.pptx` and `docs/gw/weekly-review-technical-YYYY-MM-DD.pptx`.
 
 #### Multi-source support
 
@@ -129,7 +130,7 @@ Harvests trends from 8+ internet sources (Hacker News, Product Hunt, Reddit, Twi
 - `deep-dive/MARKETING-PLAYBOOK.md` — Go-to-market playbook with 10+ related forums
 - `deep-dive/TECH-SPEC.md` — Architecture & MVP spec
 - `deep-dive/IMPLEMENTATION-PROMPTS.md` — Ready-to-use Claude Code prompts for building
-- `deep-dive/pitch-deck.pptx` — Investor/co-founder pitch deck
+- `docs/gw/pitch-deck.pptx` — Investor/co-founder pitch deck
 - `REPORT.md` — Executive summary
 - `history.json` — Run history for freshness tracking
 
@@ -166,6 +167,55 @@ Run from any repo with uncommitted or staged changes. Ships your changes through
 4. Propose fixes with an approval gate — **you decide** what gets applied
 5. Apply approved fixes and generate a PowerPoint presentation of changes
 6. Merge PR
+
+### /gw:compete
+
+```
+/gw:compete [--deep] [--hire "Name" --background "..."] [--fire "Name"] [--roster]
+            [--refresh] [--skip-pptx] [--skip-gsd] [--skip-tests] [--team N]
+            [--add "Competitor"] [--remove "Competitor"] [--list]
+```
+
+Run from inside any project directory. Auto-detects competitors from README and dependencies, researches them with parallel agents, assembles a team of diverse personas for structured debate (3 rounds with devil's advocate), and produces a prioritized feature implementation plan with TDD test scaffolds.
+
+**Output files** are saved to `.competitors/` in the current directory:
+- `registry.json` — Registered competitors
+- `research/{slug}.md` — Per-competitor research findings
+- `feature-matrix.json` — Feature-by-feature comparison
+- `debate/CONSENSUS.md` — Team debate synthesis
+- `SELECTED.json` — User's feature selections
+- `REPORT.md` — Full competitive analysis report
+- `docs/gw/compete-report-YYYY-MM-DD.pptx` — Presentation
+
+**Workforce** personas persist globally in the gw-skills repo (`workforce/` directory). 15 default personas ship with the skill; add custom ones via `--hire`.
+
+#### Options
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--deep` | Enable deep research (Reddit, HN, G2, forums) | Lightweight |
+| `--hire "Name" --background "..."` | Add a persona to the global workforce | |
+| `--fire "Name"` | Remove a custom persona | |
+| `--roster` | Show all available personas | |
+| `--refresh` | Force re-research even if cache is recent | Re-use if <7d |
+| `--skip-pptx` | Skip PowerPoint generation | |
+| `--skip-gsd` | Skip GSD project/milestone creation | |
+| `--skip-tests` | Skip TDD test scaffold generation | |
+| `--team N` | Override suggested team size (3-10) | Auto-detect |
+| `--add "Name"` | Register a competitor | |
+| `--remove "Name"` | Remove a competitor | |
+| `--list` | Show registered competitors | |
+
+#### Examples
+
+```
+/gw:compete                                    # full run, auto-detect everything
+/gw:compete --deep                             # deep research with forum crawling
+/gw:compete --add "Notion" --add "Coda"        # register competitors
+/gw:compete --hire "Chemist" --background "20 years in analytical chemistry"
+/gw:compete --roster                           # show all workforce personas
+/gw:compete --team 8 --deep --skip-gsd         # large team, deep research, no GSD
+```
 
 ### /gw:update
 
