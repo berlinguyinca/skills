@@ -154,7 +154,7 @@ Write/update `.competitors/registry.json`:
 }
 ```
 
-For `--add`/`--remove`/`--list`: manage registry and stop.
+For `--add`/`--remove`/`--list`: skip 3a and 3b, go directly to registry management and stop.
 
 ### Step 4 — Research Phase
 
@@ -583,7 +583,9 @@ Write a manifest to .competitors/tests/{FEATURE_SLUG}-{SPECIALTY}-manifest.md do
 
 #### Commit test scaffolds
 
-After all testing agents complete:
+After all testing agents complete, ask the user: "Test scaffolds generated. Commit to the branch? [y/n]"
+
+If yes:
 ```bash
 git add tests/
 git add .competitors/tests/
