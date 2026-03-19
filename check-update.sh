@@ -15,9 +15,17 @@ fi
 cd "$REPO_DIR"
 
 # Fetch silently, timeout after 3 seconds to avoid blocking
-if ! git fetch --quiet 2>/dev/null & FETCH_PID=$! && { sleep 3; kill $FETCH_PID 2>/dev/null; } & wait $FETCH_PID 2>/dev/null; then
-  exit 0  # network issue — skip silently
+git fetch --quiet 2>/dev/null &
+FETCH_PID=$!
+( sleep 3 && kill $FETCH_PID 2>/dev/null ) &
+KILL_PID=$!
+if ! wait $FETCH_PID 2>/dev/null; then
+  kill $KILL_PID 2>/dev/null 2>&1
+  wait $KILL_PID 2>/dev/null
+  exit 0  # network issue or timeout — skip silently
 fi
+kill $KILL_PID 2>/dev/null 2>&1
+wait $KILL_PID 2>/dev/null
 
 LOCAL=$(git rev-parse HEAD 2>/dev/null)
 REMOTE=$(git rev-parse @{u} 2>/dev/null || echo "$LOCAL")

@@ -108,11 +108,11 @@ Parse all flags. Route based on mode:
 
 ### Step 2 — Project Detection
 
-Reuses the analyze-app detection pattern:
+Reuses the review-app detection pattern:
 
 1. **Stack detection:** Glob for `package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`, `*.tf`, `docker-compose.yml`, `Dockerfile`, `*.csproj`, `Gemfile`, `pubspec.yaml`, etc.
 2. **Read context:** `README.md`, `CLAUDE.md` if they exist.
-3. **Determine APP_TYPE:** web, server, cli, mobile, library, saas (same rules as analyze-app).
+3. **Determine APP_TYPE:** web, server, cli, mobile, library, saas (same rules as review-app).
 4. **Build FEATURE_INVENTORY:** Scan for route definitions, API endpoints, CLI commands, UI components, database models, config options. This becomes "what we already have."
 5. **Build STACK_CONTEXT:** Detected stack, file count, APP_TYPE, key file paths, relevant excerpts. Keep under 500 words.
 

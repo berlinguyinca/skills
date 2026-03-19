@@ -1,0 +1,8 @@
+# gw-skills shellcheck configuration
+# Applied to: install.sh, uninstall.sh, check-update.sh
+
+# Allow sourcing from paths determined at runtime
+disable=SC1090
+
+# Allow expressions in single-quoted strings (used in heredocs)
+disable=SC2016

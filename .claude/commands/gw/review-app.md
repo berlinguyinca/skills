@@ -1,7 +1,7 @@
 ---
-name: analyze-app
+name: review-app
 description: Analyze any application across specialist dimensions with role-adapted agents
-argument-hint: "[--skip-cloud] [--skip-gsd] [--skip-testing] [--skip-security] [--skip-seo] [--skip-test-review] [--skip-defaults] [--skip-fix] [--skip-pptx] [--skip-recommend] [--type web|server|cli|mobile|library|saas] [--scope full|recent|recent:N|timeframe:<spec>] [--team auto|ask|N]"
+argument-hint: "[--skip-cloud] [--skip-gsd] [--skip-testing] [--skip-security] [--skip-seo] [--skip-test-review] [--skip-defaults] [--skip-fix] [--skip-pptx] [--skip-recommend] [--skip-simplify] [--skip-test-gen] [--type web|server|cli|mobile|library|saas] [--scope full|recent|recent:N|timeframe:<spec>] [--team auto|ask|N] [--hire|--fire|--roster]"
 ---
 
 ## Step 0 — Update check
@@ -30,9 +30,12 @@ Parse the arguments: "$ARGUMENTS"
 - If "--skip-fix" is present, set SKIP_FIX=true
 - If "--skip-pptx" is present, set SKIP_PPTX=true
 - If "--skip-recommend" is present, set SKIP_RECOMMEND=true
+- If "--skip-simplify" is present, set SKIP_SIMPLIFY=true
+- If "--skip-test-gen" is present, set SKIP_TEST_GEN=true
 - If "--type X" is present, set FORCED_TYPE=X (one of: web, server, cli, mobile, library, saas)
 - If "--scope X" is present, set SCOPE_MODE=X (one of: full, recent, recent:N, timeframe:<spec>). Default: full
-- If "--team X" is present: if X is a number, set TEAM_MODE=auto and TEAM_SIZE_OVERRIDE=X (overrides complexity-based sizing). If X is "auto" or "ask", set TEAM_MODE=X. Default: ask
+- If "--team X" is present: if X is a number, set TEAM_MODE=auto and TEAM_SIZE_OVERRIDE=X (overrides complexity-based sizing). If X is "auto" or "ask", set TEAM_MODE=X. Default: auto
+- If "--hire", "--fire", or "--roster" is present: tell the user "Use `/gw:workforce` for persona management. Examples: `/gw:workforce --hire "Name" --background "..."`, `/gw:workforce --fire "Name"`, `/gw:workforce --roster`" and stop.
 
 ---
 
@@ -108,7 +111,9 @@ Resolve the SCOPE_MODE to produce FILE_SCOPE (a list of files to focus on):
 
 ### 1d. Complexity sizing
 
-Compute the project size with a fast glob `**/*` excluding `node_modules`, `.git`, `dist`, `build`, `vendor`, `__pycache__`, `.next`:
+**COVERAGE_TARGET: 80%** — referenced throughout this skill as the minimum acceptable test coverage.
+
+Compute the project size with a fast glob `**/*` excluding `node_modules`, `.git`, `dist`, `build`, `vendor`, `__pycache__`, `.next`. If the glob takes >10 seconds, fall back to `git ls-files | wc -l` for the file count:
 
 | Project Size | Files | Base Team Size |
 |---|---|---|
@@ -122,7 +127,6 @@ Compute the project size with a fast glob `**/*` excluding `node_modules`, `.git
 - Infrastructure code present (Terraform, K8s manifests, Docker)
 - 2+ frameworks detected
 
-**Minimum:** `max(3, count_of_active_mandatory_specialists)` — ensures all non-skipped mandatory specialists always fit
 **Maximum:** 10
 
 If TEAM_SIZE_OVERRIDE is set (from `--team N`), use that value instead (still clamped to 3–10).
@@ -131,47 +135,47 @@ Build STACK_CONTEXT containing the detected stack info, APP_TYPE, file count, pr
 
 ---
 
+### 1e. Load workforce
+
+Resolve the gw-skills repo path:
+
+```bash
+GW_REPO="$(cd "$(readlink ~/.claude/commands/gw)/../../.." 2>/dev/null && pwd)" || GW_REPO="$HOME/.gw-skills"
+```
+
+Read all persona files from:
+1. `$GW_REPO/workforce/_defaults/*.md` — pre-shipped personas
+2. `$GW_REPO/workforce/*.md` (excluding `_defaults/`) — user-added personas
+
+Parse frontmatter from each file. Filter to personas that have an `analyze_slug` field set — these form the specialist pool. For each qualifying persona, extract:
+- `name`, `background`, `perspective`, `priorities`, `debate_style`, `search_skills` (standard persona fields)
+- `analyze_slug`, `analyze_categories`, `analyze_tags`, `analyze_mandatory`, `analyze_skip_flag` (analysis-specific fields)
+- If the persona file has content after the frontmatter (text after the closing `---`), store it as `prompt_additions`
+
+Build the SPECIALIST_POOL from these parsed personas.
+
+**Apply minimum team size:** Now that mandatory specialists are loaded, compute the minimum: `max(3, count_of_active_mandatory_specialists)` — ensures all non-skipped mandatory specialists always fit. If the base team size from Step 1d is below this minimum, raise it to the minimum. Clamp to the maximum of 10.
+
+**Validate mandatory specialists:** Check that all 6 expected mandatory specialists (Security Engineer, Testing/QA Analyst, Cloud Cost Analyst, SEO Specialist, Test Sense-Checker, Coding Defaults Enforcer) have matching persona files in the pool. If any are missing, warn: "Missing mandatory specialist persona: {name}. Analysis for this dimension will be skipped."
+
+---
+
 ## Specialist Pool
 
-Each specialist has a name, file slug, one-line role, categories, tags (which APP_TYPEs it's relevant to), and a mandatory flag.
+Specialists are loaded dynamically from workforce persona files in Step 1e. Each persona with an `analyze_slug` field participates in analysis. The persona file defines:
+- `analyze_slug` — output file slug
+- `analyze_categories` — what this specialist examines
+- `analyze_tags` — which APP_TYPEs this specialist is relevant to (`all` = always relevant)
+- `analyze_mandatory` — if true, always selected unless explicitly skipped
+- `analyze_skip_flag` — the `--skip-*` flag that disables this specialist
 
-### Mandatory Specialists (always selected unless explicitly skipped)
+### Categories
 
-| # | Specialist | Slug | Skip Flag | Tags | Categories |
-|---|---|---|---|---|---|
-| 1 | Security Engineer | `security` | --skip-security | all | Auth, injection, input validation, secrets, API security, dependencies/CVEs |
-| 2 | Testing/QA Analyst | `testing-qa` | --skip-testing | all | Coverage (unit/integration/e2e, **flag <80% as CRITICAL**), code duplication (**flag as WARNING**), test quality, CI/CD pipeline, test infra, test patterns |
-| 3 | Cloud Cost Analyst | `cloud-cost` | --skip-cloud | all | Compute, database, networking, caching/CDN, reserved capacity, storage |
-| 4 | SEO Specialist | `seo` | --skip-seo | all | Meta tags, Open Graph, structured data (schema.org), Core Web Vitals, crawlability (robots.txt, sitemap.xml), canonical URLs, semantic HTML, heading hierarchy, image alt text, internal linking, URL structure |
-| 5 | Test Sense-Checker | `test-review` | --skip-test-review | all | Assertion quality (behavior vs implementation), mock overuse, tautological assertions, flaky patterns, dead/skipped tests, test-to-code coupling, test naming clarity |
-| 6 | Coding Defaults Enforcer | `coding-defaults` | --skip-defaults | all | TDD evidence, Playwright setup & CLI tools, visual regression tests (screenshots, baselines), browser simulation (real browsers vs jsdom), test recording/tracing |
+**Mandatory** (always selected unless skipped): personas where `analyze_mandatory: true` — Security Engineer, Testing/QA Analyst, Cloud Cost Analyst, SEO Specialist, Test Sense-Checker, Coding Defaults Enforcer.
 
-### Domain Specialists (selected by tag match + relevance order)
+**Domain** (selected by tag match + relevance order): personas where `analyze_tags` matches the current APP_TYPE but `analyze_mandatory` is not set.
 
-| # | Specialist | Slug | Tags | Categories |
-|---|---|---|---|---|
-| 7 | Software Architect | `architecture` | web,server,cli,mobile,library,saas | Boundaries, data flow, API design, patterns, scalability |
-| 8 | Complexity Analyst | `complexity` | web,server,cli,mobile,library,saas | File metrics, coupling, **code duplication** (flag as red flag), dependency health, maintenance burden |
-| 9 | UX Designer | `usability` | web,mobile,saas | Navigation, loading/error states, forms, a11y, responsive, feedback |
-| 10 | Web Designer | `visual-design` | web | Design system, color, typography, spacing, dark mode, polish |
-| 11 | Mobile UX Designer | `mobile-ux` | mobile | Navigation, touch, platform conventions, offline, accessibility |
-| 12 | Mobile Performance | `mobile-perf` | mobile | Rendering, battery/network, memory, startup, bundle size |
-| 13 | CLI UX Specialist | `cli-ux` | cli | Command structure, help/docs, I/O, progress, config, errors |
-| 14 | Cross-Platform Engineer | `cross-platform` | cli,mobile | Platform compat, distribution, file system, shell integration |
-| 15 | SRE / Reliability | `reliability` | server,saas | Health checks, error recovery, observability, degradation, deployment |
-| 16 | DevOps / SysAdmin | `operations` | server,saas | Config management, resource limits, process mgmt, backup, monitoring |
-| 17 | Performance Engineer | `performance` | server,saas | DB perf, API latency, memory/CPU, concurrency, caching, load testing |
-| 18 | API Design Reviewer | `api-design` | library | Public API surface, type safety, error handling, versioning |
-| 19 | Documentation Reviewer | `documentation` | library | README, API docs, migration guides, examples |
-| 20 | Compatibility Analyst | `compatibility` | library | Runtime compat, bundler compat, peer deps, package config |
-
-### SaaS Business Specialists
-
-| # | Specialist | Slug | Tags | Categories |
-|---|---|---|---|---|
-| 21 | Revenue Strategist | `revenue` | saas | Pricing model, monetization, payment integration, feature gating, revenue leakage |
-| 22 | Growth/Marketing Analyst | `growth` | saas | Analytics/tracking, onboarding flow, acquisition, conversion funnels |
-| 23 | Sales Engineer | `sales-readiness` | saas | API/integration readiness, enterprise features (SSO, SCIM, audit), multi-tenancy, compliance |
+**SaaS Business** (selected when APP_TYPE=saas): Revenue Strategist, Growth/Marketing Analyst, Sales Engineer.
 
 ### Relevance Order by APP_TYPE
 
@@ -198,6 +202,14 @@ Stability and user experience are the highest priorities. The order below reflec
 
 ### Display proposed team
 
+**If TEAM_MODE is "auto" (default):** Skip the gate — auto-proceed with the proposed team. Print a brief summary:
+
+```
+Team ({TEAM_SIZE} specialists): {Name1}, {Name2}, {Name3}, ... — auto-proceeding (use --team ask for interactive selection)
+```
+
+**If TEAM_MODE is "ask":** Show the full approval gate:
+
 ```
 Project: {name} ({APP_TYPE}, {size} — {file_count} files)
 Scope: {full | N files from recent commits | N files from timeframe}
@@ -215,9 +227,9 @@ Proposed team ({TEAM_SIZE} specialists):
 Accept [enter], expand [e], or customize [c]?
 ```
 
-### Handle response
+### Handle response (--team ask only)
 
-- **Accept** (or if `--team auto` was set): proceed immediately with proposed team
+- **Accept**: proceed immediately with proposed team
 - **Expand [e]**: show the remaining pool members not selected, user picks by number (comma-separated) to add
 - **Customize [c]**: show the full pool with numbers, user picks exactly which specialists to use (comma-separated). Mandatory specialists are pre-selected but can be removed.
 
@@ -250,7 +262,7 @@ RULES:
 - Be actionable: every finding must have a concrete recommendation.
 - Use severity levels: CRITICAL (must fix — security hole, data loss, broken UX), WARNING (should fix — degraded experience, tech debt, cost waste), INFO (nice to have — polish, optimization).
 - Code duplication is always a red flag — flag duplicated logic/patterns as WARNING with specific file pairs.
-- Test coverage below 80% is CRITICAL. Estimate coverage by comparing test files to source files. Flag untested critical paths.
+- Test coverage below the coverage threshold (80%) is CRITICAL. Estimate coverage by comparing test files to source files. Flag untested critical paths. Coverage enforcement in Step 5g will generate tests for uncovered code — list the TOP 10 uncovered files/functions to feed that step (Step 5g will pick the top 5 most critical from that list).
 - If a dimension does not apply to this codebase, write a short "Not Applicable" report explaining why.
 - Write your report to the specified output file using the Write tool.
 
@@ -284,64 +296,9 @@ Write your report to .analysis/{NN}-{SLUG}.md
 
 ### Specialist-specific prompt additions
 
-When building the agent prompt for these specialists, **append** the following instructions after the generic template:
+When building the agent prompt for a specialist, check if the persona file has content after the frontmatter (`prompt_additions` from Step 1e). If it does, **append** that content after the generic template as specialist-specific instructions.
 
-**SEO Specialist (`seo`):**
-```
-ADDITIONAL SEO INSTRUCTIONS:
-- Check <meta> tags (title, description, viewport, charset), OG/Twitter cards, structured data (JSON-LD / schema.org)
-- Check for robots.txt, sitemap.xml, canonical URLs
-- SPA without SSR/SSG = CRITICAL finding (invisible to crawlers without pre-rendering)
-- Check for Lighthouse/PageSpeed CI integration (e.g. in GitHub Actions, CI config)
-- Verify semantic HTML: proper heading hierarchy (single h1, h2>h3), landmark elements, image alt text
-- Check internal linking structure, URL patterns (human-readable, no hash-only routing)
-- For CLI/library apps (no web frontend): only check docs site SEO if one exists. If no docs site, produce a "Not Applicable" report explaining why and suggesting docs site creation.
-```
-
-**Test Sense-Checker (`test-review`):**
-```
-ADDITIONAL TEST REVIEW INSTRUCTIONS:
-- READ actual test files — do not just count them. Examine assertions line by line.
-- Flag these anti-patterns:
-  * toBeDefined-only assertions (testing existence, not behavior)
-  * Over-mocked tests (>3 mocks in a single test = WARNING, all deps mocked = CRITICAL)
-  * Implementation-detail testing (testing private methods, internal state, CSS selectors)
-  * No-assertion tests (test body with no expect/assert)
-  * Snapshot tests >50 lines (brittle, rarely reviewed)
-  * Mismatched test descriptions (describe/it text doesn't match what's tested)
-  * Dead/permanently-skipped tests (.skip, xit, @disabled for >30 days)
-  * Flaky patterns: time-dependent, order-dependent, shared mutable state
-- Produce a "Test Health Score":
-  * Meaningful (>70% of tests validate correct behavior)
-  * Mixed (30-70%)
-  * Ceremonial (<30% — tests exist for coverage metrics only)
-- IMPORTANT: Testing/QA Analyst covers coverage metrics. YOUR focus is whether tests validate correct behavior, not whether they exist.
-```
-
-**Coding Defaults Enforcer (`coding-defaults`):**
-```
-ADDITIONAL CODING DEFAULTS INSTRUCTIONS:
-- TDD Evidence:
-  * Check git history for test-before-code patterns (test commits preceding implementation commits)
-  * Check test file naming conventions (*.test.ts, *.spec.ts, test_*.py)
-  * Check for test directory structure mirroring source directory structure
-  * No TDD evidence in a project with >10 source files = WARNING
-- Playwright:
-  * Check for playwright.config.ts/js, @playwright/test in dependencies
-  * Check for test files using Playwright (*.spec.ts in e2e/ or tests/ dirs)
-  * Check for npx playwright codegen / show-trace usage in scripts or docs
-  * Check CI integration (playwright in GitHub Actions / CI config)
-  * Web app without Playwright or equivalent E2E framework = WARNING
-- Visual Regression:
-  * Check for toHaveScreenshot() calls, Percy, Chromatic, BackstopJS, or similar
-  * Check for .png baseline files in test directories
-  * Web app with UI components but no visual regression testing = WARNING
-- Browser Simulation:
-  * Flag if jsdom/happy-dom is the ONLY test environment for a web app (WARNING — not real browser testing)
-  * Check for webServer config in Playwright/test config
-  * Check for tracing setup (trace: 'on-first-retry' or similar)
-- Web app with ZERO end-to-end tests = CRITICAL
-```
+For example, the SEO Specialist, Test Sense-Checker, and Coding Defaults Enforcer persona files include additional instructions that are appended to their agent prompts automatically.
 
 When FILE_SCOPE is non-empty, the FILE_SCOPE_BLOCK is:
 ```
@@ -540,12 +497,12 @@ RULES:
 
 After all fix agents complete:
 
-1. **Auto-detect test suite:** Look for `package.json` scripts (test/test:unit/test:e2e), `pytest.ini`/`pyproject.toml` [tool.pytest], `Cargo.toml`, `go.mod`, `Makefile` (test target). Run the first matching command:
-   - `npm test` / `yarn test` / `pnpm test`
-   - `pytest`
-   - `cargo test`
-   - `go test ./...`
-   - `make test`
+1. **Auto-detect test suite** using this priority order:
+   - **package.json** — look for `scripts.test`, `scripts.test:unit`, or `scripts.test:ci`. Run via `npm test` (or `yarn test` / `pnpm test` if lockfile present)
+   - **pyproject.toml** / **pytest** — check for `[tool.pytest]` section, `pytest.ini`, or `setup.cfg` with pytest config. Run via `pytest`
+   - **Cargo.toml** — run `cargo test`
+   - **go.mod** — run `go test ./...`
+   - **Makefile** — check for `test`, `check`, or `verify` targets. Run via `make test`
 
 2. **Present results table:**
    ```
@@ -571,7 +528,87 @@ After all fix agents complete:
 
 4. **On success:** All tests pass — fixes are ready.
 
-### 5f. Update synthesis report
+### 5f. Code Simplification
+
+Skip this sub-step if SKIP_SIMPLIFY is true OR no fixes were applied in Step 5d.
+
+Launch a **foreground** Agent (`subagent_type="code-simplifier:code-simplifier"`) with this prompt:
+
+```
+You are simplifying code that was just modified by automated fix agents.
+
+Read all .analysis/fixes/*-fix-summary.md files to identify which files were modified.
+
+For each modified file:
+1. Read the file
+2. Review for: duplicated logic, unnecessary complexity, inconsistent style, dead code, missed utility reuse
+3. Apply minimal, obvious simplifications using the Edit tool
+4. Preserve all existing behavior — do not change semantics
+
+RULES:
+- Only touch files that were modified by fix agents (listed in fix summaries)
+- Do NOT refactor unrelated code
+- Do NOT add comments or documentation
+- Keep changes minimal and obvious — if a simplification is debatable, skip it
+- Prefer removing dead code and deduplicating over restructuring
+
+After simplifications, write .analysis/fixes/simplification-summary.md containing:
+- Files simplified with brief description of each change
+- Total lines removed/changed
+- "No simplifications needed" if nothing was worth changing
+```
+
+After simplification completes, re-run the test suite (same detection as Step 5e). If tests fail, revert all simplifications using `git checkout -- {files}` and note "Simplifications reverted due to test failure" in the summary.
+
+### 5g. Coverage Enforcement
+
+Skip this sub-step if SKIP_TESTING is true OR SKIP_TEST_GEN is true.
+
+Read the QA Engineer's report from `.analysis/*-testing-qa.md` for coverage data.
+
+**If coverage >= 80%:** Print "Coverage is at {N}% — above 80% threshold, skipping test generation." and proceed to Step 5h.
+
+**If coverage < 80%:**
+
+1. **Select targets:** Pick up to 5 lowest-coverage critical-path files from the QA report. Prioritize: auth, payment, data mutation > utility, formatting.
+
+2. **Detect test patterns:** Read 2-3 existing test files to identify: test framework (Jest, pytest, Go testing, etc.), naming conventions, directory structure, assertion style, mock patterns.
+
+3. **Generate tests:** Launch up to 5 parallel **background** Agents (`subagent_type="general-purpose"`, `run_in_background=true`), each writing tests for one uncovered module:
+
+```
+You are a test writer generating meaningful tests for an uncovered module.
+
+Target file: {FILE_PATH}
+Test framework: {DETECTED_FRAMEWORK}
+Test directory: {DETECTED_TEST_DIR}
+Naming convention: {DETECTED_NAMING}
+
+Write tests that:
+- Test actual behavior, not implementation details
+- Cover the happy path + 2 edge cases minimum
+- Follow existing test patterns exactly (framework, assertions, file naming)
+- Mock only external dependencies (network, filesystem, databases)
+- Do NOT mock internal modules
+- Write the test file to {TEST_FILE_PATH}
+
+After writing, list what you tested and why in a brief summary.
+```
+
+4. **Verify tests:** After all test-generation agents complete, run the test suite. For each failing new test:
+   - Spawn a fix agent (1 retry attempt)
+   - If still failing after retry, delete the test file
+   - Note deleted tests in summary
+
+5. **Measure delta:** If a coverage tool is available, re-run coverage and report the delta (before → after).
+
+6. **Write summary:** Write `.analysis/fixes/coverage-enforcement-summary.md` containing:
+   - Coverage before and after (if measurable)
+   - Tests generated: file path, what it tests, pass/fail status
+   - Tests deleted (if any) with reason
+   - Remaining coverage gap (if still < 80%)
+
+### 5h. Update synthesis report
 
 Launch a foreground Agent (`subagent_type="general-purpose"`) to update the report:
 
@@ -585,6 +622,8 @@ Update REPORT.md:
 2. In Priority 1 and Priority 2 sections, mark fixed items with [FIXED] prefix on their title
 3. Update the Scorecard health ratings if fixes improved a dimension (e.g., Security went from "Needs Work" to "Fair")
 4. Update the Executive Summary to reflect fixes applied (e.g., "X of Y critical issues were automatically resolved")
+5. If .analysis/fixes/simplification-summary.md exists, add a "## Simplifications Applied" section after "Fixes Applied" listing each simplification with affected files
+6. If .analysis/fixes/coverage-enforcement-summary.md exists, add a "## Tests Generated" section with coverage delta (before/after percentage) and list of generated test files
 
 Write the updated report back to .analysis/REPORT.md
 ```
@@ -631,7 +670,7 @@ Skip this step if SKIP_PPTX is true.
 
 ### 8b. Build JSON data file
 
-Write a JSON file to `/tmp/analyze_app_presentation_data.json` with this schema:
+Write a JSON file to `/tmp/review_app_presentation_data.json` with this schema:
 
 ```json
 {
@@ -679,7 +718,7 @@ If no fixes were applied, set `fixes_applied` to `null`. If on the default branc
 
 ### 8c. Write and execute the Python presentation script
 
-Write a Python script to `/tmp/analyze_app_presentation.py`. The script reads the JSON data file and generates a `.pptx` presentation.
+Write a Python script to `/tmp/review_app_presentation.py`. The script reads the JSON data file and generates a `.pptx` presentation.
 
 **Design system** (matches `gw:weekly-review` palette — the canonical gw-skills design system. Note: `gw:merge-it` uses a slightly different palette; it should be aligned in a future update):
 
@@ -715,30 +754,30 @@ BG_LIGHT     = RGBColor(0xF8, 0xF9, 0xFA)
 7. **Changes vs Default Branch Slide** (only if `branch_diff.has_diff` is true) — Branch comparison header (current vs default), file change count, insertions/deletions as colored bars (green for added, red for removed), top 10 changed files as a mini table.
 8. **Fix Summary Slide** (only if `fixes_applied` is not null) — Donut-style visual: passed (green), failed (red), reverted (amber). Issue count comparison: "X of Y critical issues resolved".
 9. **Recommended Phases Slide** — Phase timeline as horizontal cards: Phase 1 → Phase 2 → Phase 3, each with T-shirt size effort badge and item count.
-10. **Closing Slide** — "Full report: `.analysis/REPORT.md`", date, "Generated by gw:analyze-app"
+10. **Closing Slide** — "Full report: `.analysis/REPORT.md`", date, "Generated by gw:review-app"
 
 **Script execution:**
 
 ```bash
-mkdir -p doc
-uv run --with python-pptx python /tmp/analyze_app_presentation.py
+mkdir -p docs/gw
+uv run --with python-pptx python /tmp/review_app_presentation.py
 ```
 
-Fallback: `python3 -m pip install python-pptx && python3 /tmp/analyze_app_presentation.py`
+Fallback: `python3 -m pip install python-pptx && python3 /tmp/review_app_presentation.py`
 
 If both fail, tell the user: "PowerPoint generation failed — python-pptx is required. Install it with `pip install python-pptx` or use `--skip-pptx` to skip presentation generation." Do not generate an HTML fallback.
 
-**Output path:** `doc/analysis-report-{YYYY-MM-DD}.pptx` (consistent with `gw:merge-it` which uses `doc/` for generated presentations)
+**Output path:** `docs/gw/analysis-report-{YYYY-MM-DD}.pptx` (all gw-skills use `docs/gw/` for generated presentations)
 
 ### 8d. Present result
 
-Tell the user: "Presentation saved to `doc/analysis-report-{date}.pptx`"
+Tell the user: "Presentation saved to `docs/gw/analysis-report-{date}.pptx`"
 
 If the project is a git repo with uncommitted changes to the presentation file, ask: "Commit the presentation to the branch? [y/n]"
 
 If yes:
 ```bash
-git add doc/analysis-report-*.pptx
+git add docs/gw/analysis-report-*.pptx
 git commit -m "docs: add analysis findings presentation"
 ```
 
@@ -759,12 +798,14 @@ Scan the project for signals that map to specific skills. Run these checks in pa
 | Bug or failure patterns detected | Test failures, error patterns in logs | `superpowers:systematic-debugging` | Process |
 | No PR review workflow | Missing `.github/CODEOWNERS`, no PR templates | `superpowers:requesting-code-review` | Process |
 | Active feature branches | 2+ non-default branches | `superpowers:using-git-worktrees` | Process |
-| No presentation/docs workflow | No `doc/` directory with `.pptx` files, no merge-it usage | `gw:merge-it` | Workflow |
+| No presentation/docs workflow | No `docs/gw/` directory with `.pptx` files, no merge-it usage | `gw:merge-it` | Workflow |
 | No periodic review | No weekly review config at `~/.config/gw-skills/weekly-review.json` | `gw:weekly-review` | Workflow |
 | SaaS signals detected (from Step 1) | APP_TYPE = saas or SaaS signals present | `gw:saas-idea` | Workflow |
 | No project planning | Missing `.planning/` directory | `gsd:new-project` | Planning |
 | Existing GSD project with stale phases | `.planning/` exists but no recent phase activity | `gsd:progress` | Planning |
 | No CI/CD pipeline | Missing `.github/workflows/`, `Jenkinsfile`, `.gitlab-ci.yml` | `superpowers:verification-before-completion` | Process |
+| Fixes applied in Step 5 (code changed, benefits from ongoing simplification) | Any fix agents ran and produced fix summaries | `superpowers:code-simplifier` | Process |
+| Complex architectural issues (3+ CRITICAL findings across different dimensions) | 3+ dimensions have CRITICAL-severity findings | `superpowers:brainstorming` | Process |
 
 ### 9b. Check what's already available
 
@@ -817,14 +858,14 @@ For skills the user approves:
 ```markdown
 ## Recommended Skills
 
-The following skills were identified by `gw:analyze-app` as beneficial for this project:
+The following skills were identified by `gw:review-app` as beneficial for this project:
 
 - `superpowers:test-driven-development` — Use TDD for all new features and bug fixes
 - `superpowers:writing-plans` — Plan multi-step tasks before coding
 - `superpowers:systematic-debugging` — Use scientific debugging for failures
 ```
 
-**For gw: skills:** gw-skills is necessarily already installed (the user is running `gw:analyze-app`). Just add the recommended skill references to CLAUDE.md so they're discoverable for the project.
+**For gw: skills:** gw-skills is necessarily already installed (the user is running `gw:review-app`). Just add the recommended skill references to CLAUDE.md so they're discoverable for the project.
 
 **For gsd: skills:** Check if GSD is installed (`~/.claude/commands/gsd/` exists).
 - If yes: skills are already available, just add to CLAUDE.md recommendations.

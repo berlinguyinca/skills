@@ -142,14 +142,14 @@ git commit -m "feat(compete): add skill frontmatter, update check, argument pars
 
 - [ ] **Step 1: Write Step 2 — Project Detection**
 
-Add the full Step 2 section. Follow the spec exactly — it mirrors analyze-app's detection pattern:
+Add the full Step 2 section. Follow the spec exactly — it mirrors review-app's detection pattern:
 1. Stack detection with parallel globs (package.json, pyproject.toml, go.mod, Cargo.toml, etc.)
 2. Read README.md + CLAUDE.md for context
-3. APP_TYPE determination using the same rules as analyze-app (web, server, cli, mobile, library, saas)
+3. APP_TYPE determination using the same rules as review-app (web, server, cli, mobile, library, saas)
 4. FEATURE_INVENTORY construction — scan for route definitions, API endpoints, CLI commands, UI components, database models, config options
 5. STACK_CONTEXT summary (under 500 words)
 
-Include the APP_TYPE classification table from analyze-app's spec (the same signal → type mapping).
+Include the APP_TYPE classification table from review-app's spec (the same signal → type mapping).
 
 - [ ] **Step 2: Write Step 3 — Competitor Registry**
 
@@ -378,7 +378,7 @@ Add the "Error handling" section at the end of the skill file. Include all 8 err
 - [ ] **Step 5: Verify complete skill file**
 
 Run: `wc -l .claude/commands/gw/compete.md`
-Expected: ~800-1200 lines (comparable to analyze-app at ~860 lines and saas-idea at ~1500 lines)
+Expected: ~800-1200 lines (comparable to review-app at ~860 lines and saas-idea at ~1500 lines)
 
 Run: `head -5 .claude/commands/gw/compete.md`
 Expected: Valid YAML frontmatter

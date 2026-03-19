@@ -456,7 +456,7 @@ If GSD commands don't exist, say: "Full plan available in `.saas-ideas/`. Instal
 
 1. **AI as force multiplier** — Feasibility scoring accounts for AI-assisted development. A solo dev with Claude Code can ship what used to require a team of 5. Ideas suited to AI-accelerated development score higher.
 2. **Freshness via history.json** — Prevents the skill from repeating ideas across runs. Supports both ad-hoc and regular usage patterns. Initialized as `{"runs": []}` on first run. Ideas matched case-insensitively.
-3. **Parallel agent pattern** — Mirrors `gw:analyze-app` architecture. 6 parallel harvest agents + 4 parallel deep-dive agents minimizes wall-clock time.
+3. **Parallel agent pattern** — Mirrors `gw:review-app` architecture. 6 parallel harvest agents + 4 parallel deep-dive agents minimizes wall-clock time.
 4. **Explicit source access strategy** — Each source specifies whether to use `WebSearch` or `WebFetch`, avoiding failures on JS-heavy or auth-gated sites (Google Trends, Twitter).
 5. **Error tolerance** — Harvest phase requires ≥3/6 agents to succeed, allowing graceful degradation when sources are unreachable.
 6. **Budget-aware throughout** — The `--budget` flag propagates to feasibility scoring, tech spec infrastructure, revenue projections, and marketing spend recommendations.

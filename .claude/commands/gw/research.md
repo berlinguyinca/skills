@@ -1,7 +1,7 @@
 ---
 name: research
 description: Multi-persona research with structured debate, parallel source investigation, and actionable output (report, PPTX, implementation, prototype)
-argument-hint: "<question> [--standalone] [--deep] [--team N] [--skip-pptx] [--skip-gsd] [--hire \"Name\" --background \"...\"] [--fire \"Name\"] [--roster]"
+argument-hint: "<question> [--standalone] [--deep] [--team auto|ask|N] [--skip-pptx] [--skip-gsd]"
 ---
 
 ## Step 0 — Update check
@@ -26,12 +26,10 @@ Parse the arguments: "$ARGUMENTS"
 - The **research question** is everything in `$ARGUMENTS` that isn't a recognized flag. It can be quoted or unquoted.
 - If `"--standalone"` is present, set FORCE_STANDALONE=true
 - If `"--deep"` is present, set DEEP_RESEARCH=true. Default: false
-- If `"--team N"` is present, set TEAM_SIZE_OVERRIDE=N (clamped to 3-10)
+- If "--team N|auto|ask" is present: if N is a number, set TEAM_MODE=auto and TEAM_SIZE_OVERRIDE=N (clamped to 3-10). If "auto", set TEAM_MODE=auto. If "ask", set TEAM_MODE=ask. Default TEAM_MODE: auto
 - If `"--skip-pptx"` is present, set SKIP_PPTX=true
 - If `"--skip-gsd"` is present, set SKIP_GSD=true
-- If `"--hire \"Name\" --background \"...\""` is present, set HIRE_NAME and HIRE_BACKGROUND
-- If `"--fire \"Name\""` is present, set FIRE_NAME
-- If `"--roster"` is present, set SHOW_ROSTER=true
+- If `"--hire"`, `"--fire"`, or `"--roster"` is present: tell the user "Use `/gw:workforce` for persona management. Examples: `/gw:workforce --hire \"Name\" --background \"...\"`, `/gw:workforce --fire \"Name\"`, `/gw:workforce --roster`" and stop.
 
 If no research question is provided and no workforce management flag is set, ask: "What would you like to research?" and wait.
 
@@ -40,7 +38,7 @@ If no research question is provided and no workforce management flag is set, ask
 | Condition | Steps executed |
 |-----------|----------------|
 | Default (full run) | 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 |
-| `--hire/--fire/--roster` | 0 → 1 (workforce management only) |
+| `--hire/--fire/--roster` | 0 → 1 (redirect to `/gw:workforce`) |
 | `--skip-pptx` | Skip PPTX in Step 7 |
 | `--skip-gsd` | Skip GSD in Step 7 |
 
@@ -48,44 +46,6 @@ If no research question is provided and no workforce management flag is set, ask
 - After Step 2 — confirm research context and domain classification
 - After Step 3 — confirm team composition before spawning research agents
 - After Step 5 — confirm consensus before output action
-
-### Workforce management commands
-
-Resolve the gw-skills repo path:
-
-```bash
-GW_REPO="$(cd "$(readlink ~/.claude/commands/gw)/../../.." 2>/dev/null && pwd)" || GW_REPO="$HOME/.gw-skills"
-```
-
-For `--hire`:
-1. Slugify the name (e.g., "Regulatory Expert" → `regulatory-expert`)
-2. Create `$GW_REPO/workforce/regulatory-expert.md` with frontmatter:
-   - `name`: from --hire flag
-   - `background`: from --background flag
-   - `perspective`: auto-derived from background (key concerns and viewpoint)
-   - `priorities`: auto-derived (what this persona cares most about)
-   - `debate_style`: auto-derived (how they argue and what evidence they cite)
-   - `search_skills`: auto-derived (3-5 comma-separated source types appropriate for this persona's domain)
-3. Print: "Hired {Name}. Available in all future `/gw:research` and `/gw:compete` runs."
-
-For `--fire`:
-1. Find matching file in `$GW_REPO/workforce/` (NOT `_defaults/`)
-2. Delete the file
-3. Print: "Removed {Name} from workforce."
-4. If user tries to fire a default persona: "Can't fire default personas. They ship with the skill."
-
-For `--roster`:
-List all personas grouped by source:
-
-```
-Workforce Roster ({N} personas):
-  [default] Software Architect — System design, scalability, technical debt  [github, tech-blogs, context7, stackoverflow]
-  [default] Literature Reviewer — Evidence quality, source credibility       [arxiv, academic, google-scholar, pubmed, journals]
-  ...
-  [custom]  Regulatory Expert — Compliance, regulatory frameworks            [sec-filings, news, government-docs]
-```
-
-End with `---` separator and stop.
 
 ---
 
@@ -193,7 +153,13 @@ Custom personas are always shown as available additions.
 
 ### 3c. Approval gate
 
-Show this exact format:
+**If TEAM_MODE is "auto" (default):** Skip the gate — auto-proceed with the suggested team. Print a brief summary:
+
+```
+Team ({N} specialists): {Name1}, {Name2}, {Name3}, ... — auto-proceeding (use --team ask for interactive selection)
+```
+
+**If TEAM_MODE is "ask":** Show this exact format and wait for user confirmation:
 
 ```
 Research: "{QUESTION}"
@@ -219,7 +185,7 @@ Options:
 - **Add [+N,N]:** add specific personas to the suggested team
 - **Customize [c]:** show full roster, pick by number
 
-If `--team N` was set, auto-size to N using the relevance order (still show for confirmation).
+If `--team N` was set, auto-size to N using the relevance order (still show for confirmation only if TEAM_MODE is "ask").
 
 **APPROVAL GATE — Stop and wait for user confirmation before proceeding to Step 4.**
 
@@ -414,7 +380,7 @@ Research Status:
   [FAILED] statistician.md        (research incomplete — rate limited)
 ```
 
-For any `[FAILED]` entries, offer: "Retry failed research? [y/n]" — if yes, re-launch only the failed agents.
+For any `[FAILED]` entries, offer: "Retry failed research? [y/n]" — if yes, re-launch only the failed agents. Max 2 retries per failed agent. After 2 failures for the same agent, continue with available reports.
 
 ---
 

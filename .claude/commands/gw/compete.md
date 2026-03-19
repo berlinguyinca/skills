@@ -1,7 +1,7 @@
 ---
 name: compete
 description: Competitive feature analysis with structured team debate, TDD test scaffolds, and implementation planning
-argument-hint: "[--deep] [--hire \"Name\" --background \"...\"] [--fire \"Name\"] [--roster] [--refresh] [--skip-pptx] [--skip-gsd] [--skip-tests] [--team N] [--add \"Competitor\"] [--remove \"Competitor\"] [--list]"
+argument-hint: "[--deep] [--refresh] [--skip-pptx] [--skip-gsd] [--skip-tests] [--team auto|ask|N] [--add \"Competitor\"] [--remove \"Competitor\"] [--list]"
 ---
 
 ## Step 0 — Update check
@@ -23,14 +23,12 @@ You are an orchestrator for competitive feature analysis. You research competito
 
 Parse the arguments: "$ARGUMENTS"
 - If "--deep" is present, set DEEP_RESEARCH=true. Default: false
-- If "--hire \"Name\" --background \"...\"" is present, set HIRE_NAME and HIRE_BACKGROUND
-- If "--fire \"Name\"" is present, set FIRE_NAME
-- If "--roster" is present, set SHOW_ROSTER=true
+- If "--hire", "--fire", or "--roster" is present: tell the user "Use `/gw:workforce` for persona management. Examples: `/gw:workforce --hire \"Name\" --background \"...\"`, `/gw:workforce --fire \"Name\"`, `/gw:workforce --roster`" and stop.
 - If "--refresh" is present, set FORCE_REFRESH=true
 - If "--skip-pptx" is present, set SKIP_PPTX=true
 - If "--skip-gsd" is present, set SKIP_GSD=true
 - If "--skip-tests" is present, set SKIP_TESTS=true
-- If "--team N" is present, set TEAM_SIZE_OVERRIDE=N (clamped to 3-10)
+- If "--team N|auto|ask" is present: if N is a number, set TEAM_MODE=auto and TEAM_SIZE_OVERRIDE=N (clamped to 3-10). If "auto", set TEAM_MODE=auto. If "ask", set TEAM_MODE=ask. Default TEAM_MODE: auto
 - If "--add \"Name\"" is present, set ADD_COMPETITOR
 - If "--remove \"Name\"" is present, set REMOVE_COMPETITOR
 - If "--list" is present, set LIST_COMPETITORS=true
@@ -43,7 +41,7 @@ Based on arguments and detected state, the workflow may skip steps:
 |-----------|----------------|
 | Default (full run) | 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12 |
 | `--add/--remove/--list` | 0 → 1 → 3 (registry management only) |
-| `--hire/--fire/--roster` | 0 → 1 (workforce management only) |
+| `--hire/--fire/--roster` | 0 → 1 (redirect to `/gw:workforce`) |
 | `--skip-tests` | Skip Step 9 |
 | `--skip-pptx` | Skip Step 11 |
 | `--skip-gsd` | Skip Step 12 |
@@ -289,7 +287,7 @@ Research Status:
   [FAILED] obsidian.md      (research incomplete — rate limited)
 ```
 
-For any `[FAILED]` entries, offer: "Retry failed research? [y/n]" — if yes, re-launch only the failed agents.
+For any `[FAILED]` entries, offer: "Retry failed research? [y/n]" — if yes, re-launch only the failed agents. Max 2 retries per failed agent. After 2 failures for the same agent, continue with available reports.
 
 ---
 
@@ -307,7 +305,7 @@ Read all persona files from:
 1. `$GW_REPO/workforce/_defaults/*.md` — pre-shipped personas
 2. `$GW_REPO/workforce/*.md` (excluding `_defaults/`) — user-added personas
 
-Parse frontmatter from each: `name`, `background`, `perspective`, `priorities`, `debate_style`.
+Parse frontmatter from each: `name`, `background`, `perspective`, `priorities`, `debate_style`, `search_skills`.
 
 ### 5b. Suggest team composition
 
@@ -326,7 +324,13 @@ Custom personas are always shown as available additions.
 
 ### 5c. Approval gate
 
-Show this exact format:
+**If TEAM_MODE is "auto" (default):** Skip the gate — auto-proceed with the suggested team. Print a brief summary:
+
+```
+Team ({N} specialists): {Name1}, {Name2}, {Name3}, ... — auto-proceeding (use --team ask for interactive selection)
+```
+
+**If TEAM_MODE is "ask":** Show this exact format and wait for user confirmation:
 
 ```
 Project: {project_name} ({APP_TYPE}, {file_count} files)
@@ -352,41 +356,7 @@ Explain each option:
 - **Add [+N,N]:** add specific personas to the suggested team
 - **Customize [c]:** show full roster, pick by number
 
-If `--team N` was set, auto-size to N using the relevance order (still show for confirmation).
-
 **APPROVAL GATE — Stop and wait for user confirmation before proceeding to Step 6.**
-
-### Workforce management commands
-
-For `--hire`:
-1. Slugify the name (e.g., "Mass Spectrometrist" → `mass-spectrometrist`)
-2. Create `$GW_REPO/workforce/mass-spectrometrist.md` with frontmatter:
-   - `name`: from --hire flag
-   - `background`: from --background flag
-   - `perspective`: auto-derived from background (key concerns and viewpoint)
-   - `priorities`: auto-derived (what this persona cares most about)
-   - `debate_style`: auto-derived (how they argue and what evidence they cite)
-3. Print: "Hired {Name}. Available in all future `/gw:compete` runs."
-
-For `--fire`:
-1. Find matching file in `$GW_REPO/workforce/` (NOT `_defaults/`)
-2. Delete the file
-3. Print: "Removed {Name} from workforce."
-4. If user tries to fire a default persona: "Can't fire default personas. They ship with the skill."
-
-For `--roster`:
-List all personas grouped by source:
-
-```
-Workforce Roster ({N} personas):
-  [default] Software Architect — System design, scalability, technical debt
-  [default] UX Specialist — User flows, friction, accessibility
-  ...
-  [custom]  Woodworker — Craftsmanship, ergonomics, "does it feel right"
-  [custom]  Mass Spectrometrist — Data precision, calibration, scientific defensibility
-```
-
-End with `---` separator.
 
 ---
 
@@ -735,7 +705,9 @@ Include a code block with:
 
 ### Commit test scaffolds
 
-After all testing agents complete, ask the user: "Test scaffolds generated. Commit to the branch? [y/n]"
+After all testing agents complete, check if the project is in a git repository: if `git rev-parse --git-dir 2>/dev/null` fails, tell the user: "Test scaffolds were written but not committed (not a git repository)." and skip the commit step.
+
+Otherwise, ask the user: "Test scaffolds generated. Commit to the branch? [y/n]"
 
 If yes:
 ```bash
