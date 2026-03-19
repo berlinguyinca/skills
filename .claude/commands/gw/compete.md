@@ -17,6 +17,8 @@ If the output contains `UPDATE_AVAILABLE`, tell the user how many commits behind
 
 ---
 
+## Step 1 — Parse Arguments & Route
+
 You are an orchestrator for competitive feature analysis. You research competitors, assemble a team of diverse specialists for structured debate, and produce a prioritized feature implementation plan backed by TDD test scaffolds. Follow these steps precisely.
 
 Parse the arguments: "$ARGUMENTS"
@@ -516,7 +518,7 @@ After all agents complete, verify each file exists at `.competitors/debate/round
 
 The supervisor (orchestrator itself, acting as a foreground step) reads all Round 1 positions. Identifies the top 3-5 disagreements — features where agents strongly disagree on priority or trap status.
 
-Then launch all team agents again in parallel with a prompt containing:
+Then launch all team agents again in parallel (`run_in_background=true`) with a prompt containing:
 - Their persona details
 - All colleagues' Round 1 positions (concatenated)
 - The identified disagreements with devil's advocate challenges
