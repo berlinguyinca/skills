@@ -2,17 +2,17 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-10)
+See: .planning/PROJECT.md (updated 2026-03-19)
 
-**Core value:** One command produces a meeting-ready PowerPoint that accurately captures the week's development work
-**Current focus:** Phase 1 — GitHub Data Foundation
+**Core value:** One slash command assembles a specialist team, runs parallel analysis, and produces actionable deliverables
+**Current focus:** Milestone v1.1 — Quality & Safety
 
 ## Current Position
 
-Phase: 1 of 5 (GitHub Data Foundation)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-03-10 — Roadmap created, all 18 requirements mapped across 5 phases
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-19 — Milestone v1.1 started from gw:review-app analysis findings
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -23,30 +23,16 @@ Progress: [░░░░░░░░░░] 0%
 - Average duration: —
 - Total execution time: 0 hours
 
-**By Phase:**
-
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| - | - | - | - |
-
-**Recent Trend:**
-- Last 5 plans: —
-- Trend: —
-
 *Updated after each plan completion*
 
 ## Accumulated Context
 
 ### Decisions
 
-Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
-
-- [Init]: Claude Code skill with manual invocation (not cron) — user controls when it runs
-- [Init]: Local .pptx save only — no email delivery
-- [Research]: LLM-as-orchestrator, script-as-renderer architecture — JSON handoff via /tmp/mos_data.json
-- [Research]: gh CLI for all GitHub queries (leverages existing auth, no additional setup)
-- [Research]: python-pptx 1.0.2 + matplotlib for PPTX generation via uv run --with
+- [v1.0]: Project evolved from mos:progress to 8-skill gw-skills toolkit
+- [v1.1]: Milestone driven by gw:review-app analysis (2026-03-19) — 18 findings, 4 phases
+- [v1.1]: .gitignore and .shellcheckrc already applied as quick wins during analysis
+- [v1.1]: New Skill Developer persona created to guard skill file integrity
 
 ### Pending Todos
 
@@ -54,11 +40,11 @@ None yet.
 
 ### Blockers/Concerns
 
-- [Phase 3]: Categorization keyword accuracy against metabolomics-us PRs is MEDIUM confidence — build in a calibration check (target: "other" bucket below 40%)
-- [Phase 1]: uv availability on target machine should be verified early; SKILL.md should detect absence and advise
+- Input sanitization (Phase 2) touches all 7 skill files — high surface area, needs careful testing
+- Shared pattern extraction (Phase 3) changes skill file structure — verify skills still load correctly after refactoring
 
 ## Session Continuity
 
-Last session: 2026-03-10
-Stopped at: Roadmap created and written. Requirements traceability updated.
+Last session: 2026-03-19
+Stopped at: Milestone v1.1 requirements definition
 Resume file: None
