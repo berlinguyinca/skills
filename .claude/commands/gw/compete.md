@@ -387,3 +387,251 @@ Workforce Roster ({N} personas):
 End with `---` separator.
 
 ---
+
+## Step 6 — Feature Matrix Generation
+
+Launch a single foreground agent (`subagent_type="general-purpose"`) with:
+- The project's FEATURE_INVENTORY from Step 2
+- All `.competitors/research/*.md` files
+- Instruction to build a comprehensive feature-by-feature comparison
+
+The agent writes `.competitors/feature-matrix.json`:
+```json
+{
+  "generated": "YYYY-MM-DD",
+  "project": "{project_name}",
+  "competitors": ["Notion", "Coda", "Obsidian"],
+  "categories": [
+    {
+      "name": "Collaboration",
+      "features": [
+        {
+          "name": "Real-time editing",
+          "our_status": "missing",
+          "competitors": {
+            "Notion": "full",
+            "Coda": "full",
+            "Obsidian": "missing"
+          },
+          "gap_type": "competitive_gap",
+          "effort_estimate": "Large",
+          "community_signal": "High demand on Reddit (340+ upvotes)"
+        }
+      ]
+    }
+  ]
+}
+```
+
+Status values: `full`, `partial`, `missing`, `planned`
+Gap types:
+- `competitive_gap` — they have it, we don't
+- `competitive_advantage` — we have it, they don't
+- `parity` — everyone has it
+- `opportunity` — nobody has it yet (from community pain points in deep mode)
+
+Present the matrix to the user as a readable table before proceeding to debate.
+
+---
+
+## Step 7 — Structured Debate
+
+Three rounds with the assembled team.
+
+### Round 1 — Position Statements
+
+Launch all team agents in parallel (`run_in_background=true`). Each agent gets a prompt with:
+- Their persona details (name, background, perspective, priorities, debate_style)
+- Project context ({PROJECT_NAME}, {APP_TYPE})
+- Instruction to read `.competitors/feature-matrix.json`
+- Tasks: pick top 5 features, rank 1-5, explain why from their perspective, flag trap features, note missing features
+- Output to `.competitors/debate/round1/{PERSONA_SLUG}.md`
+- Output format with sections: Top 5 Features to Implement (numbered, with Why and Effort assessment), Trap Features (with Why it's a trap), Missing from Matrix
+
+Agent prompt template:
+
+```
+You are {PERSONA_NAME}, a specialist with the following profile:
+- Background: {PERSONA_BACKGROUND}
+- Perspective: {PERSONA_PERSPECTIVE}
+- Priorities: {PERSONA_PRIORITIES}
+- Debate style: {PERSONA_DEBATE_STYLE}
+
+## Context
+
+Project: {PROJECT_NAME} ({APP_TYPE})
+
+## Your Task
+
+1. Read the feature matrix at `.competitors/feature-matrix.json`.
+2. From your perspective, pick the TOP 5 features to implement next.
+3. Rank them 1-5 (1 = highest priority).
+4. For each, explain WHY from your specialist viewpoint and assess implementation effort (Small / Medium / Large).
+5. Flag any "trap features" — things that look attractive but you believe would be a mistake to build right now.
+6. Note any features or dimensions that are MISSING from the matrix entirely.
+
+## Output
+
+Write your position to: `.competitors/debate/round1/{PERSONA_SLUG}.md`
+
+Use this format:
+
+---
+persona: {PERSONA_NAME}
+round: 1
+date: {TODAY_DATE}
+---
+
+# Round 1 — Position Statement: {PERSONA_NAME}
+
+## Top 5 Features to Implement
+
+1. **{Feature Name}** (Effort: {Small|Medium|Large})
+   - **Why:** {explanation from this persona's perspective}
+
+2. **{Feature Name}** (Effort: {Small|Medium|Large})
+   - **Why:** {explanation}
+
+3. **{Feature Name}** (Effort: {Small|Medium|Large})
+   - **Why:** {explanation}
+
+4. **{Feature Name}** (Effort: {Small|Medium|Large})
+   - **Why:** {explanation}
+
+5. **{Feature Name}** (Effort: {Small|Medium|Large})
+   - **Why:** {explanation}
+
+## Trap Features
+
+- **{Feature Name}:** {Why it's a trap from this persona's perspective}
+
+## Missing from Matrix
+
+- {Any feature or dimension not captured in the matrix that you believe matters}
+```
+
+After all agents complete, verify each file exists at `.competitors/debate/round1/{PERSONA_SLUG}.md`.
+
+### Round 2 — Cross-Examination
+
+The supervisor (orchestrator itself, acting as a foreground step) reads all Round 1 positions. Identifies the top 3-5 disagreements — features where agents strongly disagree on priority or trap status.
+
+Then launch all team agents again in parallel with a prompt containing:
+- Their persona details
+- All colleagues' Round 1 positions (concatenated)
+- The identified disagreements with devil's advocate challenges
+- A specific devil's advocate argument targeting THIS persona's Round 1 stance
+- Tasks: respond to disagreements, defend or change position, note if any colleague changed their thinking
+- Output to `.competitors/debate/round2/{PERSONA_SLUG}.md`
+
+Agent prompt template:
+
+```
+You are {PERSONA_NAME}, a specialist with the following profile:
+- Background: {PERSONA_BACKGROUND}
+- Perspective: {PERSONA_PERSPECTIVE}
+- Priorities: {PERSONA_PRIORITIES}
+- Debate style: {PERSONA_DEBATE_STYLE}
+
+## Context
+
+Project: {PROJECT_NAME} ({APP_TYPE})
+
+## Your Round 1 Position
+
+(Your Round 1 file content is included below for reference.)
+
+## Your Colleagues' Round 1 Positions
+
+{CONCATENATED_ROUND1_POSITIONS_OF_ALL_OTHER_PERSONAS}
+
+## Key Disagreements Identified by the Supervisor
+
+{NUMBERED_LIST_OF_TOP_3_TO_5_DISAGREEMENTS}
+Example:
+1. Feature X — {PersonaA} ranked it #1; {PersonaB} called it a trap.
+2. Feature Y — {PersonaC} and {PersonaD} disagree on effort (Small vs Large).
+
+## Devil's Advocate Challenge (for you specifically)
+
+{TARGETED_CHALLENGE_ARGUING_AGAINST_THIS_PERSONAS_ROUND1_STANCE}
+
+## Your Task
+
+1. Respond to the key disagreements above. Do you hold your position or update it? Be specific.
+2. Address the devil's advocate challenge directed at you. Rebut, concede, or refine your stance.
+3. Note if any colleague made an argument that genuinely changed your thinking (and explain how).
+4. If you are updating any of your Top 5 rankings or trap designations, state the updated list explicitly.
+
+## Output
+
+Write your response to: `.competitors/debate/round2/{PERSONA_SLUG}.md`
+
+Use this format:
+
+---
+persona: {PERSONA_NAME}
+round: 2
+date: {TODAY_DATE}
+---
+
+# Round 2 — Cross-Examination: {PERSONA_NAME}
+
+## Response to Disagreements
+
+### Disagreement 1: {Feature Name}
+{Your response — hold, concede, or refine}
+
+### Disagreement 2: {Feature Name}
+{Your response}
+
+(continue for each disagreement)
+
+## Response to Devil's Advocate Challenge
+
+{Your rebuttal or concession}
+
+## Mind Changes
+
+- {Feature or position you updated, and why} (or "None — I hold my Round 1 position.")
+
+## Updated Rankings (if changed)
+
+(List only if your Top 5 changed from Round 1; otherwise write "Unchanged.")
+```
+
+### Round 3 — Supervisor Synthesis
+
+A single foreground supervisor agent reads ALL Round 1 + Round 2 files and writes `.competitors/debate/CONSENSUS.md` with this format:
+
+```markdown
+# Debate Consensus
+
+**Date:** {date}
+**Team:** {N} specialists, 2 debate rounds
+**Disagreements examined:** {N}
+
+## Ranked Feature Recommendations
+
+### Tier 1: Strong Consensus (implement)
+| # | Feature | Consensus | Effort | Key Argument |
+|---|---------|-----------|--------|-------------|
+| 1 | {name} | 5/6 agree | Medium | {summary} |
+
+### Tier 2: Moderate Consensus (consider)
+(same table format)
+
+### Tier 3: Contested (needs user decision)
+| # | Feature | For | Against | Key Tension |
+|---|---------|-----|---------|-------------|
+
+## Trap Features (team consensus: avoid)
+| Feature | Flagged By | Reason |
+|---------|-----------|--------|
+
+## Supervisor's Final Recommendation
+{Narrative synthesis: what to build, what to skip, what order, and why.
+Explicitly notes where the supervisor overruled minority positions and why.}
+```
+
+---
