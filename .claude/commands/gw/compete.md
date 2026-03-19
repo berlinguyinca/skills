@@ -635,3 +635,115 @@ Explicitly notes where the supervisor overruled minority positions and why.}
 ```
 
 ---
+
+## Step 8 — Feature Selection Dialog
+
+Present consensus to the user in this exact format:
+
+```
+Competitive Feature Analysis — Consensus Results
+
+RECOMMENDED (strong consensus):
+  1. [5/6 agree] Real-time editing        Effort: Large    Gap: competitive_gap
+  2. [5/6 agree] API webhooks             Effort: Medium   Gap: competitive_gap
+  3. [6/6 agree] Keyboard shortcuts       Effort: Small    Gap: competitive_gap
+
+CONTESTED (split opinion):
+  4. [3/6 agree] AI assistant             Effort: Large    Gap: opportunity
+     FOR: Product Manager, UX Specialist, Business Analyst
+     AGAINST: Woodworker ("bolted-on AI feels like particle board"),
+              Backend Engineer ("maintenance burden"), Security Engineer ("data risk")
+  5. [3/6 agree] Plugin ecosystem         Effort: Large    Gap: competitive_gap
+     FOR: Software Architect, Backend Engineer, End User Advocate
+     AGAINST: Product Manager ("scope creep"), QA Engineer ("testing nightmare")
+
+TRAPS (team flagged as avoid):
+  6. [1/6 agree] Blockchain integration   Effort: Large    Gap: opportunity
+     "Nobody's asking for this" — End User Advocate
+
+Select features to implement:
+  All recommended [a], pick by number [1,2,4], select all [*], or review debate [r]?
+```
+
+Options:
+- **[a]:** Select all Tier 1 (strong consensus) features
+- **[1,2,4]:** Select specific features by number
+- **[*]:** Select everything (including contested)
+- **[r]:** Display the full debate transcripts for review, then re-prompt
+
+Save selections to `.competitors/SELECTED.json`:
+```json
+{
+  "date": "YYYY-MM-DD",
+  "selected": [
+    { "name": "Real-time editing", "consensus": "5/6", "effort": "Large" },
+    { "name": "API webhooks", "consensus": "5/6", "effort": "Medium" }
+  ],
+  "deferred": [...],
+  "rejected": [...]
+}
+```
+
+**APPROVAL GATE — Do not proceed past this step without explicit user confirmation of feature selection.**
+
+---
+
+## Step 9 — Test Scaffold Generation
+
+Skip if SKIP_TESTS is true.
+
+For each selected feature, spawn specialist testing agents in parallel (`run_in_background=true`).
+
+### Testing agent pool
+
+| Agent | Responsibility | Output Pattern |
+|-------|---------------|----------------|
+| Unit Test Architect | Pure logic tests, isolated components | `tests/unit/feature-{slug}.test.{ext}` |
+| Integration Test Architect | Cross-module, database, API contracts | `tests/integration/feature-{slug}.test.{ext}` |
+| E2E Test Architect | Full user flows, happy + error paths | `tests/e2e/feature-{slug}.spec.{ext}` |
+| Backend Test Architect | API endpoints, auth, data validation | `tests/backend/feature-{slug}.test.{ext}` |
+| Stress Test Architect | Load, concurrency, resource limits | `tests/stress/feature-{slug}.test.{ext}` |
+| Session Recorder | Playwright recorded user journeys (web only) | `tests/recorded/feature-{slug}.spec.{ext}` |
+
+Not all agents apply to every project:
+
+| APP_TYPE | Agents Used |
+|----------|-------------|
+| web | All 6 |
+| server | Unit, Integration, Backend, Stress |
+| cli | Unit, Integration, E2E |
+| mobile | Unit, Integration, E2E |
+| library | Unit, Integration, Stress |
+| saas | All 6 |
+
+### Agent prompt template
+
+Include a code block with:
+- Role: "You are a {TEST_SPECIALTY} generating TDD test scaffolds."
+- Project context, stack context, feature name and description
+- 8 rules: match existing test framework, real assertions, tests MUST FAIL (true TDD), descriptive names, cover happy/edge/error, web default to Vitest+Playwright, test API contracts for backend, define load parameters for stress
+- Output: test files + manifest to `.competitors/tests/{FEATURE_SLUG}-{SPECIALTY}-manifest.md`
+
+### Session Recorder specifics (web apps only)
+
+- Generates Playwright test scripts with `page.goto()`, `page.click()`, `page.fill()`
+- Includes `await expect(page).toHaveScreenshot()` for visual regression
+- Scaffolds `playwright.config.ts` if not present
+- Marks with `// RECORD: run with --headed to capture baseline`
+
+### Commit test scaffolds
+
+After all testing agents complete, ask the user: "Test scaffolds generated. Commit to the branch? [y/n]"
+
+If yes:
+```bash
+git add tests/
+git add .competitors/tests/
+git commit -m "test: scaffold TDD tests for competitive features
+
+Features: {comma-separated feature names}
+Types: unit, integration, e2e, backend, stress, recorded
+All tests designed to FAIL until features are implemented."
+```
+
+---
