@@ -24,6 +24,7 @@ rm -rf ~/.config/gw-skills  # remove saved config (source list, etc.)
 | `/gw:merge-it` | Ship current changes end-to-end: branch, PR, self-review, fix, generate presentation, merge. |
 | `/gw:weekly-review` | Generate executive and technical PowerPoint presentations from GitHub activity (commits & PRs) across multiple orgs and repos. |
 | `/gw:compete` | Competitive feature analysis with structured team debate, TDD test scaffolds, and implementation planning. Maintains a persistent workforce of configurable personas. |
+| `/gw:research` | Multi-persona research with structured debate, parallel source investigation, and actionable output (report, PPTX, implementation, prototype). Uses the shared workforce. |
 | `/gw:update` | Update all gw-skills to the latest version. |
 
 ## Updating
@@ -215,6 +216,55 @@ Run from inside any project directory. Auto-detects competitors from README and 
 /gw:compete --hire "Chemist" --background "20 years in analytical chemistry"
 /gw:compete --roster                           # show all workforce personas
 /gw:compete --team 8 --deep --skip-gsd         # large team, deep research, no GSD
+```
+
+### /gw:research
+
+```
+/gw:research <question> [--standalone] [--deep] [--team N] [--skip-pptx] [--skip-gsd]
+             [--hire "Name" --background "..."] [--fire "Name"] [--roster]
+```
+
+Takes a research question, assembles a specialist team from the shared workforce, runs parallel research with persona-specific sources (each persona uses their `search_skills` to prioritize different source types), conducts 3-round structured debate (position statements, cross-examination with devil's advocate, supervisor synthesis), and asks what to do with the findings.
+
+**Output formats** (choose one or more after research completes):
+1. **PowerPoint** — presentation with findings and recommendations → `docs/gw/research-{slug}-YYYY-MM-DD.pptx`
+2. **Report** — detailed Markdown report (optional .docx via pandoc) → `.research/{slug}/REPORT.md`
+3. **Implement** — create GSD project/milestone from recommendations (project-contextual only)
+4. **Prototype** — working code demonstrating the recommended approach → `.research/{slug}/prototype/`
+5. **Custom** — describe what you want
+
+**Research artifacts** are saved to `.research/YYYY-MM-DD-{slug}/`:
+- `agents/{persona}.md` — per-persona research findings
+- `debate/round1/{persona}.md` — position statements
+- `debate/round2/{persona}.md` — cross-examination responses
+- `CONSENSUS.md` — supervisor synthesis
+
+**Workforce** personas are shared with `/gw:compete`. 21 default personas ship with the skill; add custom ones via `--hire`.
+
+#### Options
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `<question>` | The research question (quoted or unquoted) | Interactive prompt |
+| `--standalone` | Force standalone mode (ignore project context) | Auto-detect |
+| `--deep` | Enable deep research (more sources, historical context, quantitative data) | Lightweight |
+| `--team N` | Override suggested team size (3-10) | Domain-based default (5) |
+| `--skip-pptx` | Skip PowerPoint generation | |
+| `--skip-gsd` | Skip GSD project/milestone creation | |
+| `--hire "Name" --background "..."` | Add a persona to the global workforce | |
+| `--fire "Name"` | Remove a custom persona | |
+| `--roster` | Show all available personas with search skills | |
+
+#### Examples
+
+```
+/gw:research What is the best approach to real-time data sync?
+/gw:research --deep "Should we migrate from REST to GraphQL?"
+/gw:research --standalone "What are the latest advances in transformer architectures?"
+/gw:research --team 8 --deep "How should we price our API?"
+/gw:research --roster                    # show all workforce personas
+/gw:research --hire "Regulatory Expert" --background "15 years in FDA compliance"
 ```
 
 ### /gw:update
