@@ -437,6 +437,21 @@ ADDITIONAL DATA PIPELINE INSTRUCTIONS:
 
 Choose 3-5 from: `github`, `context7`, `arxiv`, `academic`, `google-scholar`, `pubmed`, `journals`, `stackoverflow`, `tech-blogs`, `api-docs`, `financial-data`, `sec-filings`, `market-reports`, `news`, `reddit`, `forums`, `product-hunt`, `g2-reviews`, `cve-databases`, `owasp`, `cloud-docs`, `benchmarks`, `testing-resources`, `dribbble`, `design-blogs`, `figma-community`, `mdn`, `css-tricks`, `web-dev-resources`, `ux-research`, `nielsen-norman`, `trade-publications`, `youtube`, `counter-narrative-sources`, `methodology-guides`, `statistics-resources`
 
+### Creating personas during skill runs
+
+You can create new personas on-the-fly during any team-driven skill run (`/gw:compete`, `/gw:research`, `/gw:review-app`, `/gw:saas-idea`) without leaving the workflow:
+
+1. Run any skill with `--team ask` to enable interactive team assembly
+2. At the team approval gate, select `[n]` (create new)
+3. Enter the persona name — the skill researches the role via WebSearch and auto-derives all persona fields
+4. Review and confirm the auto-derived persona (or edit individual fields)
+5. The persona is saved to `workforce/{slug}.md` and added to the team immediately
+6. You can create multiple personas before accepting the team
+
+After the skill completes, if any personas were created during the run, you'll be offered the option to contribute them back to gw-skills defaults via a PR. This copies the persona to `workforce/_defaults/`, creates a branch, and opens a pull request automatically.
+
+For `/gw:review-app`, the creation flow additionally asks whether the persona should participate in analysis runs and prompts for `analyze_slug`, `analyze_categories`, and `analyze_tags` fields.
+
 ## Contributing Personas
 
 Custom personas can be contributed back to gw-skills for everyone to use.
