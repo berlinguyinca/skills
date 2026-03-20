@@ -1,7 +1,7 @@
 ---
 name: compete
 description: Competitive feature analysis with structured team debate, TDD test scaffolds, and implementation planning
-argument-hint: "[--deep] [--refresh] [--skip-pptx] [--skip-gsd] [--skip-tests] [--team auto|ask|N] [--add \"Competitor\"] [--remove \"Competitor\"] [--list]"
+argument-hint: "[--deep] [--refresh] [--skip-pptx] [--skip-planning] [--skip-gsd] [--skip-tests] [--team auto|ask|N] [--add \"Competitor\"] [--remove \"Competitor\"] [--list]"
 ---
 
 ## Step 0 — Update check
@@ -40,7 +40,7 @@ Parse the arguments: "$ARGUMENTS"
 - If "--hire", "--fire", or "--roster" is present: tell the user "Use `/gw:workforce` for persona management. Examples: `/gw:workforce --hire \"Name\" --background \"...\"`, `/gw:workforce --fire \"Name\"`, `/gw:workforce --roster`" and stop.
 - If "--refresh" is present, set FORCE_REFRESH=true
 - If "--skip-pptx" is present, set SKIP_PPTX=true
-- If "--skip-gsd" is present, set SKIP_GSD=true
+- If "--skip-planning" or "--skip-gsd" is present, set SKIP_PLANNING=true
 - If "--skip-tests" is present, set SKIP_TESTS=true
 - If "--team N|auto|ask" is present: if N is a number, set TEAM_MODE=auto and TEAM_SIZE_OVERRIDE=N (clamped to 3-10). If "auto", set TEAM_MODE=auto. If "ask", set TEAM_MODE=ask. Default TEAM_MODE: auto
 - If "--add \"Name\"" is present, set ADD_COMPETITOR
@@ -58,7 +58,7 @@ Based on arguments and detected state, the workflow may skip steps:
 | `--hire/--fire/--roster` | 0 → 1 (redirect to `/gw:workforce`) |
 | `--skip-tests` | Skip Step 9 |
 | `--skip-pptx` | Skip Step 11 |
-| `--skip-gsd` | Skip Step 12 |
+| `--skip-planning` / `--skip-gsd` | Skip Step 12 |
 | `--refresh` | Step 4 ignores cached research |
 | Registry exists + research cached | Step 3 asks "use existing? refresh? add more?" |
 
@@ -933,19 +933,28 @@ git commit -m "docs: add competitive analysis presentation"
 
 ---
 
-## Step 12 — GSD Integration
+## Step 12 — Implementation Planning
 
-Skip if SKIP_GSD is true.
+Skip if SKIP_PLANNING is true.
 
-Check if `~/.claude/commands/gsd/` exists. If it does:
+Present the implementation options:
 
+```
+Competitive analysis complete. How would you like to proceed?
+  [p] Superpowers — invoke superpowers:writing-plans from REPORT.md (recommended)
+  [g] GSD — create project/milestone from competitive analysis
+  [d] Done — handle implementation manually
+```
+
+**If [p] (default/recommended):** Tell the user: "Invoking superpowers:writing-plans. The plan will use `.competitors/REPORT.md` as the requirements source." Then invoke the Skill tool: `Skill(skill="superpowers:writing-plans")`. Each selected feature becomes a plan phase. Each phase starts with: "Make the scaffolded tests pass for {feature}."
+
+**If [g]:** Check if `~/.claude/commands/gsd/` exists. If it does:
 1. Check if `.planning/PROJECT.md` exists (GSD project already initialized).
    - **If yes (brownfield):** Automatically invoke `/gsd:new-milestone` and reference `.competitors/REPORT.md` as the requirements source. Tell the user: "Creating a new GSD milestone from the competitive analysis roadmap."
    - **If no (greenfield):** Automatically invoke `/gsd:new-project` and reference `.competitors/REPORT.md` as the requirements source. Tell the user: "Creating a GSD project from the competitive analysis roadmap."
+If GSD commands don't exist, say: "GSD not installed. Use [p] Superpowers instead, or find the full analysis in `.competitors/REPORT.md`."
 
-Each selected feature becomes a GSD phase. Each phase starts with: "Make the scaffolded tests pass for {feature}."
-
-If GSD commands don't exist, say: "Full analysis available in `.competitors/REPORT.md`. Install GSD to auto-create a project from these phases." and stop.
+**If [d]:** Say "Full analysis available in `.competitors/REPORT.md`." and continue.
 
 ---
 
@@ -1008,7 +1017,7 @@ If the user selects `[y]`:
 - If WebSearch/WebFetch fails during research: retry once, then mark competitor as "research incomplete" and continue
 - If a debate agent fails: note as `[FAILED]` in status, supervisor synthesizes with available positions
 - If `python-pptx` unavailable: suggest `pip install python-pptx` or `--skip-pptx`
-- If GSD not installed: inform user, continue without GSD
+- If GSD not installed: inform user, suggest superpowers:writing-plans as primary alternative, continue without GSD
 - If workforce directory missing: create it with `mkdir -p`
 - If user tries to `--fire` a default persona: reject with explanation
 - If `--hire` name conflicts with existing persona: ask to overwrite or rename

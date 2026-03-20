@@ -1,7 +1,7 @@
 ---
 name: review-app
 description: Analyze any application across specialist dimensions with role-adapted agents
-argument-hint: "[--skip-cloud] [--skip-gsd] [--skip-testing] [--skip-security] [--skip-seo] [--skip-test-review] [--skip-defaults] [--skip-fix] [--skip-pptx] [--skip-recommend] [--skip-simplify] [--skip-test-gen] [--type web|server|cli|mobile|library|saas] [--scope full|recent|recent:N|timeframe:<spec>] [--team auto|ask|N] [--hire|--fire|--roster]"
+argument-hint: "[--skip-cloud] [--skip-planning] [--skip-gsd] [--skip-testing] [--skip-security] [--skip-seo] [--skip-test-review] [--skip-defaults] [--skip-fix] [--skip-pptx] [--skip-recommend] [--skip-simplify] [--skip-test-gen] [--type web|server|cli|mobile|library|saas] [--scope full|recent|recent:N|timeframe:<spec>] [--team auto|ask|N] [--hire|--fire|--roster]"
 ---
 
 ## Step 0 — Update check
@@ -35,7 +35,7 @@ You are an orchestrator for a multi-dimensional application analysis. You assemb
 
 Parse the arguments: "$ARGUMENTS"
 - If "--skip-cloud" or "--skip-aws" is present, set SKIP_CLOUD=true
-- If "--skip-gsd" is present, set SKIP_GSD=true
+- If "--skip-planning" or "--skip-gsd" is present, set SKIP_PLANNING=true
 - If "--skip-testing" is present, set SKIP_TESTING=true
 - If "--skip-security" is present, set SKIP_SECURITY=true
 - If "--skip-seo" is present, set SKIP_SEO=true
@@ -754,17 +754,28 @@ After the synthesis (and optional fix) phase completes:
 
 ---
 
-## Step 7 — GSD Integration
+## Step 7 — Implementation Planning
 
-Skip this step if SKIP_GSD is true.
+Skip this step if SKIP_PLANNING is true.
 
-Check if `~/.claude/commands/gsd/` exists. If it does:
+Present the implementation options:
 
+```
+Analysis complete. How would you like to proceed?
+  [p] Superpowers — invoke superpowers:writing-plans from REPORT.md (recommended)
+  [g] GSD — create project/milestone from analysis
+  [d] Done — handle implementation manually
+```
+
+**If [p] (default/recommended):** Tell the user: "Invoking superpowers:writing-plans. The plan will use `.analysis/REPORT.md` as the requirements source." Then invoke the Skill tool: `Skill(skill="superpowers:writing-plans")`.
+
+**If [g]:** Check if `~/.claude/commands/gsd/` exists. If it does:
 1. Check if `.planning/PROJECT.md` exists (i.e., GSD project already initialized).
    - **If yes (brownfield/existing project):** Automatically invoke `/gsd:new-milestone` and reference `.analysis/REPORT.md` as the requirements source. Tell the user you are creating a new GSD milestone from the recommended phases.
    - **If no (greenfield):** Automatically invoke `/gsd:new-project` and reference `.analysis/REPORT.md` as the requirements source. Tell the user you are creating a GSD project from the recommended phases.
+If GSD commands don't exist, say: "GSD not installed. Use [p] Superpowers instead, or find the full analysis in `.analysis/REPORT.md`."
 
-If GSD commands don't exist, say: "Full analysis available in `.analysis/REPORT.md`. Install GSD to auto-create a project from these phases." and stop.
+**If [d]:** Say "Full analysis available in `.analysis/REPORT.md`." and continue.
 
 ---
 
@@ -912,8 +923,8 @@ Scan the project for signals that map to specific skills. Run these checks in pa
 | No presentation/docs workflow | No `docs/gw/` directory with `.pptx` files, no merge-it usage | `gw:merge-it` | Workflow |
 | No periodic review | No weekly review config at `~/.config/gw-skills/weekly-review.json` | `gw:weekly-review` | Workflow |
 | SaaS signals detected (from Step 1) | APP_TYPE = saas or SaaS signals present | `gw:saas-idea` | Workflow |
-| No project planning | Missing `.planning/` directory | `gsd:new-project` | Planning |
-| Existing GSD project with stale phases | `.planning/` exists but no recent phase activity | `gsd:progress` | Planning |
+| No project planning | Missing `.planning/` directory | `superpowers:writing-plans` or `gsd:new-project` | Planning |
+| Existing project with stale phases | `.planning/` exists but no recent phase activity | `gsd:progress` | Planning |
 | No CI/CD pipeline | Missing `.github/workflows/`, `Jenkinsfile`, `.gitlab-ci.yml` | `superpowers:verification-before-completion` | Process |
 | Fixes applied in Step 5 (code changed, benefits from ongoing simplification) | Any fix agents ran and produced fix summaries | `superpowers:code-simplifier` | Process |
 | Complex architectural issues (3+ CRITICAL findings across different dimensions) | 3+ dimensions have CRITICAL-severity findings | `superpowers:brainstorming` | Process |
@@ -978,9 +989,11 @@ The following skills were identified by `gw:review-app` as beneficial for this p
 
 **For gw: skills:** gw-skills is necessarily already installed (the user is running `gw:review-app`). Just add the recommended skill references to CLAUDE.md so they're discoverable for the project.
 
-**For gsd: skills:** Check if GSD is installed (`~/.claude/commands/gsd/` exists).
-- If yes: skills are already available, just add to CLAUDE.md recommendations.
-- If not: tell the user: "GSD workflow tools are available at the GSD repository. Run `/gsd:help` for installation instructions."
+**For gsd: skills:** Check if superpowers are available first (glob for `~/.claude/plugins/cache/claude-plugins-official/superpowers/` or check if any `superpowers:*` skills appear in the skill list).
+- If superpowers are available: prefer recommending the superpowers equivalent (e.g., `superpowers:writing-plans`) as the primary option, and mention GSD as an alternative.
+- Check if GSD is installed (`~/.claude/commands/gsd/` exists).
+  - If yes: GSD skills are already available, add to CLAUDE.md recommendations as an alternative.
+  - If not: tell the user: "GSD not installed — use `superpowers:writing-plans` as the primary planning alternative, or install GSD for full project management support."
 
 ### 9e. Configure thinking mode
 
@@ -1005,7 +1018,7 @@ Skills configured for {project_name}:
 
 Next steps:
   - Run /gw:merge-it when ready to ship changes
-  - Run /gsd:new-project to create a structured implementation plan
+  - Use superpowers:writing-plans to create a structured implementation plan (or /gsd:new-project if GSD is installed)
   - Use superpowers:test-driven-development for all new code
 ```
 

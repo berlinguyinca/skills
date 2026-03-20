@@ -1,7 +1,7 @@
 ---
 name: audit-repo
 description: Security audit for GitHub repositories — analyzes code for malicious patterns, credential theft, crypto wallet attacks, backdoors, and supply chain risks before local use
-argument-hint: "[<github-url>] [--deep] [--tools] [--refresh-threats] [--skip-pptx] [--skip-gsd] [--publish] [--publish-repo <owner/repo>] [--publish-list]"
+argument-hint: "[<github-url>] [--deep] [--tools] [--refresh-threats] [--skip-pptx] [--skip-planning|--skip-gsd] [--publish] [--publish-repo <owner/repo>] [--publish-list]"
 ---
 
 ## Step 0 — Update check
@@ -41,7 +41,7 @@ Parse the arguments: "$ARGUMENTS"
 - If `--tools` is present, set TOOL_SCAN=true. Default: false
 - If `--refresh-threats` is present, set FORCE_REFRESH=true. Default: false
 - If `--skip-pptx` is present, set SKIP_PPTX=true. Default: false
-- If `--skip-gsd` is present, set SKIP_GSD=true. Default: false
+- If `--skip-planning` or `--skip-gsd` is present, set SKIP_PLANNING=true. Default: false
 - If `--publish` is present, set PUBLISH=true. Default: false
 - If `--publish-repo <owner/repo>` is present: persist `{"publish_repo": "<owner/repo>"}` to `~/.config/gw-skills/audit-repo.json`, print "Publish target set to <owner/repo>." and stop
 - If `--publish-list` is present: read `~/.config/gw-skills/audit-repo.json` and display the configured publish repo and a list of any past publications, then stop
@@ -713,15 +713,27 @@ Skip if PUBLISH is false.
 7. If the same repo+commit combination already exists in findings, ask: "Findings for this commit already published. Overwrite? [y/n]"
 8. If push fails, show the error and suggest checking repository permissions. Findings are still saved locally in `.audit/`.
 
-### 8b. GSD integration
+### 8b. Implementation planning
 
-Skip if SKIP_GSD is true or verdict is SAFE.
+Skip if SKIP_PLANNING is true or verdict is SAFE.
 
-Check if `~/.claude/commands/gsd/` exists. If it does and verdict is CAUTION or DANGEROUS:
+If verdict is CAUTION or DANGEROUS, present remediation options:
+
+```
+Security findings require remediation. How would you like to proceed?
+  [p] Superpowers — invoke superpowers:writing-plans for remediation (recommended)
+  [g] GSD — create remediation project/milestone
+  [d] Done — handle remediation manually
+```
+
+**If [p] (default/recommended):** Tell the user: "Invoking superpowers:writing-plans. The plan will use `.audit/REPORT.md` as the requirements source. Each CRITICAL finding becomes a remediation phase." Then invoke the Skill tool: `Skill(skill="superpowers:writing-plans")`.
+
+**If [g]:** Check if `~/.claude/commands/gsd/` exists. If it does:
 - **Brownfield** (`.planning/PROJECT.md` exists): invoke `/gsd:new-milestone` referencing `.audit/REPORT.md` as the requirements source. Each CRITICAL finding becomes a remediation phase. SUSPICIOUS findings are grouped into a review phase.
 - **Greenfield** (no `.planning/PROJECT.md`): invoke `/gsd:new-project` referencing `.audit/REPORT.md`.
+If GSD commands don't exist, say: "GSD not installed. Use [p] Superpowers instead, or find the full audit in `.audit/REPORT.md`."
 
-If GSD commands don't exist, say: "Full audit available in `.audit/REPORT.md`. Install GSD to auto-create a remediation project." and skip.
+**If [d]:** Say "Full audit available in `.audit/REPORT.md`." and continue.
 
 ### 8c. Offer gw:review-app
 
@@ -759,7 +771,7 @@ Audit complete:
 - **External tool fails:** Note failure, continue with remaining tools and agent analysis
 - **python-pptx unavailable:** Suggest `pip install python-pptx` or `--skip-pptx`
 - **Publish repo clone/push fails:** Show error, suggest checking permissions. Findings remain in `.audit/`.
-- **GSD not installed:** Inform user, continue without GSD
+- **GSD not installed:** Inform user, suggest superpowers:writing-plans as the primary alternative, continue without GSD
 - **Not a git repo (current dir, no URL):** Allow analysis but note "no commit hash available" throughout the report
 - **CLONED=true and skill fails mid-execution:** Offer to clean up `AUDIT_DIR` before exiting — never leave orphaned temp directories silently
 - **WebSearch-derived threat patterns produce false positives:** Bundled baseline patterns are the reliability floor. Patterns from web searches are best-effort — the agent must READ the code, not just match patterns

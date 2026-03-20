@@ -1,7 +1,7 @@
 ---
 name: research
 description: Multi-persona research with structured debate, parallel source investigation, and actionable output (report, PPTX, implementation, prototype)
-argument-hint: "<question> [--standalone] [--deep] [--team auto|ask|N] [--skip-pptx] [--skip-gsd]"
+argument-hint: "<question> [--standalone] [--deep] [--team auto|ask|N] [--skip-pptx] [--skip-planning|--skip-gsd]"
 ---
 
 ## Step 0 — Update check
@@ -42,7 +42,7 @@ Parse the arguments: "$ARGUMENTS"
 - If `"--deep"` is present, set DEEP_RESEARCH=true. Default: false
 - If "--team N|auto|ask" is present: if N is a number, set TEAM_MODE=auto and TEAM_SIZE_OVERRIDE=N (clamped to 3-10). If "auto", set TEAM_MODE=auto. If "ask", set TEAM_MODE=ask. Default TEAM_MODE: auto
 - If `"--skip-pptx"` is present, set SKIP_PPTX=true
-- If `"--skip-gsd"` is present, set SKIP_GSD=true
+- If `"--skip-planning"` or `"--skip-gsd"` is present, set SKIP_PLANNING=true
 - If `"--hire"`, `"--fire"`, or `"--roster"` is present: tell the user "Use `/gw:workforce` for persona management. Examples: `/gw:workforce --hire \"Name\" --background \"...\"`, `/gw:workforce --fire \"Name\"`, `/gw:workforce --roster`" and stop.
 
 If no research question is provided and no workforce management flag is set, ask: "What would you like to research?" and wait.
@@ -54,7 +54,7 @@ If no research question is provided and no workforce management flag is set, ask
 | Default (full run) | 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 |
 | `--hire/--fire/--roster` | 0 → 1 (redirect to `/gw:workforce`) |
 | `--skip-pptx` | Skip PPTX in Step 7 |
-| `--skip-gsd` | Skip GSD in Step 7 |
+| `--skip-planning` | Skip GSD in Step 7 |
 
 **Approval gates** (stop and wait for user confirmation):
 - After Step 2 — confirm research context and domain classification
@@ -923,7 +923,7 @@ Tell the user where the file(s) were saved.
 
 ### Option 3: Implement
 
-Skip if SKIP_GSD is true or MODE=STANDALONE (unless user explicitly requests).
+Skip if SKIP_PLANNING is true or MODE=STANDALONE (unless user explicitly requests).
 
 #### 3a. Generate project files
 
@@ -941,9 +941,9 @@ Source: {RESEARCH_DIR}/CONSENSUS.md + agent research
 Generate and choose workflow [y], or go straight to GSD [g], or skip [n]?
 ```
 
-**If [n]:** Skip to existing GSD flow in 3c.
+**If [n]:** Skip to "After any output action."
 
-**If [g]:** Skip to 3c (GSD integration) directly.
+**If [g]:** Skip to 3c (GSD integration).
 
 **If [y]:** Generate both files:
 
@@ -1085,8 +1085,8 @@ Generated:
   {Copied to project root: ./CLAUDE.md, ./SPEC.md (if copied)}
 
 How would you like to proceed with implementation?
-  [p] Superpowers — invoke superpowers:writing-plans with SPEC.md
-  [g] GSD — create project/milestone from recommendations
+  [p] Superpowers — invoke superpowers:writing-plans with SPEC.md (recommended)
+  [g] GSD — create project/milestone from recommendations (alternative)
   [d] Done — files generated, handle implementation manually
 ```
 
@@ -1096,7 +1096,7 @@ How would you like to proceed with implementation?
 
 **If [d]:** Continue to "After any output action."
 
-#### 3c. GSD integration (existing logic, unchanged)
+#### 3c. GSD integration (alternative)
 
 Check if `~/.claude/commands/gsd/` exists. If it does:
 
@@ -1266,7 +1266,7 @@ If the user selects `[y]`:
 - **A debate agent fails:** supervisor synthesizes with available positions, notes the gap
 - **python-pptx unavailable:** suggest `pip install python-pptx` or `--skip-pptx`
 - **pandoc not found:** skip .docx conversion, inform user
-- **GSD not installed:** inform user, continue without GSD integration
+- **GSD not installed:** recommend superpowers:writing-plans as alternative
 - **Workforce directory missing:** create it with `mkdir -p`
 - **User tries to `--fire` a default persona:** reject with explanation
 - **`--hire` name conflicts with existing persona:** ask to overwrite or rename

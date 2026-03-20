@@ -105,7 +105,7 @@ You can track activity across multiple GitHub orgs and personal repos simultaneo
 ### /gw:review-app
 
 ```
-/gw:review-app [--skip-cloud] [--skip-gsd] [--skip-testing] [--skip-security] [--skip-seo]
+/gw:review-app [--skip-cloud] [--skip-planning] [--skip-testing] [--skip-security] [--skip-seo]
                [--skip-test-review] [--skip-defaults] [--skip-fix] [--skip-pptx] [--skip-recommend]
                [--skip-simplify] [--skip-test-gen]
                [--type web|server|cli|mobile|library|saas] [--scope full|recent|recent:N|timeframe:<spec>]
@@ -117,7 +117,7 @@ Run from inside any project directory. Auto-detects the app type and assembles a
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--skip-cloud` | Skip cloud/infrastructure cost analysis | |
-| `--skip-gsd` | Skip automatic GSD project/milestone creation | |
+| `--skip-planning` | Skip implementation planning (superpowers/GSD) | |
 | `--skip-testing` | Skip testing/QA analysis | |
 | `--skip-security` | Skip security analysis | |
 | `--skip-seo` | Skip SEO analysis | |
@@ -140,7 +140,7 @@ If GSD is installed, automatically creates a project or milestone from the recom
 ### /gw:audit-repo
 
 ```
-/gw:audit-repo [<github-url>] [--deep] [--tools] [--refresh-threats] [--skip-pptx] [--skip-gsd]
+/gw:audit-repo [<github-url>] [--deep] [--tools] [--refresh-threats] [--skip-pptx] [--skip-planning]
                [--publish] [--publish-repo <owner/repo>] [--publish-list]
 ```
 
@@ -162,7 +162,7 @@ Performs a security audit on a GitHub repository (or the current directory) to d
 | `--tools` | Include external security tools (e.g., Semgrep, Trivy) if available | Off |
 | `--refresh-threats` | Force refresh of cached threat intelligence | Auto (if >7d old) |
 | `--skip-pptx` | Skip PowerPoint generation | |
-| `--skip-gsd` | Skip GSD project/milestone creation | |
+| `--skip-planning` | Skip implementation planning (superpowers/GSD) | |
 | `--publish` | Publish findings to configured audit findings repo | Off |
 | `--publish-repo <owner/repo>` | Configure the GitHub repo for publishing audit findings | |
 | `--publish-list` | List all previously published audit findings | |
@@ -182,7 +182,7 @@ Performs a security audit on a GitHub repository (or the current directory) to d
 
 ```
 /gw:saas-idea [--focus <niche>] [--fresh] [--budget low|medium|high] [--pick <N>]
-              [--skip-gsd] [--auto] [--build] [--verify] [--team auto|ask|N] [--skip-debate]
+              [--skip-planning] [--auto] [--build] [--verify] [--team auto|ask|N] [--skip-debate]
 ```
 
 Harvests trends from 8+ internet sources (Hacker News, Product Hunt, Reddit, Twitter/X, Google Trends, GitHub Trending, tech news, IndieHackers), scores SaaS ideas on a balanced scorecard (market demand, feasibility, revenue potential, competition, uniqueness), runs an optional team debate to stress-test the top ideas, and generates a deep-dive for the selected idea.
@@ -210,7 +210,7 @@ Harvests trends from 8+ internet sources (Hacker News, Product Hunt, Reddit, Twi
 | `--fresh` | Force fresh harvest even if recent data exists | Re-use if <24h |
 | `--budget low\|medium\|high` | Team size: solo / small team / funded | `medium` |
 | `--pick <N>` | Deep-dive on idea #N from previous shortlist | Interactive |
-| `--skip-gsd` | Skip GSD project/milestone creation | Auto-detect |
+| `--skip-planning` | Skip implementation planning (superpowers/GSD) | Auto-detect |
 | `--auto` | Auto-select top idea, skip interactive prompts | Interactive |
 | `--build` | Auto-select, verify, and build via GSD (implies --auto) | Interactive |
 | `--verify` | Run coherence verification on deep-dive artifacts | Off |
@@ -326,7 +326,7 @@ When log-patrol is configured (`.log-patrol/config.json` exists), `/gw:merge-it`
 ### /gw:compete
 
 ```
-/gw:compete [--deep] [--refresh] [--skip-pptx] [--skip-gsd] [--skip-tests] [--team auto|ask|N]
+/gw:compete [--deep] [--refresh] [--skip-pptx] [--skip-planning] [--skip-tests] [--team auto|ask|N]
             [--add "Competitor"] [--remove "Competitor"] [--list]
 ```
 
@@ -350,7 +350,7 @@ Run from inside any project directory. Auto-detects competitors from README and 
 | `--deep` | Enable deep research (Reddit, HN, G2, forums) | Lightweight |
 | `--refresh` | Force re-research even if cache is recent | Re-use if <7d |
 | `--skip-pptx` | Skip PowerPoint generation | |
-| `--skip-gsd` | Skip GSD project/milestone creation | |
+| `--skip-planning` | Skip implementation planning (superpowers/GSD) | |
 | `--skip-tests` | Skip TDD test scaffold generation | |
 | `--team auto\|ask\|N` | Team assembly mode (`auto` skips approval gate) | `auto` |
 | `--add "Name"` | Register a competitor | |
@@ -363,13 +363,13 @@ Run from inside any project directory. Auto-detects competitors from README and 
 /gw:compete                                    # full run, auto-detect everything
 /gw:compete --deep                             # deep research with forum crawling
 /gw:compete --add "Notion" --add "Coda"        # register competitors
-/gw:compete --team 8 --deep --skip-gsd         # large team, deep research, no GSD
+/gw:compete --team 8 --deep --skip-planning  # large team, deep research, no planning step
 ```
 
 ### /gw:research
 
 ```
-/gw:research <question> [--standalone] [--deep] [--team auto|ask|N] [--skip-pptx] [--skip-gsd]
+/gw:research <question> [--standalone] [--deep] [--team auto|ask|N] [--skip-pptx] [--skip-planning]
 ```
 
 Takes a research question, assembles a specialist team from the shared workforce, runs parallel research with persona-specific sources (each persona uses their `search_skills` to prioritize different source types), conducts 3-round structured debate (position statements, cross-examination with devil's advocate, supervisor synthesis), and asks what to do with the findings.
@@ -398,7 +398,7 @@ Takes a research question, assembles a specialist team from the shared workforce
 | `--deep` | Enable deep research (more sources, historical context, quantitative data) | Lightweight |
 | `--team auto\|ask\|N` | Team assembly mode (`auto` skips approval gate) | `auto` |
 | `--skip-pptx` | Skip PowerPoint generation | |
-| `--skip-gsd` | Skip GSD project/milestone creation | |
+| `--skip-planning` | Skip implementation planning (superpowers/GSD) | |
 
 #### Examples
 
