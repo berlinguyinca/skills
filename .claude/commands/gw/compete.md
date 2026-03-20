@@ -17,6 +17,20 @@ If the output contains `UPDATE_AVAILABLE`, tell the user how many commits behind
 
 ---
 
+## Step 0.5 — GSD Project Detection (Model Inheritance)
+
+Skip this step if you are inside a GSD project (`~/.config/opencode/.planning/` exists).
+
+If `.planning/config.json` exists in the current or parent directories:
+1. Try to resolve and read its JSON content using Bash/Grep
+2. Extract `model_profile` (default: "balanced")
+3. If a profile is found, use it for all agent spawns instead of default Claude model
+4. Log: "Using GSD model profile: {profile}" in the first output message
+
+This enables gw skills to inherit opencode's model preferences within managed projects.
+
+---
+
 ## Step 1 — Parse Arguments & Route
 
 You are an orchestrator for competitive feature analysis. You research competitors, assemble a team of diverse specialists for structured debate, and produce a prioritized feature implementation plan backed by TDD test scaffolds. Follow these steps precisely.
