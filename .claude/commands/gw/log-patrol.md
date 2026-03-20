@@ -19,12 +19,14 @@ If the output contains `UPDATE_AVAILABLE`, tell the user how many commits behind
 
 ## Step 0.5 — GSD Project Detection (Model Inheritance)
 
+**Model override:** All agents spawned by this skill MUST use `model: "sonnet"`. This applies to every Agent tool call — probe agents, fetch agents, classification agent, and correlation agents. The only exception is if a GSD model profile explicitly overrides it (see below).
+
 Skip this step if you are inside a GSD project (`~/.config/opencode/.planning/` exists).
 
 If `.planning/config.json` exists in the current or parent directories:
 1. Try to resolve and read its JSON content using Bash/Grep
 2. Extract `model_profile` (default: "balanced")
-3. If a profile is found, use it for all agent spawns instead of default Claude model
+3. If a profile is found, use it for all agent spawns instead of Sonnet
 4. Log: "Using GSD model profile: {profile}" in the first output message
 
 This enables gw skills to inherit opencode's model preferences within managed projects.
@@ -120,7 +122,7 @@ Combine findings with the user's PROMPT to build a list of **candidate sources**
 
 ### Phase B — Active probing (parallel agents, 1 per target type)
 
-For each distinct source type discovered, launch a background agent to verify and discover specific log paths:
+For each distinct source type discovered, launch a background agent (`model: "sonnet"`) to verify and discover specific log paths:
 
 | Source type | Probe action |
 |-------------|-------------|
@@ -215,7 +217,7 @@ Prerequisites check:
 
 ## Step 3 — Fetch logs from all sources
 
-Launch **one background agent per source** (parallel). Each agent fetches log content and writes it to `.log-patrol/raw/`.
+Launch **one background agent per source** (parallel, `model: "sonnet"`). Each agent fetches log content and writes it to `.log-patrol/raw/`.
 
 Create `.log-patrol/raw/` directory: `mkdir -p .log-patrol/raw`
 
@@ -310,7 +312,7 @@ Pattern scan: 93 matches across 6 categories
 
 ## Step 5 — AI classification (foreground agent)
 
-Launch a **single foreground agent** to analyze and classify the pattern matches from Step 4.
+Launch a **single foreground agent** (`model: "sonnet"`) to analyze and classify the pattern matches from Step 4.
 
 Provide the agent with:
 - All matched log lines (grouped by source)
@@ -388,7 +390,7 @@ Classification complete: 93 raw matches -> 8 unique errors
 
 ## Step 6 — Codebase correlation (parallel agents)
 
-For each CRITICAL and HIGH severity error from classification, launch a **background agent** to find related code in the current project.
+For each CRITICAL and HIGH severity error from classification, launch a **background agent** (`model: "sonnet"`) to find related code in the current project.
 
 Each correlation agent should:
 
