@@ -361,7 +361,7 @@ Also available:
   9. Mass Spectrometrist (custom)
   ...
 
-Accept [enter], resize [N], add by number [+7,8], or customize [c]?
+Accept [enter], resize [N], add by number [+7,8], customize [c], or create new [n]?
 ```
 
 Explain each option:
@@ -369,8 +369,78 @@ Explain each option:
 - **Resize [N]:** adjust team size (add/remove from relevance order)
 - **Add [+N,N]:** add specific personas to the suggested team
 - **Customize [c]:** show full roster, pick by number
+- **Create new [n]:** create a new persona on-the-fly (see below)
 
 **APPROVAL GATE — Stop and wait for user confirmation before proceeding to Step 6.**
+
+### Handle "create new" [n]
+
+When the user selects `[n]` at the approval gate (only available in `--team ask` mode), run this inline persona creation sub-flow:
+
+Initialize `CREATED_PERSONAS` as an empty list if not already set.
+
+#### Step N1 — Ask for name
+
+Prompt the user: "New persona name?"
+
+Slugify the response (lowercase, hyphens, e.g., "Mass Spectrometrist" → `mass-spectrometrist`). Check for collisions:
+
+- If `$GW_REPO/workforce/{slug}.md` exists (custom): offer "Use existing [u], rename [r], or overwrite [o]?"
+  - **[u]:** add the existing persona to the team and return to the approval gate
+  - **[r]:** ask for a new name, re-slugify, re-check
+  - **[o]:** proceed to Step N2 (will overwrite)
+- If `$GW_REPO/workforce/_defaults/{slug}.md` exists (default): offer "Use existing [u] or rename [r]?" (never overwrite defaults)
+
+#### Step N2 — Research the role
+
+Launch 3 WebSearch queries in parallel:
+1. `"{Name}" job role responsibilities skills`
+2. `"{Name}" what do they focus on priorities`
+3. `"{Name}" debate style perspective how they argue`
+
+From the results, auto-derive:
+- `background` — professional background summary (1-2 sentences)
+- `perspective` — key concerns and viewpoint
+- `priorities` — what this persona cares most about
+- `debate_style` — how they argue and what evidence they cite
+- `search_skills` — 3-5 source types from the search_skills reference list, appropriate for this persona's domain
+
+If WebSearch fails or returns insufficient results: fall back to asking the user to provide each field manually.
+
+#### Step N3 — Present for approval
+
+Display the auto-derived persona:
+
+```
+Auto-derived persona for "{Name}":
+
+  name: {Name}
+  background: {auto-derived}
+  perspective: {auto-derived}
+  priorities: {auto-derived}
+  debate_style: {auto-derived}
+  search_skills: {auto-derived}
+
+Confirm [enter], edit [e], or cancel [x]?
+```
+
+- **[enter]:** accept and proceed to Step N4
+- **[e]:** show each field for individual editing, re-display, re-prompt
+- **[x]:** cancel creation, return to the approval gate without changes
+
+#### Step N4 — Write persona file
+
+```bash
+mkdir -p "$GW_REPO/workforce"
+```
+
+Write `$GW_REPO/workforce/{slug}.md` with standard frontmatter (name, background, perspective, priorities, debate_style, search_skills).
+
+Append the slug to the `CREATED_PERSONAS` list.
+
+#### Step N5 — Add to team and return to gate
+
+Add the new persona to the selected team. Re-display the updated team roster and return to the approval gate prompt. The user can accept the team, create another persona with `[n]`, or make other changes.
 
 ---
 
@@ -876,6 +946,62 @@ Check if `~/.claude/commands/gsd/` exists. If it does:
 Each selected feature becomes a GSD phase. Each phase starts with: "Make the scaffolded tests pass for {feature}."
 
 If GSD commands don't exist, say: "Full analysis available in `.competitors/REPORT.md`. Install GSD to auto-create a project from these phases." and stop.
+
+---
+
+## Step 12.5 — Persona Contribution
+
+Skip this step if `CREATED_PERSONAS` is empty.
+
+Present the created personas:
+
+```
+New persona(s) created during this run:
+  - {Name1} (workforce/{slug1}.md)
+  - {Name2} (workforce/{slug2}.md)
+
+Contribute to gw-skills defaults? This creates a PR to share with all users.
+  Contribute [y], skip [n]?
+```
+
+If the user selects `[y]`:
+
+1. Save the current directory and branch
+2. `cd $GW_REPO`
+3. Check for uncommitted changes — if the working tree is dirty, ask: "gw-skills repo has uncommitted changes. Stash them? [y/n]" If yes, `git stash`. If no, abort contribution.
+4. Create a branch:
+   - Single persona: `persona/{slug}`
+   - Multiple personas: `persona/batch-YYYY-MM-DD`
+5. For each persona in `CREATED_PERSONAS`:
+   - Copy `workforce/{slug}.md` → `workforce/_defaults/{slug}.md`
+6. Stage and commit:
+   ```bash
+   git add workforce/_defaults/
+   git commit -m "feat(workforce): add {Name} persona
+
+   Background: {background}
+   Created inline during gw:compete run."
+   ```
+   (For multiple personas, list all names in the commit message.)
+7. Push: `git push -u origin {branch}`
+8. Create PR:
+   ```bash
+   gh pr create --title "Add {Name} persona to defaults" --body "$(cat <<'EOF'
+   ## New Persona: {Name}
+
+   **Background:** {background}
+   **Skills used by:** gw:compete, gw:research, gw:review-app, gw:saas-idea
+   **Created:** Inline during gw:compete run on {date}
+
+   Generated with [Claude Code](https://claude.com/claude-code)
+   EOF
+   )"
+   ```
+9. If stashed in step 3, `git stash pop`
+10. Return to the original directory and branch
+11. Print the PR URL
+
+---
 
 ### Error handling
 

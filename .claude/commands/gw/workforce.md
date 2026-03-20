@@ -80,6 +80,8 @@ Choose 3-5 from: `github`, `context7`, `arxiv`, `academic`, `google-scholar`, `p
 4. Print: "Hired {Name}. Available in all future `/gw:compete` and `/gw:research` runs."
 5. Stop.
 
+**Note:** Personas can also be created inline during skill runs (`/gw:compete`, `/gw:research`, `/gw:review-app`, `/gw:saas-idea`) when using `--team ask` mode. Select `[n]` at the team assembly approval gate to create a new persona on-the-fly — the skill will research the role via WebSearch, auto-derive persona fields, and add it to the team immediately.
+
 ---
 
 ## Step 3 — Fire Persona
@@ -166,6 +168,8 @@ End with:
 ```
 ---
 Manage: --hire "Name" --background "..." | --fire "Name" | --edit "Name"
+Inline: create new personas during any skill run with --team ask → [n]
+Contribute: after creating inline, skills offer to PR the persona back to gw-skills defaults
 Used by: /gw:compete, /gw:research, /gw:review-app, /gw:saas-idea
 ```
 
