@@ -22,10 +22,11 @@ rm -rf ~/.config/gw-skills  # remove saved config (source list, etc.)
 | `/gw:review-app` | Review any application across specialist dimensions (UX, security, architecture, etc.) with role-adapted agents. Auto-detects app type (web, server, cli, mobile, library, saas) and assembles a tailored team from the shared workforce. |
 | `/gw:audit-repo` | Security audit for GitHub repositories — checks for malicious code, credential theft, crypto attacks, backdoors, and supply chain risks before local use. |
 | `/gw:saas-idea` | Harvest trending SaaS opportunities from the internet, score and rank them, then deep-dive with full business plan, marketing playbook, tech spec, implementation prompts, and pitch deck. Targets complete prototype deployment on AWS with PostgreSQL, Stripe, and Google OAuth. |
-| `/gw:merge-it` | Ship current changes end-to-end: branch, PR, self-review, fix, generate presentation, merge. |
+| `/gw:merge-it` | Ship current changes end-to-end: branch, PR, self-review, fix, generate presentation, merge. Includes post-merge log patrol if configured. |
 | `/gw:weekly-review` | Generate executive and technical PowerPoint presentations from GitHub activity (commits & PRs) across multiple orgs and repos. |
 | `/gw:compete` | Competitive feature analysis with structured team debate, TDD test scaffolds, and implementation planning. |
 | `/gw:research` | Multi-persona research with structured debate, parallel source investigation, and actionable output (report, PPTX, implementation, prototype). |
+| `/gw:log-patrol` | Monitor production logs across SSH, CloudWatch, local files, and Docker — detects errors, classifies severity, correlates with codebase, generates reports, and creates GitHub issues with diagnosis plans. |
 | `/gw:workforce` | Manage the shared persona workforce used by all four team-driven skills (`gw:compete`, `gw:research`, `gw:review-app`, `gw:saas-idea`) — hire, fire, edit, and list personas. |
 | `/gw:update` | Update all gw-skills to the latest version. |
 
@@ -230,7 +231,9 @@ Harvests trends from 8+ internet sources (Hacker News, Product Hunt, Reddit, Twi
 ### /gw:merge-it
 
 ```
-/gw:merge-it
+/gw:merge-it [--skip-presentation] [--skip-review] [--skip-log-patrol]
+             [--squash|--rebase] [--draft] [--reviewers <user,...>]
+             [--labels <label,...>] [--base <branch>]
 ```
 
 Run from any repo with uncommitted or staged changes. Ships your changes through a full workflow:
@@ -241,6 +244,84 @@ Run from any repo with uncommitted or staged changes. Ships your changes through
 4. Propose fixes with an approval gate — **you decide** what gets applied
 5. Apply approved fixes and generate a PowerPoint presentation of changes
 6. Merge PR
+7. Post-merge log patrol — if `.log-patrol/config.json` exists, automatically scans production logs for errors introduced by the merge
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--skip-presentation` | Skip PowerPoint generation | |
+| `--skip-review` | Skip self-review and fixes | |
+| `--skip-log-patrol` | Skip post-merge log patrol scan | |
+| `--squash` | Squash merge strategy | Merge commit |
+| `--rebase` | Rebase merge strategy | Merge commit |
+| `--draft` | Create PR as draft | |
+| `--reviewers <user,...>` | Request reviewers | |
+| `--labels <label,...>` | Add labels to PR | |
+| `--base <branch>` | Target branch for PR | Auto-detect |
+
+### /gw:log-patrol
+
+```
+/gw:log-patrol [--add-source TYPE:CONN] [--remove-source IDX] [--list-sources]
+               [--discover "PROMPT"] [--since DURATION] [--full]
+               [--dry-run] [--skip-issues] [--repo owner/repo]
+```
+
+Monitors production logs across multiple deployment environments. Fetches logs from SSH servers, AWS CloudWatch, local files, and Docker containers. Detects errors via fast pattern grep, then uses AI classification to deduplicate, categorize, and assess severity. Correlates errors with codebase locations and generates GitHub issues with full diagnosis plans (root cause hypothesis, affected code paths, suggested fix, verification steps). Tracks known errors across runs to avoid duplicate issues.
+
+**State files** are stored in `.log-patrol/` (project-local):
+- `config.json` — Source configuration and custom patterns
+- `state.json` — Scan timestamps, known error hashes, issue mappings
+- `reports/YYYY-MM-DD-HHMMSS.md` — Historical run reports
+- `classification.json` — Latest AI analysis output
+- `raw/` — Fetched log files (overwritten each run)
+
+#### Source management
+
+```
+/gw:log-patrol --add-source ssh:user@host:/var/log/app.log
+/gw:log-patrol --add-source cloudwatch:/ecs/my-app-prod
+/gw:log-patrol --add-source local:/path/to/file.log
+/gw:log-patrol --add-source docker:web-api
+/gw:log-patrol --remove-source 0
+/gw:log-patrol --list-sources
+```
+
+#### Auto-discovery
+
+```
+/gw:log-patrol --discover "dockerized Python app with CloudWatch logging"
+/gw:log-patrol --discover "3 EC2 instances running Spring Boot behind an ALB"
+```
+
+Analyzes project files (docker-compose, Terraform, Ansible, CI/CD configs, logging configs, etc.) and actively probes discovered targets (SSH, CloudWatch, Docker, local filesystem) to find log sources. Presents findings for approval before saving.
+
+#### Options
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--add-source TYPE:CONN` | Add a log source (ssh, cloudwatch, local, docker) | |
+| `--remove-source IDX` | Remove a source by index or connection string | |
+| `--list-sources` | Show configured sources | |
+| `--discover "PROMPT"` | Auto-discover sources from project context | |
+| `--since DURATION` | How far back to scan (1h, 24h, 7d, etc.) | Since last scan or 24h |
+| `--full` | Ignore last-scan timestamp, scan full history | |
+| `--dry-run` | Scan and report but don't create GitHub issues | |
+| `--skip-issues` | Skip GitHub issue creation entirely | |
+| `--repo owner/repo` | Target GitHub repo for issues | Auto-detected from git remote |
+
+#### Examples
+
+```
+/gw:log-patrol                                          # full scan with issue creation
+/gw:log-patrol --since 1h                               # scan last hour only
+/gw:log-patrol --dry-run                                # scan and report, no issues
+/gw:log-patrol --full --skip-issues                     # full history scan, report only
+/gw:log-patrol --discover "docker-compose Flask app"    # auto-discover sources
+```
+
+#### Integration with /gw:merge-it
+
+When log-patrol is configured (`.log-patrol/config.json` exists), `/gw:merge-it` automatically offers a post-merge log patrol scan to detect any errors introduced by the merged changes.
 
 ### /gw:compete
 

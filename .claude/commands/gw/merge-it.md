@@ -1,7 +1,7 @@
 ---
 name: merge-it
 description: Ship the current changes end-to-end: branch, PR, review, fix, present, merge
-argument-hint: "[--skip-presentation] [--skip-review] [--squash|--rebase] [--draft] [--reviewers <user,...>] [--labels <label,...>] [--base <branch>]"
+argument-hint: "[--skip-presentation] [--skip-review] [--skip-log-patrol] [--squash|--rebase] [--draft] [--reviewers <user,...>] [--labels <label,...>] [--base <branch>]"
 ---
 
 ## Step 0 — Update check
@@ -44,6 +44,7 @@ Parse the arguments: "$ARGUMENTS"
 - If `--reviewers <list>` is present, set REVIEWERS=<comma-separated list>
 - If `--labels <list>` is present, set LABELS=<comma-separated list>
 - If `--base <branch>` is present, set BASE_BRANCH=<branch> (overrides auto-detection)
+- If `--skip-log-patrol` is present, set SKIP_LOG_PATROL=true
 
 If conflicting flags are given (`--squash` and `--rebase` together), warn the user and ask which they prefer.
 
@@ -53,12 +54,13 @@ Based on arguments and detected state, the workflow may skip steps:
 
 | Condition | Steps executed |
 |-----------|---------------|
-| Default (no flags) | 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7a → 7b → 7c → 8 |
-| `--skip-review` | 0 → 1 → 2 → 3 → 7b → 7c → 8 |
-| `--skip-presentation` | 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7a → 7c → 8 |
-| `--skip-review --skip-presentation` | 0 → 1 → 2 → 3 → 7c → 8 |
-| Already on feature branch with PR | 0 → 4 → 5 → 6 → 7a → 7b → 7c → 8 |
-| Already on feature branch, no PR | 0 → 2 → 3 → 4 → 5 → 6 → 7a → 7b → 7c → 8 |
+| Default (no flags) | 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7a → 7b → 7c → 8 → 9 |
+| `--skip-review` | 0 → 1 → 2 → 3 → 7b → 7c → 8 → 9 |
+| `--skip-presentation` | 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7a → 7c → 8 → 9 |
+| `--skip-review --skip-presentation` | 0 → 1 → 2 → 3 → 7c → 8 → 9 |
+| `--skip-log-patrol` | Any of the above, but skip Step 9 |
+| Already on feature branch with PR | 0 → 4 → 5 → 6 → 7a → 7b → 7c → 8 → 9 |
+| Already on feature branch, no PR | 0 → 2 → 3 → 4 → 5 → 6 → 7a → 7b → 7c → 8 → 9 |
 
 ---
 
@@ -261,6 +263,29 @@ Before merging, check the status of PR checks:
   Presentation saved to: docs/gw/changes-presentation-<branch-name>.pptx (if generated)
   ```
 - If not confirmed, leave the PR open and inform the user
+
+### Step 9: Post-merge log patrol
+
+If SKIP_LOG_PATROL is true, skip this step entirely.
+
+Check if `.log-patrol/config.json` exists in the current project directory. If it does NOT exist, skip this step silently.
+
+If log-patrol is configured:
+
+1. Tell the user: "Log patrol is configured for this project. Running a quick scan to detect any errors introduced by the merge..."
+2. Wait 30 seconds to allow the deployment to propagate (if applicable). Tell the user: "Waiting 30s for deployment to propagate before scanning logs..."
+3. Run a log patrol scan with `--since 10m --skip-issues` to check for immediate errors without creating issues yet
+4. If errors are detected:
+   - Present the scan summary (severity counts, error titles)
+   - Ask: "Errors detected after merge. Create GitHub issues? [y/n/full-scan]"
+   - `[y]` — Re-run log patrol with `--since 10m` (with issue creation) to create issues for the detected errors
+   - `[n]` — Skip issue creation, just note the findings
+   - `[full-scan]` — Run a full `/gw:log-patrol` scan (default `--since` from state) with issue creation
+5. If no errors are detected: Print "No new errors detected after merge." and continue
+
+This step is implemented by invoking `/gw:log-patrol` as a sub-skill with the appropriate flags. The log patrol skill handles all the fetching, scanning, classification, and issue creation.
+
+---
 
 ### Error handling
 
