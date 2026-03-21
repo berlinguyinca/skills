@@ -919,7 +919,7 @@ Scan the project for signals that map to specific skills. Run these checks in pa
 | Multiple independent subsystems | 3+ specialist dimensions flagged CRITICAL | `superpowers:dispatching-parallel-agents` | Process |
 | Bug or failure patterns detected | Test failures, error patterns in logs | `superpowers:systematic-debugging` | Process |
 | No PR review workflow | Missing `.github/CODEOWNERS`, no PR templates | `superpowers:requesting-code-review` | Process |
-| Active feature branches | 2+ non-default branches | `superpowers:using-git-worktrees` | Process |
+| Active feature branches | 2+ non-default branches | `/gw:worktree create <name>` | Process |
 | No presentation/docs workflow | No `docs/gw/` directory with `.pptx` files, no merge-it usage | `gw:merge-it` | Workflow |
 | No periodic review | No weekly review config at `~/.config/gw-skills/weekly-review.json` | `gw:weekly-review` | Workflow |
 | SaaS signals detected (from Step 1) | APP_TYPE = saas or SaaS signals present | `gw:saas-idea` | Workflow |

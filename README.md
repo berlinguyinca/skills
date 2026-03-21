@@ -23,6 +23,7 @@ rm -rf ~/.config/gw-skills  # remove saved config (source list, etc.)
 | `/gw:audit-repo` | Security audit for GitHub repositories — checks for malicious code, credential theft, crypto attacks, backdoors, and supply chain risks before local use. |
 | `/gw:saas-idea` | Harvest trending SaaS opportunities from the internet, score and rank them, then deep-dive with full business plan, marketing playbook, tech spec, implementation prompts, and pitch deck. Targets complete prototype deployment on AWS with PostgreSQL, Stripe, and Google OAuth. |
 | `/gw:merge-it` | Ship current changes end-to-end: branch, PR, self-review, fix, generate presentation, merge. Includes post-merge log patrol if configured. |
+| `/gw:worktree` | Manage git worktrees for concurrent feature development — create isolated workspaces, check status across all worktrees, merge all branches via PRs, and clean up after merge. |
 | `/gw:weekly-review` | Generate executive and technical PowerPoint presentations from GitHub activity (commits & PRs) across multiple orgs and repos. |
 | `/gw:compete` | Competitive feature analysis with structured team debate, TDD test scaffolds, and implementation planning. |
 | `/gw:research` | Multi-persona research with structured debate, parallel source investigation, and actionable output (report, PPTX, implementation, prototype). |
@@ -257,6 +258,14 @@ Run from any repo with uncommitted or staged changes. Ships your changes through
 | `--reviewers <user,...>` | Request reviewers | |
 | `--labels <label,...>` | Add labels to PR | |
 | `--base <branch>` | Target branch for PR | Auto-detect |
+| `--all` | Merge all active worktrees via PRs (delegates to `/gw:worktree merge-all`) | |
+
+#### Worktree awareness
+
+When run inside a git worktree (created by `/gw:worktree create`), merge-it automatically:
+- Skips branch creation (uses the worktree's branch)
+- Populates the PR description with the worktree's purpose
+- Updates the worktree manifest after merge
 
 ### /gw:log-patrol
 
@@ -450,6 +459,43 @@ With no arguments, shows the full roster with skill participation badges.
 ```
 
 Pulls the latest version of gw-skills from GitHub. All skills auto-check for updates when run, so this is usually not needed manually.
+
+### /gw:worktree
+
+```
+/gw:worktree create <name> [--purpose "description"]
+/gw:worktree status
+/gw:worktree merge-all
+/gw:worktree cleanup [name]
+```
+
+Manage git worktrees for concurrent feature development. Each worktree gets its own branch and isolated workspace, allowing parallel work on multiple features.
+
+| Subcommand | Description |
+|------------|-------------|
+| `create <name>` | Create a new worktree with branch, project setup, and baseline test verification |
+| `status` | Show all worktrees with branch, PR, CI status, and purpose |
+| `merge-all` | Merge all active worktree branches via PRs (uses `gw:merge-it` per branch) |
+| `cleanup [name]` | Remove merged worktrees (or a specific one) and prune git references |
+
+#### Options
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--purpose "description"` | Describe what this worktree is for (shown in status and PR) | "No purpose specified" |
+
+#### Concurrent development workflow
+
+```
+/gw:worktree create auth-system --purpose "OAuth2 login flow"
+/gw:worktree create billing --purpose "Stripe billing integration"
+# Work in each worktree independently (cd .worktrees/auth-system, etc.)
+/gw:worktree status                # check progress across all worktrees
+/gw:worktree merge-all             # merge everything via PRs in sequence
+/gw:worktree cleanup               # remove merged worktrees
+```
+
+Worktrees are stored in `.worktrees/` (gitignored). State is tracked in `.worktrees/manifest.json`.
 
 ## Creating Custom Personas
 

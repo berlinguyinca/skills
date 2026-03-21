@@ -1,7 +1,7 @@
 ---
 name: merge-it
 description: Ship the current changes end-to-end: branch, PR, review, fix, present, merge
-argument-hint: "[--skip-presentation] [--skip-review] [--skip-log-patrol] [--squash|--rebase] [--draft] [--reviewers <user,...>] [--labels <label,...>] [--base <branch>]"
+argument-hint: "[--all] [--skip-presentation] [--skip-review] [--skip-log-patrol] [--squash|--rebase] [--draft] [--reviewers <user,...>] [--labels <label,...>] [--base <branch>]"
 ---
 
 ## Step 0 — Update check
@@ -45,6 +45,7 @@ Parse the arguments: "$ARGUMENTS"
 - If `--labels <list>` is present, set LABELS=<comma-separated list>
 - If `--base <branch>` is present, set BASE_BRANCH=<branch> (overrides auto-detection)
 - If `--skip-log-patrol` is present, set SKIP_LOG_PATROL=true
+- If `--all` is present, set MERGE_ALL=true
 
 If conflicting flags are given (`--squash` and `--rebase` together), warn the user and ask which they prefer.
 
@@ -59,8 +60,19 @@ Based on arguments and detected state, the workflow may skip steps:
 | `--skip-presentation` | 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7a → 7c → 8 → 9 |
 | `--skip-review --skip-presentation` | 0 → 1 → 2 → 3 → 7c → 8 → 9 |
 | `--skip-log-patrol` | Any of the above, but skip Step 9 |
+| `--all` | Delegates to `/gw:worktree merge-all` — do not continue with merge-it steps |
 | Already on feature branch with PR | 0 → 4 → 5 → 6 → 7a → 7b → 7c → 8 → 9 |
 | Already on feature branch, no PR | 0 → 2 → 3 → 4 → 5 → 6 → 7a → 7b → 7c → 8 → 9 |
+| IN_WORKTREE detected | 0 → 0.7 → 2 → 3 → 4 → 5 → 6 → 7a → 7b → 7c → 8 → 9 |
+
+---
+
+### --all flag handling
+
+If MERGE_ALL is true:
+1. Verify you are NOT inside a worktree (`git rev-parse --git-common-dir` equals `git rev-parse --git-dir`)
+2. Check if `.worktrees/manifest.json` exists (also check `worktrees/manifest.json`). If not found, print: "No worktrees found. Create worktrees first with `/gw:worktree create <name>`." and stop.
+3. Invoke `/gw:worktree merge-all` and stop — do not continue with the normal merge-it steps.
 
 ---
 
@@ -84,7 +96,31 @@ Before starting the workflow, verify the environment:
    - If a PR exists and is open, ask the user: "PR #N already exists for this branch (<url>). Resume the review/merge workflow from Step 4?"
    - If they confirm, skip to Step 4
 
+### Step 0.7: Worktree detection
+
+Detect if running inside a git worktree:
+
+```bash
+git_common=$(git rev-parse --git-common-dir 2>/dev/null)
+git_dir=$(git rev-parse --git-dir 2>/dev/null)
+```
+
+If `$git_common` is different from `$git_dir`, you are inside a worktree:
+
+1. Set IN_WORKTREE=true
+2. Derive the main worktree path: `MAIN_WORKTREE=$(cd "$git_common/.." && pwd)`
+3. Check for manifest: `MANIFEST="$MAIN_WORKTREE/.worktrees/manifest.json"` (also check `worktrees/manifest.json`)
+4. If manifest exists, read the entry for the current branch to get PURPOSE
+5. Log: "Detected worktree environment. Branch: <current-branch>, Purpose: <purpose>"
+
+**When IN_WORKTREE is true:**
+- Step 1 (Create branch) is SKIPPED — the worktree branch is already the feature branch
+- Step 3 (Create PR) will auto-populate the PR body with the purpose from the manifest
+- Step 8 (Merge) will update the manifest entry after successful merge
+
 ### Step 1: Create a branch
+
+If IN_WORKTREE is true, skip this step — the worktree's branch is already the feature branch. Proceed to Step 2.
 
 - Determine a descriptive branch name from the staged/unstaged changes (e.g., `fix/path-rewriter-escaping` or `feat/auto-update`). Sanitize the branch name for use in filenames: replace `/` with `-`, strip characters not in `[a-zA-Z0-9._-]`.
 - Run: `git checkout -b <branch-name>`
@@ -107,6 +143,11 @@ Before starting the workflow, verify the environment:
   - If DRAFT_PR is true, add `--draft`
   - If REVIEWERS is set, add `--reviewer <user>` for each reviewer
   - If LABELS is set, add `--label <label>` for each label
+- If IN_WORKTREE is true and PURPOSE is available from the manifest, prepend the PR body with:
+  ```
+  ## Purpose
+  <PURPOSE from manifest>
+  ```
 - Run the assembled `gh pr create` command
 - Show the user the PR URL
 - If DRAFT_PR is true, remind the user: "Created as draft PR. Mark as ready with `gh pr ready <number>` when appropriate."
@@ -255,6 +296,10 @@ Before merging, check the status of PR checks:
   - If auto-merge succeeds, tell the user: "PR can't be merged yet (branch protection). Enabled auto-merge with <strategy> strategy — it will merge automatically once all checks pass."
   - If auto-merge also fails, show the error and ask the user how to proceed
 - If the initial merge succeeds, show the merge result and final status
+- If the initial merge succeeds (NOT auto-merge enablement), and IN_WORKTREE is true and MANIFEST exists, update the manifest entry for the current branch:
+  - Set `status` to `"merged"`
+  - Set `pr_number` to the PR number that was just merged
+  - Do NOT update the manifest when auto-merge is merely enabled — the PR has not actually merged yet
 - After successful merge (or auto-merge enablement), switch back to the base branch: `git checkout <base-branch> && git pull`
 - Print a summary:
   ```
