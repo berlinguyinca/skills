@@ -1424,7 +1424,7 @@ Include these phases (adapt based on the specific idea):
 - Acceptance criteria: no console errors, all happy paths tested, monitoring in place
 
 For each phase prompt, also include:
-- Use `superpowers:using-git-worktrees` for feature branches
+- Use `/gw:worktree create <name>` for feature branch isolation
 - Use `superpowers:finishing-a-development-branch` when the branch is complete
 
 ### Superpowers reference table
@@ -1440,7 +1440,7 @@ When working through these phases, apply the appropriate superpowers skill at ea
 | Bug encounters | `superpowers:systematic-debugging` |
 | After each milestone | `superpowers:requesting-code-review` |
 | Before merge/PR | `superpowers:verification-before-completion` |
-| Feature branches | `superpowers:using-git-worktrees` |
+| Feature branches | `/gw:worktree create <name>` |
 | Branch completion | `superpowers:finishing-a-development-branch` |
 
 ## 3. Marketing Execution Prompts
@@ -1798,7 +1798,7 @@ Read all deep-dive artifacts. Write `.saas-ideas/CLAUDE.md` with this structure:
 - `superpowers:verification-before-completion` — verify before claiming done
 - `superpowers:systematic-debugging` — for any failures
 - `superpowers:brainstorming` — for design decisions
-- `superpowers:using-git-worktrees` — for feature branch isolation
+- `/gw:worktree create <name>` — for feature branch isolation
 - `gw:review-app` — quality analysis after implementation
 - `gw:compete` — competitive analysis for positioning
 
@@ -2135,7 +2135,7 @@ Apply these superpowers skills at each GSD phase:
 5. `superpowers:systematic-debugging` — on any bug encounters
 6. `superpowers:requesting-code-review` — after each milestone
 7. `superpowers:verification-before-completion` — before merge/PR
-8. `superpowers:using-git-worktrees` — for feature branches
+8. `/gw:worktree create <name>` — for feature branches
 ```
 
 ---

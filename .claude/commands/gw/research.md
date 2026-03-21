@@ -981,7 +981,7 @@ Read `{RESEARCH_DIR}/CONSENSUS.md` and the agent research files. Write `{RESEARC
 - `superpowers:verification-before-completion` — verify before claiming done
 - `superpowers:systematic-debugging` — for any failures
 - `superpowers:brainstorming` — for design decisions
-- `superpowers:using-git-worktrees` — for feature branch isolation (if project has multiple phases)
+- `/gw:worktree create <name>` — for feature branch isolation (if project has multiple phases)
 - `gw:review-app` — quality analysis after implementation
 
 ## Key Decisions
