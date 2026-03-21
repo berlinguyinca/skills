@@ -165,12 +165,11 @@ When called with `--all` from the main worktree (not inside a worktree):
 
 ## Component 3: Skill Reference Updates
 
-Replace `superpowers:using-git-worktrees` references with `/gw:worktree` in four skills:
+Replace `superpowers:using-git-worktrees` references with `/gw:worktree` in three skills:
 
 | Skill | Files with references | Change |
 |---|---|---|
 | `gw:saas-idea` | 4 occurrences | Replace with `/gw:worktree create <name>` recommendation |
-| `gw:compete` | Implementation output section | Replace with `/gw:worktree create <name>` recommendation |
 | `gw:research` | 1 occurrence | Replace with `/gw:worktree create <name>` recommendation |
 | `gw:review-app` | Multi-branch detection section | Replace with `/gw:worktree create <name>` recommendation |
 
