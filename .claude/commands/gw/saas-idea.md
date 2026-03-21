@@ -2073,3 +2073,28 @@ Next Steps:
   - Resume work: /gsd:resume-work
   - Verify completed phases: /gsd:verify-work
 ```
+
+---
+
+## Final — Session Summary
+
+Print a summary of all files created during this session:
+
+```
+Session complete. Generated files:
+  [new]   .saas-ideas/SHORTLIST.md
+  [new]   .saas-ideas/CONSENSUS.md                (if debate ran)
+  [new]   .saas-ideas/deep-dive/BUSINESS-PLAN.md
+  [new]   .saas-ideas/deep-dive/MARKETING-PLAYBOOK.md
+  [new]   .saas-ideas/deep-dive/TECH-SPEC.md
+  [new]   .saas-ideas/deep-dive/IMPLEMENTATION-PROMPTS.md
+  [new]   docs/gw/pitch-deck.pptx
+  [new]   .saas-ideas/REPORT.md
+  [new]   build-manifest.json                      (--skip-planning to skip)
+  [skip]  <description of skipped output> (--skip-flag)
+  ...
+
+Total: N files created, N skipped
+```
+
+List each file that was created with `[new]` and each output that was skipped (due to --skip flags) with `[skip]`.

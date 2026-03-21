@@ -843,6 +843,24 @@ Plus a brief content summary:
 Covered N org PRs (F features, B bug fixes, I improvements) + P personal PRs across R repositories.
 ```
 
+## Final — Session Summary
+
+Print a summary of all files created during this session:
+
+```
+Session complete. Generated files:
+  [new]   docs/gw/weekly-review-executive-YYYY-MM-DD.pptx
+  [new]   docs/gw/weekly-review-technical-YYYY-MM-DD.pptx
+  [skip]  <description of skipped output> (--skip-flag)
+  ...
+
+Total: N files created, N skipped
+```
+
+List each file that was created with `[new]` and each output that was skipped (due to --skip flags) with `[skip]`.
+
+---
+
 ## Error handling
 
 - **`gh` command failures:** Show the error message and ask the user how to proceed.

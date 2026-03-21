@@ -296,6 +296,24 @@ This step is implemented by invoking `/gw:log-patrol` as a sub-skill with the ap
 
 ---
 
+## Final — Session Summary
+
+Print a summary of all files created during this session:
+
+```
+Session complete. Generated files:
+  [new]   PR #{number} — {url}
+  [new]   docs/gw/changes-presentation-{branch}.pptx (--skip-pptx to skip)
+  [skip]  <description of skipped output> (--skip-flag)
+  ...
+
+Total: N files created, N skipped
+```
+
+List each file that was created with `[new]` and each output that was skipped (due to --skip flags) with `[skip]`.
+
+---
+
 ### Error handling
 
 - If any step fails, show the error clearly and ask the user how to proceed

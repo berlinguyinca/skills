@@ -898,3 +898,23 @@ If the user selects `[y]`:
 9. If stashed in step 3, `git stash pop`
 10. Return to the original directory and branch
 11. Print the PR URL
+
+---
+
+## Final — Session Summary
+
+Print a summary of all files created during this session:
+
+```
+Session complete. Generated files:
+  [new]   .analysis/{NN}-{slug}.md                (per specialist)
+  [new]   .analysis/REPORT.md
+  [new]   docs/gw/{presentation}.pptx             (--skip-pptx to skip)
+  [new]   fix-manifest.json                        (--skip-planning to skip)
+  [skip]  <description of skipped output> (--skip-flag)
+  ...
+
+Total: N files created, N skipped
+```
+
+List each file that was created with `[new]` and each output that was skipped (due to --skip flags) with `[skip]`.

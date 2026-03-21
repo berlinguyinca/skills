@@ -1137,6 +1137,28 @@ If the user selects `[y]`:
 
 ---
 
+## Final — Session Summary
+
+Print a summary of all files created during this session:
+
+```
+Session complete. Generated files:
+  [new]   {RESEARCH_DIR}/CONSENSUS.md
+  [new]   {RESEARCH_DIR}/agents/*.md
+  [new]   {RESEARCH_DIR}/debate/**/*.md
+  [new]   docs/gw/research-*.pptx                (--skip-pptx to skip)
+  [new]   {report path}                           (--skip-report to skip)
+  [new]   {prototype path}                        (--skip-prototype to skip)
+  [skip]  <description of skipped output> (--skip-flag)
+  ...
+
+Total: N files created, N skipped
+```
+
+List each file that was created with `[new]` and each output that was skipped (due to --skip flags) with `[skip]`.
+
+---
+
 ## Error Handling
 
 - **WebSearch/WebFetch fails during research:** retry once, then mark source as unavailable and continue with collected data

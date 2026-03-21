@@ -917,6 +917,31 @@ If the user selects `[y]`:
 
 ---
 
+## Final — Session Summary
+
+Print a summary of all files created during this session:
+
+```
+Session complete. Generated files:
+  [new]   .competitors/registry.json
+  [new]   .competitors/research/*.md
+  [new]   .competitors/feature-matrix.json
+  [new]   .competitors/debate/CONSENSUS.md
+  [new]   .competitors/SELECTED.json
+  [new]   .competitors/tests/**
+  [new]   .competitors/REPORT.md
+  [new]   docs/gw/compete-*.pptx                  (--skip-pptx to skip)
+  [new]   build-manifest.json                      (--skip-planning to skip)
+  [skip]  <description of skipped output> (--skip-flag)
+  ...
+
+Total: N files created, N skipped
+```
+
+List each file that was created with `[new]` and each output that was skipped (due to --skip flags) with `[skip]`.
+
+---
+
 ### Error handling
 
 - If WebSearch/WebFetch fails during research: retry once, then mark competitor as "research incomplete" and continue
