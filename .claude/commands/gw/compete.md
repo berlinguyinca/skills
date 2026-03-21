@@ -806,6 +806,43 @@ All tests designed to FAIL until features are implemented."
 
 ---
 
+## Step 9.5 — Build Manifest (optional)
+
+If SKIP_TESTS is true, skip this step.
+
+Generate a build manifest from the selected features and their test scaffolds.
+
+1. Read `SELECTED.json` from `.competitors/` for the user's chosen features
+2. Read `CONSENSUS.md` from `.competitors/debate/` for success criteria
+3. For each selected feature:
+   - Set `name` to the feature slug
+   - Set `description` from the feature's debate consensus summary
+   - Collect test scaffold paths from `.competitors/tests/<feature-slug>-*-manifest.md`
+   - Set `test_scaffolds` to the actual test file paths referenced in the manifest files (parse the manifest to find the generated test files like `tests/unit/<slug>.test.*`, `tests/integration/<slug>.test.*`, etc.)
+   - Extract `acceptance_tests` from the feature's success criteria in CONSENSUS.md
+   - Set `dependencies` to empty (competitive features are independent additions)
+4. Set `project` to `compete`
+5. Set `tech_stack` by detecting the current project's stack (read package.json, Cargo.toml, etc.)
+6. Write manifest to `.competitors/build-manifest.json`
+7. Commit: `git add .competitors/build-manifest.json && git commit -m "feat: generate build manifest for competitive features"`
+
+Ask:
+
+```
+Build manifest generated with <N> features (all Wave 1 — independent):
+  - <feature-1> (<N> test scaffolds)
+  - <feature-2> (<N> test scaffolds)
+  ...
+
+Execute TDD implementation in parallel worktrees? [y] / Generate manifest only [m] / Skip to report [s]
+```
+
+- `[y]`: invoke `/gw:worktree execute .competitors/build-manifest.json`
+- `[m]`: tell user: "Manifest saved. Run `/gw:worktree execute .competitors/build-manifest.json` when ready."
+- `[s]`: continue to Step 10
+
+---
+
 ## Step 10 — Report Synthesis
 
 Launch a single foreground synthesis agent (`subagent_type="general-purpose"`) that reads all artifacts:

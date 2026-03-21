@@ -1985,6 +1985,50 @@ Tell the user: "GSD will scaffold a project targeting a fully deployable prototy
 
 ---
 
+### Step 4.5 — Parallel Build (optional)
+
+Generate a build manifest from the deep-dive artifacts and offer parallel worktree execution.
+
+1. Read `TECH-SPEC.md` from `.saas-ideas/deep-dive/`
+2. Read `IMPLEMENTATION-PROMPTS.md` from `.saas-ideas/deep-dive/`
+3. Parse the 6 build phases into features:
+
+| Feature | Dependencies | Description source |
+|---------|-------------|-------------------|
+| `auth` | none | Phase 1 from IMPLEMENTATION-PROMPTS.md |
+| `landing-page` | none | Phase 5 from IMPLEMENTATION-PROMPTS.md |
+| `core-feature` | `auth` | Phase 2 from IMPLEMENTATION-PROMPTS.md |
+| `data-api` | `core-feature` | Phase 3 from IMPLEMENTATION-PROMPTS.md |
+| `billing` | `core-feature` | Phase 4 from IMPLEMENTATION-PROMPTS.md |
+| `polish` | `auth`, `core-feature`, `data-api`, `billing`, `landing-page` | Phase 6 from IMPLEMENTATION-PROMPTS.md |
+
+4. For each feature:
+   - Extract `description` from the corresponding phase prompt in IMPLEMENTATION-PROMPTS.md
+   - Extract `acceptance_tests` from the phase's "Verify" or "Success criteria" section
+   - Set `spec_file` to `.saas-ideas/deep-dive/TECH-SPEC.md`
+5. Set `tech_stack` from the hardcoded stack: `{"db": "PostgreSQL", "auth": "Google OAuth", "payments": "Stripe", "cloud": "AWS", "iac": "Terraform", "domain": "codingandmore.net"}`
+6. Set `project` to the slugified idea name from the deep-dive
+7. Write manifest to `.saas-ideas/build-manifest.json`
+8. Commit the manifest: `git add .saas-ideas/build-manifest.json && git commit -m "feat: generate build manifest for parallel execution"`
+
+Ask the user:
+
+```
+Build manifest generated with 6 features in 4 waves:
+  Wave 1: auth, landing-page
+  Wave 2: core-feature
+  Wave 3: data-api, billing
+  Wave 4: polish
+
+Build all features in parallel worktrees with TDD? [y] / Generate manifest only (already saved) [m] / Skip [s]
+```
+
+- `[y]`: invoke `/gw:worktree execute .saas-ideas/build-manifest.json`
+- `[m]`: tell user: "Manifest saved. Run `/gw:worktree execute .saas-ideas/build-manifest.json` when ready."
+- `[s]`: continue to Step 5
+
+---
+
 ### Step 5 — Present Results (orchestrator)
 
 Print the following to the user:

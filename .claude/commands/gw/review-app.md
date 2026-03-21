@@ -579,30 +579,40 @@ Approve all [a], select specific by number [1,3,5], skip [s], or reject [r]?
 
 **Do NOT proceed without explicit user approval.**
 
-### 5d. Spawn fix agents
+### 5d. Generate fix manifest and execute
 
-For each approved fix group (grouped by target file), launch a background Agent (`subagent_type="general-purpose"`):
+Group approved fixes into independent bundles by logical concern:
 
-```
-You are a surgical code fixer. Apply ONLY the specified fixes — do not refactor, reformat, or improve surrounding code.
+| Bundle | Contains |
+|--------|----------|
+| `security-fixes` | All CRITICAL and WARNING security findings |
+| `performance-fixes` | All performance findings |
+| `test-coverage` | All missing test / coverage gap findings |
+| `quality-fixes` | All clarity, maintainability, and other findings |
 
-Fix to apply:
-{FIX_DESCRIPTION}
+Skip any bundle that has zero approved fixes.
 
-Target file(s): {FILE_PATHS}
+For each bundle:
+- Set `name` to the bundle slug (e.g., `security-fixes`)
+- Set `description` to a summary of all fixes in the bundle
+- Derive `acceptance_tests` from each review finding:
+  - Security: "XSS vulnerability in <file>:<line> is patched", "SQL injection in <file>:<line> is parameterized"
+  - Performance: "Response time for <endpoint> improved", "<function> avoids N+1 query"
+  - Test coverage: "Coverage for <module> reaches 80%", "Critical path <X> has regression test"
+  - Quality: "Dead code in <file> removed", "Function <X> has clear naming"
+- Set `spec_file` to `.analysis/REPORT.md`
+- Set `dependencies` to empty (fix bundles are independent)
+- Set `files_hint` to the target files for each bundle
 
-RULES:
-- Read the target file(s) first using the Read tool
-- Make the minimal change needed to fix the issue
-- Do NOT refactor surrounding code
-- Do NOT add comments explaining the fix
-- Do NOT change formatting of untouched lines
-- Use the Edit tool for all changes
-- After applying fixes, write a summary to .analysis/fixes/{NN}-fix-summary.md containing:
-  * What was changed
-  * Files modified with line numbers
-  * Before/after snippets (brief)
-```
+Set `project` to `review-fix`.
+
+Write manifest to `.analysis/fix-manifest.json`.
+
+Commit: `git add .analysis/fix-manifest.json && git commit -m "feat: generate fix manifest from review findings"`
+
+Invoke `/gw:worktree execute .analysis/fix-manifest.json` directly (no y/m/s prompt — user already approved fixes at the approval gate in Step 5c).
+
+After execution completes, continue to the next step (simplification, test generation, etc.).
 
 ### 5e. Verify fixes
 

@@ -1116,26 +1116,38 @@ If GSD commands don't exist, say: "Full research available in `{RESEARCH_DIR}/CO
 
 ### Option 4: Prototype
 
-Launch a single foreground agent (`subagent_type="general-purpose"`) with:
-- The CONSENSUS.md findings and recommendations
-- The research question and domain
-- Project context (if PROJECT_CONTEXTUAL)
-- Instruction to write a working prototype demonstrating the recommended approach
+Parse CONSENSUS.md to identify independent Tier 1 recommendations that can be prototyped.
 
-```bash
-mkdir -p "{RESEARCH_DIR}/prototype"
+1. Read `CONSENSUS.md` from `{RESEARCH_DIR}/`
+2. Identify Tier 1 recommendations (highest priority findings)
+3. For each Tier 1 recommendation:
+   - Set `name` to a slugified version of the recommendation title
+   - Set `description` from the recommendation text
+   - Extract `acceptance_tests` from the recommendation's success criteria or expected outcome
+   - Set `spec_file` to `{RESEARCH_DIR}/CONSENSUS.md`
+   - Determine `dependencies` between recommendations (if recommendation B builds on recommendation A, B depends on A). If no ordering is implied, all are independent.
+4. Set `project` to `research-<slug>` (using the research question slug)
+5. Set `tech_stack` from project context (if PROJECT_CONTEXTUAL) or from the recommendations
+6. Write manifest to `{RESEARCH_DIR}/build-manifest.json`
+7. Commit: `git add {RESEARCH_DIR}/build-manifest.json && git commit -m "feat: generate prototype build manifest from research"`
+
+Ask:
+
+```
+Build manifest generated with <N> prototype features (<W> waves):
+  Wave 1: <names>
+  ...
+
+Build prototype features in parallel worktrees with TDD? [y] / Single prototype agent (original behavior) [s] / Generate manifest only [m]
 ```
 
-The agent should:
-1. Read CONSENSUS.md
-2. Identify the most actionable recommendation
-3. Write working code that demonstrates the approach
-4. Include a README.md in the prototype directory explaining how to run it
-5. Keep it minimal — proof of concept, not production code
-
-Output: `{RESEARCH_DIR}/prototype/` with working code files.
-
-Tell the user what was created and how to run it.
+- `[y]`: invoke `/gw:worktree execute {RESEARCH_DIR}/build-manifest.json`
+- `[s]`: fall back to original single-agent behavior:
+  - Launch a single foreground agent (`subagent_type="general-purpose"`) with CONSENSUS.md findings
+  - Agent writes working code to `{RESEARCH_DIR}/prototype/`
+  - Keep it minimal — proof of concept, not production code
+  - Tell the user what was created and how to run it
+- `[m]`: tell user: "Manifest saved. Run `/gw:worktree execute {RESEARCH_DIR}/build-manifest.json` when ready."
 
 ### Option 5: Custom
 
