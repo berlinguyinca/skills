@@ -4,30 +4,15 @@ description: Competitive feature analysis with structured team debate, TDD test 
 argument-hint: "[--deep] [--refresh] [--skip-pptx] [--skip-planning] [--skip-gsd] [--skip-tests] [--team auto|ask|N] [--add \"Competitor\"] [--remove \"Competitor\"] [--list]"
 ---
 
-## Step 0 — Update check
+## Step 0 — Preamble
 
-Resolve the gw-skills repo directory and run its update check script:
+Resolve the gw-skills repo path, then read and follow `$GW_REPO/.claude/commands/gw/_shared/preamble.md` for update check and GSD project detection:
 
 ```bash
 GW_REPO="$(cd "$(readlink ~/.claude/commands/gw)/../../.." 2>/dev/null && pwd)" || GW_REPO="$HOME/.gw-skills"
-bash "$GW_REPO/check-update.sh" 2>/dev/null || true
 ```
 
-If the output contains `UPDATE_AVAILABLE`, tell the user how many commits behind they are and ask: "gw-skills has updates available. Run /gw:update to install them, or continue?" If they want to update, invoke `/gw:update` and stop. Otherwise continue. If the script is missing or fails, skip silently.
-
----
-
-## Step 0.5 — GSD Project Detection (Model Inheritance)
-
-Skip this step if you are inside a GSD project (`~/.config/opencode/.planning/` exists).
-
-If `.planning/config.json` exists in the current or parent directories:
-1. Try to resolve and read its JSON content using Bash/Grep
-2. Extract `model_profile` (default: "balanced")
-3. If a profile is found, use it for all agent spawns instead of default Claude model
-4. Log: "Using GSD model profile: {profile}" in the first output message
-
-This enables gw skills to inherit opencode's model preferences within managed projects.
+GW_REPO persists for the duration of this skill run — do not re-resolve it in later steps.
 
 ---
 
@@ -307,23 +292,7 @@ For any `[FAILED]` entries, offer: "Retry failed research? [y/n]" — if yes, re
 
 ## Step 5 — Team Assembly
 
-### 5a. Load workforce
-
-Resolve the gw-skills repo path (same pattern as Step 0):
-
-```bash
-GW_REPO="$(cd "$(readlink ~/.claude/commands/gw)/../../.." 2>/dev/null && pwd)" || GW_REPO="$HOME/.gw-skills"
-```
-
-Read all persona files from:
-1. `$GW_REPO/workforce/_defaults/*.md` — pre-shipped personas
-2. `$GW_REPO/workforce/*.md` (excluding `_defaults/`) — user-added personas
-
-Parse frontmatter from each: `name`, `background`, `perspective`, `priorities`, `debate_style`, `search_skills`.
-
-### 5b. Suggest team composition
-
-Based on APP_TYPE, suggest the best subset. Use this table:
+**Team suggestion table for this skill:**
 
 | APP_TYPE | Suggested Team |
 |----------|---------------|
@@ -334,113 +303,9 @@ Based on APP_TYPE, suggest the best subset. Use this table:
 | library | Software Architect, Backend Engineer, QA Engineer, End User Advocate |
 | saas | Product Manager, Business Analyst, UX Specialist, Security Engineer, Backend Engineer, Performance Engineer |
 
-Custom personas are always shown as available additions.
+Context line for approval gate: `Project: {PROJECT_NAME}`
 
-### 5c. Approval gate
-
-**If TEAM_MODE is "auto" (default):** Skip the gate — auto-proceed with the suggested team. Print a brief summary:
-
-```
-Team ({N} specialists): {Name1}, {Name2}, {Name3}, ... — auto-proceeding (use --team ask for interactive selection)
-```
-
-**If TEAM_MODE is "ask":** Show this exact format and wait for user confirmation:
-
-```
-Project: {project_name} ({APP_TYPE}, {file_count} files)
-
-Suggested team ({N} specialists):
-  1. UX Specialist        [recommended]
-  2. Product Manager       [recommended]
-  3. Backend Engineer      [recommended]
-  ...
-
-Also available:
-  7. Software Architect
-  8. Woodworker (custom)
-  9. Mass Spectrometrist (custom)
-  ...
-
-Accept [enter], resize [N], add by number [+7,8], customize [c], or create new [n]?
-```
-
-Explain each option:
-- **Accept:** proceed with suggested team
-- **Resize [N]:** adjust team size (add/remove from relevance order)
-- **Add [+N,N]:** add specific personas to the suggested team
-- **Customize [c]:** show full roster, pick by number
-- **Create new [n]:** create a new persona on-the-fly (see below)
-
-**APPROVAL GATE — Stop and wait for user confirmation before proceeding to Step 6.**
-
-### Handle "create new" [n]
-
-When the user selects `[n]` at the approval gate (only available in `--team ask` mode), run this inline persona creation sub-flow:
-
-Initialize `CREATED_PERSONAS` as an empty list if not already set.
-
-#### Step N1 — Ask for name
-
-Prompt the user: "New persona name?"
-
-Slugify the response (lowercase, hyphens, e.g., "Mass Spectrometrist" → `mass-spectrometrist`). Check for collisions:
-
-- If `$GW_REPO/workforce/{slug}.md` exists (custom): offer "Use existing [u], rename [r], or overwrite [o]?"
-  - **[u]:** add the existing persona to the team and return to the approval gate
-  - **[r]:** ask for a new name, re-slugify, re-check
-  - **[o]:** proceed to Step N2 (will overwrite)
-- If `$GW_REPO/workforce/_defaults/{slug}.md` exists (default): offer "Use existing [u] or rename [r]?" (never overwrite defaults)
-
-#### Step N2 — Research the role
-
-Launch 3 WebSearch queries in parallel:
-1. `"{Name}" job role responsibilities skills`
-2. `"{Name}" what do they focus on priorities`
-3. `"{Name}" debate style perspective how they argue`
-
-From the results, auto-derive:
-- `background` — professional background summary (1-2 sentences)
-- `perspective` — key concerns and viewpoint
-- `priorities` — what this persona cares most about
-- `debate_style` — how they argue and what evidence they cite
-- `search_skills` — 3-5 source types from the search_skills reference list, appropriate for this persona's domain
-
-If WebSearch fails or returns insufficient results: fall back to asking the user to provide each field manually.
-
-#### Step N3 — Present for approval
-
-Display the auto-derived persona:
-
-```
-Auto-derived persona for "{Name}":
-
-  name: {Name}
-  background: {auto-derived}
-  perspective: {auto-derived}
-  priorities: {auto-derived}
-  debate_style: {auto-derived}
-  search_skills: {auto-derived}
-
-Confirm [enter], edit [e], or cancel [x]?
-```
-
-- **[enter]:** accept and proceed to Step N4
-- **[e]:** show each field for individual editing, re-display, re-prompt
-- **[x]:** cancel creation, return to the approval gate without changes
-
-#### Step N4 — Write persona file
-
-```bash
-mkdir -p "$GW_REPO/workforce"
-```
-
-Write `$GW_REPO/workforce/{slug}.md` with standard frontmatter (name, background, perspective, priorities, debate_style, search_skills).
-
-Append the slug to the `CREATED_PERSONAS` list.
-
-#### Step N5 — Add to team and return to gate
-
-Add the new persona to the selected team. Re-display the updated team roster and return to the approval gate prompt. The user can accept the team, create another persona with `[n]`, or make other changes.
+Read and follow `$GW_REPO/.claude/commands/gw/_shared/team-assembly.md` using the table above for team suggestions.
 
 ---
 
