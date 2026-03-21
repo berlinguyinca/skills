@@ -63,6 +63,7 @@ Based on arguments and detected state, the workflow may skip steps:
 | `--all` | Delegates to `/gw:worktree merge-all` — do not continue with merge-it steps |
 | Already on feature branch with PR | 0 → 4 → 5 → 6 → 7a → 7b → 7c → 8 → 9 |
 | Already on feature branch, no PR | 0 → 2 → 3 → 4 → 5 → 6 → 7a → 7b → 7c → 8 → 9 |
+| IN_WORKTREE detected | 0 → 0.7 → 2 → 3 → 4 → 5 → 6 → 7a → 7b → 7c → 8 → 9 |
 
 ---
 
@@ -295,9 +296,10 @@ Before merging, check the status of PR checks:
   - If auto-merge succeeds, tell the user: "PR can't be merged yet (branch protection). Enabled auto-merge with <strategy> strategy — it will merge automatically once all checks pass."
   - If auto-merge also fails, show the error and ask the user how to proceed
 - If the initial merge succeeds, show the merge result and final status
-- If IN_WORKTREE is true and MANIFEST exists, update the manifest entry for the current branch:
+- If the initial merge succeeds (NOT auto-merge enablement), and IN_WORKTREE is true and MANIFEST exists, update the manifest entry for the current branch:
   - Set `status` to `"merged"`
   - Set `pr_number` to the PR number that was just merged
+  - Do NOT update the manifest when auto-merge is merely enabled — the PR has not actually merged yet
 - After successful merge (or auto-merge enablement), switch back to the base branch: `git checkout <base-branch> && git pull`
 - Print a summary:
   ```
