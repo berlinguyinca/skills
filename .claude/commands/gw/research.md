@@ -22,13 +22,16 @@ You are an orchestrator for multi-persona research investigations. You assemble 
 
 Parse the arguments: "$ARGUMENTS"
 
-- The **research question** is everything in `$ARGUMENTS` that isn't a recognized flag. It can be quoted or unquoted.
-- If `"--standalone"` is present, set FORCE_STANDALONE=true
-- If `"--deep"` is present, set DEEP_RESEARCH=true. Default: false
-- If "--team N|auto|ask" is present: if N is a number, set TEAM_MODE=auto and TEAM_SIZE_OVERRIDE=N (clamped to 3-10). If "auto", set TEAM_MODE=auto. If "ask", set TEAM_MODE=ask. Default TEAM_MODE: auto
-- If `"--skip-pptx"` is present, set SKIP_PPTX=true
-- If `"--skip-planning"` or `"--skip-gsd"` is present, set SKIP_PLANNING=true
-- If `"--hire"`, `"--fire"`, or `"--roster"` is present: tell the user "Use `/gw:workforce` for persona management. Examples: `/gw:workforce --hire \"Name\" --background \"...\"`, `/gw:workforce --fire \"Name\"`, `/gw:workforce --roster`" and stop.
+The **research question** is everything in `$ARGUMENTS` that isn't a recognized flag (quoted or unquoted).
+
+| Flag | Variable | Default | Notes |
+|------|----------|---------|-------|
+| `--standalone` | FORCE_STANDALONE | false | |
+| `--deep` | DEEP_RESEARCH | false | |
+| `--team <N\|auto\|ask>` | TEAM_MODE, TEAM_SIZE_OVERRIDE | auto | N (number, clamped 3-10) sets TEAM_SIZE_OVERRIDE |
+| `--skip-pptx` | SKIP_PPTX | false | |
+| `--skip-planning` / `--skip-gsd` | SKIP_PLANNING | false | |
+| `--hire` / `--fire` / `--roster` | — | — | Redirect: "Use `/gw:workforce`…" and **stop** |
 
 If no research question is provided and no workforce management flag is set, ask: "What would you like to research?" and wait.
 

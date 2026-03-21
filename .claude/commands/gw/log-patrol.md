@@ -26,15 +26,17 @@ You are an orchestrator for production log monitoring and analysis. You fetch lo
 
 Parse the arguments: "$ARGUMENTS"
 
-- `--add-source TYPE:CONNECTION_STRING` — Add a log source. TYPE is one of: `ssh`, `cloudwatch`, `local`, `docker`. See source format below.
-- `--remove-source INDEX_OR_NAME` — Remove a configured source by its numeric index or connection string.
-- `--list-sources` — Show all configured sources and stop.
-- `--discover "PROMPT"` — Auto-discover log sources from project context and active probing. The PROMPT describes the infrastructure (e.g., `"dockerized Python app with CloudWatch logging"`).
-- `--since DURATION` — How far back to scan. Accepts: `1h`, `6h`, `24h`, `7d`, etc. Default: since last scan timestamp in state, or `24h` if no prior scan.
-- `--full` — Ignore last-scan timestamp, scan full available history.
-- `--dry-run` — Scan and report but do NOT create GitHub issues.
-- `--skip-issues` — Skip GitHub issue creation entirely.
-- `--repo owner/repo` — Target GitHub repo for issues. Default: auto-detected from `git remote get-url origin`.
+| Flag | Variable | Default | Notes |
+|------|----------|---------|-------|
+| `--add-source <TYPE:CONN>` | — | — | TYPE: `ssh`, `cloudwatch`, `local`, `docker`. See source format below. Save and **stop** |
+| `--remove-source <IDX_OR_NAME>` | — | — | Remove by numeric index or connection string. Save and **stop** |
+| `--list-sources` | — | — | Show all configured sources and **stop** |
+| `--discover "PROMPT"` | — | — | Auto-discover log sources from project context and active probing, then **stop** |
+| `--since <DURATION>` | SINCE | last scan / `24h` | Accepts: `1h`, `6h`, `24h`, `7d`, etc. |
+| `--full` | FULL_SCAN | false | Ignore last-scan timestamp, scan full history |
+| `--dry-run` | DRY_RUN | false | Scan and report but do NOT create GitHub issues |
+| `--skip-issues` | SKIP_ISSUES | false | Skip GitHub issue creation entirely |
+| `--repo <owner/repo>` | TARGET_REPO | auto-detected | Target GitHub repo for issues |
 
 **Source format examples:**
 - `ssh:user@host:/var/log/app.log`

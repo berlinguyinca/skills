@@ -21,16 +21,19 @@ GW_REPO persists for the duration of this skill run — do not re-resolve it in 
 You are an orchestrator for repository security auditing. You analyze code for malicious patterns, credential theft, crypto wallet attacks, backdoors, and supply chain risks before local use. Follow these steps precisely.
 
 Parse the arguments: "$ARGUMENTS"
-- If a positional argument is present that starts with `http`, `git@`, or matches the pattern `owner/repo` (no spaces, contains `/`), set REPO_URL to that value
-- If `--deep` is present, set DEEP_MODE=true. Default: false
-- If `--tools` is present, set TOOL_SCAN=true. Default: false
-- If `--refresh-threats` is present, set FORCE_REFRESH=true. Default: false
-- If `--skip-pptx` is present, set SKIP_PPTX=true. Default: false
-- If `--skip-planning` or `--skip-gsd` is present, set SKIP_PLANNING=true. Default: false
-- If `--publish` is present, set PUBLISH=true. Default: false
-- If `--publish-repo <owner/repo>` is present: persist `{"publish_repo": "<owner/repo>"}` to `~/.config/gw-skills/audit-repo.json`, print "Publish target set to <owner/repo>." and stop
-- If `--publish-list` is present: read `~/.config/gw-skills/audit-repo.json` and display the configured publish repo and a list of any past publications, then stop
-- If `--hire`, `--fire`, or `--roster` is present: tell the user "Use `/gw:workforce` for persona management. Examples: `/gw:workforce --hire \"Name\" --background \"...\"`, `/gw:workforce --fire \"Name\"`, `/gw:workforce --roster`" and stop.
+
+| Flag | Variable | Default | Notes |
+|------|----------|---------|-------|
+| positional `http…`, `git@…`, or `owner/repo` | REPO_URL | — | First arg that looks like a URL or `owner/repo` |
+| `--deep` | DEEP_MODE | false | |
+| `--tools` | TOOL_SCAN | false | |
+| `--refresh-threats` | FORCE_REFRESH | false | |
+| `--skip-pptx` | SKIP_PPTX | false | |
+| `--skip-planning` / `--skip-gsd` | SKIP_PLANNING | false | |
+| `--publish` | PUBLISH | false | |
+| `--publish-repo <owner/repo>` | — | — | Persist to `~/.config/gw-skills/audit-repo.json`, confirm, and **stop** |
+| `--publish-list` | — | — | Display configured publish repo + past publications, then **stop** |
+| `--hire` / `--fire` / `--roster` | — | — | Redirect: "Use `/gw:workforce`…" and **stop** |
 
 ## Workflow routing
 

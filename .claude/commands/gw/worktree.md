@@ -20,11 +20,13 @@ GW_REPO persists for the duration of this skill run — do not re-resolve it in 
 
 Parse the arguments: "$ARGUMENTS"
 
-- If the first word is `create`, extract `<name>` and optional `--purpose "description"`
-- If the first word is `status`, or no arguments are provided, route to status
-- If the first word is `merge-all`, route to merge-all
-- If the first word is `cleanup`, extract optional `[name]`
-- If the first word is `execute`, extract `<manifest-path>` (required)
+| Subcommand | Extracted args | Notes |
+|------------|---------------|-------|
+| `create <name>` | NAME, optional `--purpose "description"` | |
+| `status` | *(none)* | Also the default when no arguments provided |
+| `merge-all` | *(none)* | |
+| `cleanup [name]` | optional NAME | |
+| `execute <manifest-path>` | MANIFEST_PATH (required) | |
 
 ### Workflow routing
 

@@ -21,16 +21,19 @@ GW_REPO persists for the duration of this skill run — do not re-resolve it in 
 You are an orchestrator for competitive feature analysis. You research competitors, assemble a team of diverse specialists for structured debate, and produce a prioritized feature implementation plan backed by TDD test scaffolds. Follow these steps precisely.
 
 Parse the arguments: "$ARGUMENTS"
-- If "--deep" is present, set DEEP_RESEARCH=true. Default: false
-- If "--hire", "--fire", or "--roster" is present: tell the user "Use `/gw:workforce` for persona management. Examples: `/gw:workforce --hire \"Name\" --background \"...\"`, `/gw:workforce --fire \"Name\"`, `/gw:workforce --roster`" and stop.
-- If "--refresh" is present, set FORCE_REFRESH=true
-- If "--skip-pptx" is present, set SKIP_PPTX=true
-- If "--skip-planning" or "--skip-gsd" is present, set SKIP_PLANNING=true
-- If "--skip-tests" is present, set SKIP_TESTS=true
-- If "--team N|auto|ask" is present: if N is a number, set TEAM_MODE=auto and TEAM_SIZE_OVERRIDE=N (clamped to 3-10). If "auto", set TEAM_MODE=auto. If "ask", set TEAM_MODE=ask. Default TEAM_MODE: auto
-- If "--add \"Name\"" is present, set ADD_COMPETITOR
-- If "--remove \"Name\"" is present, set REMOVE_COMPETITOR
-- If "--list" is present, set LIST_COMPETITORS=true
+
+| Flag | Variable | Default | Notes |
+|------|----------|---------|-------|
+| `--deep` | DEEP_RESEARCH | false | |
+| `--refresh` | FORCE_REFRESH | false | |
+| `--skip-pptx` | SKIP_PPTX | false | |
+| `--skip-planning` / `--skip-gsd` | SKIP_PLANNING | false | |
+| `--skip-tests` | SKIP_TESTS | false | |
+| `--team <N\|auto\|ask>` | TEAM_MODE, TEAM_SIZE_OVERRIDE | auto | N (number, clamped 3-10) sets TEAM_SIZE_OVERRIDE |
+| `--add "Name"` | ADD_COMPETITOR | — | |
+| `--remove "Name"` | REMOVE_COMPETITOR | — | |
+| `--list` | LIST_COMPETITORS | false | |
+| `--hire` / `--fire` / `--roster` | — | — | Redirect: "Use `/gw:workforce`…" and **stop** |
 
 ## Workflow routing
 
