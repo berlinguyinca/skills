@@ -467,6 +467,7 @@ Pulls the latest version of gw-skills from GitHub. All skills auto-check for upd
 /gw:worktree status
 /gw:worktree merge-all
 /gw:worktree cleanup [name]
+/gw:worktree execute <manifest-path>
 ```
 
 Manage git worktrees for concurrent feature development. Each worktree gets its own branch and isolated workspace, allowing parallel work on multiple features.
@@ -477,6 +478,7 @@ Manage git worktrees for concurrent feature development. Each worktree gets its 
 | `status` | Show all worktrees with branch, PR, CI status, and purpose |
 | `merge-all` | Merge all active worktree branches via PRs (uses `gw:merge-it` per branch) |
 | `cleanup [name]` | Remove merged worktrees (or a specific one) and prune git references |
+| `execute <manifest>` | Read a feature manifest, create worktrees in dependency waves, dispatch TDD agents in parallel, merge each wave |
 
 #### Options
 
@@ -496,6 +498,30 @@ Manage git worktrees for concurrent feature development. Each worktree gets its 
 ```
 
 Worktrees are stored in `.worktrees/` (gitignored). State is tracked in `.worktrees/manifest.json`.
+
+#### Parallel execution with manifests
+
+Skills like `/gw:saas-idea`, `/gw:compete`, `/gw:research`, and `/gw:review-app` can generate build manifests that describe independent features. The `execute` subcommand reads these manifests and builds all features in parallel with TDD.
+
+```json
+{
+  "project": "my-project",
+  "tech_stack": {"framework": "Next.js", "db": "PostgreSQL"},
+  "features": [
+    {
+      "name": "auth",
+      "description": "OAuth2 login",
+      "spec_file": "docs/SPEC.md",
+      "test_scaffolds": ["tests/auth.test.ts"],
+      "acceptance_tests": ["User can log in"],
+      "dependencies": [],
+      "files_hint": ["src/auth/"]
+    }
+  ]
+}
+```
+
+Features are sorted into dependency waves and executed in parallel per wave. Each agent uses TDD (`superpowers:test-driven-development`) and gets its own isolated worktree.
 
 ## Creating Custom Personas
 
