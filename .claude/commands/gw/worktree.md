@@ -80,8 +80,13 @@ git check-ignore -q <worktree-dir>
 If the directory is NOT ignored (exit code != 0):
 1. Check if `.gitignore` exists in the project root
 2. Append the worktree directory pattern (e.g., `.worktrees/`) to `.gitignore`
-3. Tell the user: "Added `<worktree-dir>` to .gitignore"
-4. Stage the change: `git add .gitignore`
+3. Stage and commit the change:
+
+```bash
+git add .gitignore && git commit -m "chore: add worktree directory to gitignore"
+```
+
+4. Tell the user: "Added `<worktree-dir>` to .gitignore and committed."
 
 ### 1c: Create worktree
 
@@ -187,11 +192,11 @@ Stop.
 
 ## Step 2 — Status
 
-### 2a: Read manifest
+### 2a: Resolve worktree directory and read manifest
 
-Look for the manifest at `.worktrees/manifest.json` or `worktrees/manifest.json`.
+Resolve the worktree directory using the same priority as Step 1a (check `.worktrees/` first, then `worktrees/`, then CLAUDE.md). Do NOT prompt the user — if no directory is found, say: "No worktrees managed. Use `/gw:worktree create <name>` to create one." and stop.
 
-If no manifest is found, say: "No worktrees managed. Use `/gw:worktree create <name>` to create one." and stop.
+Read `<worktree-dir>/manifest.json`. If the manifest file does not exist inside the resolved directory, show the same message and stop.
 
 ### 2b: Cross-reference with git
 
@@ -246,7 +251,9 @@ Stop.
 
 ## Step 3 — Merge all
 
-### 3a: Read manifest and present list
+### 3a: Resolve worktree directory, read manifest, and present list
+
+Resolve the worktree directory using the same priority as Step 1a (check `.worktrees/` first, then `worktrees/`, then CLAUDE.md). If no directory or manifest is found, say: "No worktrees managed." and stop.
 
 Read the manifest. Filter to entries with status "active".
 
@@ -314,7 +321,9 @@ Stop.
 
 ## Step 4 — Cleanup
 
-### 4a: Determine scope
+### 4a: Resolve worktree directory and determine scope
+
+Resolve the worktree directory using the same priority as Step 1a (check `.worktrees/` first, then `worktrees/`, then CLAUDE.md). If no directory or manifest is found, say: "No worktrees managed." and stop.
 
 - If a specific `[name]` was provided, target only that worktree
 - If no name was provided, target all worktrees with status "merged"
