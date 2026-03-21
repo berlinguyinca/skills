@@ -60,41 +60,23 @@ Budget tiers govern team size and timeline, but the *starting point* for every t
 
 ## Step 1 — Pre-flight
 
-### 1a. Check for existing data
+### Pre-flight routing
 
-Check if `.saas-ideas/` directory exists. If it does and `--pick` was NOT set and `--fresh` was NOT set:
-- Check which files exist: `REPORT.md`, `SHORTLIST.md`
-- Build the prompt dynamically based on what exists:
-  - Always offer: "Harvest fresh data"
-  - If `SHORTLIST.md` exists: also offer "Re-use existing shortlist"
-  - If `REPORT.md` exists: also offer "View existing REPORT.md"
-- Handle each choice:
-  - If they choose to view (and `REPORT.md` exists): read and present `.saas-ideas/REPORT.md` and stop.
-  - If they choose to re-use (and `SHORTLIST.md` exists): skip to interactive selection on existing `SHORTLIST.md` (skip Phase 1 and Phase 2).
-  - If they choose fresh: continue to Phase 1.
+Automatic decision tree — at most one prompt before work begins:
 
-### 1b. Initialize history
+1. If `--pick N` was set: skip directly to Phase 3 deep-dive with idea #N from the existing SHORTLIST.md. If SHORTLIST.md doesn't exist, print "No shortlist found. Run a full harvest first." and stop.
+2. If `--fresh` was set: proceed to Phase 1 (harvest), ignoring any cached data.
+3. If `--auto` was set: use cached data if < 24h old (skip to Phase 2), otherwise harvest fresh. No prompts.
+4. If `.saas-ideas/SHORTLIST.md` exists and is < 24h old: ask ONE question: "Recent shortlist found (<age>). Re-use existing data [r] or harvest fresh [f]?"
+   - `[r]`: skip to Phase 2 (scoring) with existing data
+   - `[f]`: proceed to Phase 1 (harvest)
+5. Otherwise: proceed to Phase 1 (harvest) with no prompt.
+
+### Initialize history
 
 If `history.json` does not exist in `.saas-ideas/`, create it with `{"runs": []}` and treat all ideas as new.
 
-### 1c. Handle --pick
-
-If PICK_ID is set:
-- Read `.saas-ideas/SHORTLIST.md`. If it does not exist, tell the user "No previous run found. Run `/gw:saas-idea` first without `--pick`." and stop.
-- Validate PICK_ID is between 1 and 10. If out of range, tell the user and stop.
-- Check `history.json` for the most recent run date. If older than 7 days, warn: "Previous shortlist is {N} days old. Results may be stale. Continue anyway? [y/n]"
-- If the user continues, skip to Phase 3 with the selected idea.
-
-### 1d. Freshness check
-
-If FORCE_FRESH is false and `.saas-ideas/SHORTLIST.md` exists and is less than 24 hours old:
-- Ask user: "A recent shortlist exists (generated {time}). Re-use it and pick an idea, or harvest fresh data?"
-- If re-use: skip Phase 1 and Phase 2, go straight to interactive selection on existing `SHORTLIST.md`.
-- If fresh: continue to Phase 1.
-
-Otherwise, continue to Phase 1.
-
-### 1e. Create working directories
+### Create working directories
 
 ```bash
 mkdir -p .saas-ideas/harvest .saas-ideas/deep-dive
@@ -2091,3 +2073,28 @@ Next Steps:
   - Resume work: /gsd:resume-work
   - Verify completed phases: /gsd:verify-work
 ```
+
+---
+
+## Final — Session Summary
+
+Print a summary of all files created during this session:
+
+```
+Session complete. Generated files:
+  [new]   .saas-ideas/SHORTLIST.md
+  [new]   .saas-ideas/CONSENSUS.md                (if debate ran)
+  [new]   .saas-ideas/deep-dive/BUSINESS-PLAN.md
+  [new]   .saas-ideas/deep-dive/MARKETING-PLAYBOOK.md
+  [new]   .saas-ideas/deep-dive/TECH-SPEC.md
+  [new]   .saas-ideas/deep-dive/IMPLEMENTATION-PROMPTS.md
+  [new]   docs/gw/pitch-deck.pptx
+  [new]   .saas-ideas/REPORT.md
+  [new]   build-manifest.json                      (--skip-planning to skip)
+  [skip]  <description of skipped output> (--skip-flag)
+  ...
+
+Total: N files created, N skipped
+```
+
+List each file that was created with `[new]` and each output that was skipped (due to --skip flags) with `[skip]`.

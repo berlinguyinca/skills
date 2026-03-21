@@ -40,13 +40,15 @@ Each entry is either an **org name** (queries all repos in that org) or an **org
 
 Parse `$ARGUMENTS`:
 
-- `--add SOURCE` = add an org or org/repo to the saved sources list. Create the config directory and file if they don't exist (`mkdir -p ~/.config/gw-skills`). Read the existing config (or start with `{"sources": []}`), append the new source (skip if already present), write back, confirm, and **stop**.
-- `--remove SOURCE` = remove an org or org/repo from the saved sources list. If not found, say so. Write back, confirm, and **stop**.
-- `--list` = print the current saved sources and **stop**. If no config file exists, say "No sources configured. Use `/gw:weekly-review --add <org-or-repo>` to add one."
-- **First positional argument** (optional) = org name (e.g. `metabolomics-us`) or `org/repo` (e.g. `metabolomics-us/carrot`). If provided, use **only this source** for this run (does not affect saved config).
-- `--from YYYY-MM-DD` = start date (inclusive). **Default:** last Wednesday, computed as: if today is Wednesday or later (Wed–Sun), use this week's Wednesday; if today is Monday or Tuesday, use last week's Wednesday. This ensures the window always covers approximately one work week.
-- `--to YYYY-MM-DD` = end date (inclusive). **Default:** today.
-- `--author USERNAME` = GitHub username. **Default:** `@me` (resolved in Step 2).
+| Flag | Variable | Default | Notes |
+|------|----------|---------|-------|
+| positional `<org-or-repo>` | — | — | Use only this source for this run (does not affect saved config) |
+| `--add <SOURCE>` | — | — | Add org or org/repo to saved sources. Create config if needed. Save and **stop** |
+| `--remove <SOURCE>` | — | — | Remove org or org/repo from saved sources. Save and **stop** |
+| `--list` | — | — | Print saved sources and **stop** |
+| `--from <YYYY-MM-DD>` | START_DATE | last Wednesday | If today is Wed–Sun, this week's Wed; if Mon–Tue, last week's Wed |
+| `--to <YYYY-MM-DD>` | END_DATE | today | |
+| `--author <USERNAME>` | AUTHOR | `@me` | Resolved in Step 2 |
 
 ### Resolve sources & classify priority
 
@@ -840,6 +842,24 @@ Plus a brief content summary:
 ```
 Covered N org PRs (F features, B bug fixes, I improvements) + P personal PRs across R repositories.
 ```
+
+## Final — Session Summary
+
+Print a summary of all files created during this session:
+
+```
+Session complete. Generated files:
+  [new]   docs/gw/weekly-review-executive-YYYY-MM-DD.pptx
+  [new]   docs/gw/weekly-review-technical-YYYY-MM-DD.pptx
+  [skip]  <description of skipped output> (--skip-flag)
+  ...
+
+Total: N files created, N skipped
+```
+
+List each file that was created with `[new]` and each output that was skipped (due to --skip flags) with `[skip]`.
+
+---
 
 ## Error handling
 
