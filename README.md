@@ -58,50 +58,15 @@ New skills are available immediately — no reinstall needed.
 /gw:weekly-review --list
 ```
 
-Generates two PowerPoint presentations from GitHub activity:
-- **Executive deck** (max 5 slides) — plain English, no jargon, focused on user/lab impact
-- **Technical deck** (max 30 slides) — detailed per-PR breakdowns, stats, charts, for IT staff
+Generates executive and technical PowerPoint presentations from GitHub activity across multiple orgs and repos. Sources are saved to `~/.config/gw-skills/weekly-review.json` and reused automatically.
 
-Output files are saved to `docs/gw/weekly-review-executive-YYYY-MM-DD.pptx` and `docs/gw/weekly-review-technical-YYYY-MM-DD.pptx`.
-
-#### Multi-source support
-
-You can track activity across multiple GitHub orgs and personal repos simultaneously. Sources are saved to `~/.config/gw-skills/weekly-review.json` and reused automatically.
-
-**Setup (one-time):**
 ```
-/gw:weekly-review --add metabolomics-us
-/gw:weekly-review --add berlinguyinca/personal-project
-/gw:weekly-review --add other-org
+/gw:weekly-review --add metabolomics-us   # save a source
+/gw:weekly-review                          # generate from all saved sources
+/gw:weekly-review metabolomics-us          # one-off from a single source
 ```
 
-**Generate report from all saved sources:**
-```
-/gw:weekly-review
-```
-
-**One-off report from a single source (does not affect saved config):**
-```
-/gw:weekly-review metabolomics-us
-```
-
-**Manage saved sources:**
-```
-/gw:weekly-review --list              # show all saved sources
-/gw:weekly-review --remove other-org  # remove a source
-```
-
-#### Options
-
-| Flag | Description | Default |
-|------|-------------|---------|
-| `<org-or-repo>` | GitHub org name or `org/repo`. Overrides saved sources for this run. | Saved sources |
-| `--from YYYY-MM-DD` | Start date (inclusive) | Last Wednesday |
-| `--to YYYY-MM-DD` | End date (inclusive) | Today |
-| `--author USERNAME` | GitHub username | Authenticated user |
-| `--add SOURCE` | Save an org or repo to the sources list | |
-| `--remove SOURCE` | Remove an org or repo from the sources list | |
-| `--list` | Show all saved sources | |
+See the skill file for full flag documentation.
 
 ### /gw:review-app
 
@@ -113,30 +78,15 @@ You can track activity across multiple GitHub orgs and personal repos simultaneo
                [--team auto|ask|N] [--hire|--fire|--roster]
 ```
 
-Run from inside any project directory. Auto-detects the app type and assembles a tailored specialist team from the shared workforce (37 default personas, 23 analysis-capable). Specialists are loaded dynamically from persona files — mandatory analysts always run unless explicitly skipped. Each specialist agent writes a report to `.analysis/`, then a synthesis agent merges all findings into `.analysis/REPORT.md`. After fixes, runs code simplification on modified files and generates tests to enforce 80% coverage.
+Run from inside any project directory. Auto-detects the app type and assembles a tailored specialist team from the shared workforce. Each specialist agent writes a report to `.analysis/`, then a synthesis agent merges all findings into `.analysis/REPORT.md`.
 
-| Flag | Description | Default |
-|------|-------------|---------|
-| `--skip-cloud` | Skip cloud/infrastructure cost analysis | |
-| `--skip-planning` | Skip implementation planning (superpowers/GSD) | |
-| `--skip-testing` | Skip testing/QA analysis | |
-| `--skip-security` | Skip security analysis | |
-| `--skip-seo` | Skip SEO analysis | |
-| `--skip-test-review` | Skip test sense-checking | |
-| `--skip-defaults` | Skip coding defaults enforcement | |
-| `--skip-fix` | Skip catch-and-fix phase | |
-| `--skip-pptx` | Skip PowerPoint generation | |
-| `--skip-recommend` | Skip skill recommendations | |
-| `--skip-simplify` | Skip code simplification after fixes | |
-| `--skip-test-gen` | Skip test generation for coverage enforcement | |
-| `--type <type>` | Force app type (`web`, `server`, `cli`, `mobile`, `library`, `saas`) | Auto-detect |
-| `--scope <mode>` | Scope analysis (`full`, `recent`, `recent:N`, `timeframe:<spec>`) | `full` |
-| `--team auto\|ask\|N` | Team assembly mode | `auto` |
-| `--hire/--fire/--roster` | Redirect to `/gw:workforce` for persona management | |
+```
+/gw:review-app                             # full run with auto-detected team
+/gw:review-app --type saas --team ask      # force SaaS type, interactive team selection
+/gw:review-app --scope recent:5            # analyze only last 5 commits
+```
 
-**Workforce** specialists are loaded from persona files. `--team auto` (default) skips the approval gate and auto-proceeds. Use `--team ask` for interactive team selection.
-
-If GSD is installed, automatically creates a project or milestone from the recommended improvement phases.
+See the skill file for full flag documentation.
 
 ### /gw:audit-repo
 
@@ -145,39 +95,15 @@ If GSD is installed, automatically creates a project or milestone from the recom
                [--publish] [--publish-repo <owner/repo>] [--publish-list]
 ```
 
-Performs a security audit on a GitHub repository (or the current directory) to detect malicious code, credential theft, crypto attacks, backdoors, and supply chain risks before you clone or use it locally. Analysis runs in two tiers: a fast surface scan that checks repo metadata, contributor patterns, and file signatures, followed by an optional deep scan that inspects every source file, dependency, and build script. Findings are classified into 6 threat categories (malicious code injection, credential/token theft, cryptominer/resource hijack, backdoor/reverse shell, supply chain attack, and data exfiltration). Threat intelligence is self-updating — patterns and indicators are cached locally and refreshed automatically so future audits benefit from prior findings. Produces dual reports: an executive summary with a pass/warn/fail verdict and risk assessment, and a full technical report with line-level evidence. Optional PowerPoint decks are generated for both audiences.
-
-**Output files:**
-- `.audit/REPORT.md` — Full technical security audit report
-- `.audit/EXECUTIVE-SUMMARY.md` — Executive summary with verdict and risk assessment
-- `docs/gw/audit-executive-{repo}-{date}.pptx` — Executive presentation
-- `docs/gw/audit-technical-{repo}-{date}.pptx` — Technical presentation
-- `~/.config/gw-skills/threat-intel.json` — Cached threat intelligence (auto-maintained)
-
-#### Options
-
-| Flag | Description | Default |
-|------|-------------|---------|
-| `<github-url>` | GitHub repository URL to audit | Current directory |
-| `--deep` | Skip surface scan, go straight to deep source-level analysis | Surface first |
-| `--tools` | Include external security tools (e.g., Semgrep, Trivy) if available | Off |
-| `--refresh-threats` | Force refresh of cached threat intelligence | Auto (if >7d old) |
-| `--skip-pptx` | Skip PowerPoint generation | |
-| `--skip-planning` | Skip implementation planning (superpowers/GSD) | |
-| `--publish` | Publish findings to configured audit findings repo | Off |
-| `--publish-repo <owner/repo>` | Configure the GitHub repo for publishing audit findings | |
-| `--publish-list` | List all previously published audit findings | |
-
-#### Examples
+Performs a security audit on a GitHub repository (or the current directory) to detect malicious code, credential theft, crypto attacks, backdoors, and supply chain risks. Produces dual reports: an executive summary with a pass/warn/fail verdict, and a full technical report with line-level evidence.
 
 ```
 /gw:audit-repo https://github.com/some-user/suspicious-tool
-/gw:audit-repo                                    # audit current directory
-/gw:audit-repo https://github.com/org/repo --deep  # skip surface, go straight to deep scan
-/gw:audit-repo --tools                             # include external security tools
-/gw:audit-repo --publish                           # publish findings to configured repo
-/gw:audit-repo --publish-repo owner/audit-findings  # configure publish target
+/gw:audit-repo --deep                      # skip surface, go straight to deep scan
+/gw:audit-repo --publish                   # publish findings to configured repo
 ```
+
+See the skill file for full flag documentation.
 
 ### /gw:saas-idea
 
@@ -186,48 +112,15 @@ Performs a security audit on a GitHub repository (or the current directory) to d
               [--skip-planning] [--auto] [--build] [--verify] [--team auto|ask|N] [--skip-debate]
 ```
 
-Harvests trends from 8+ internet sources (Hacker News, Product Hunt, Reddit, Twitter/X, Google Trends, GitHub Trending, tech news, IndieHackers), scores SaaS ideas on a balanced scorecard (market demand, feasibility, revenue potential, competition, uniqueness), runs an optional team debate to stress-test the top ideas, and generates a deep-dive for the selected idea.
-
-**Fixed tech stack:** PostgreSQL, Google OAuth, Stripe, AWS, Terraform. Deployed as subdomain under `codingandmore.net`.
-
-**Output files** are saved to `.saas-ideas/` in the current directory:
-- `SHORTLIST.md` — Top 10 ranked ideas with scores
-- `CONSENSUS.md` — Team debate consensus (if debate enabled)
-- `debate/round1/*.md` — Position statements per persona
-- `debate/round2/*.md` — Cross-examination responses
-- `deep-dive/BUSINESS-PLAN.md` — Full business plan with competitive analysis
-- `deep-dive/MARKETING-PLAYBOOK.md` — Go-to-market playbook with 10+ related forums
-- `deep-dive/TECH-SPEC.md` — Architecture & MVP spec
-- `deep-dive/IMPLEMENTATION-PROMPTS.md` — Ready-to-use Claude Code prompts for building
-- `docs/gw/pitch-deck.pptx` — Investor/co-founder pitch deck
-- `REPORT.md` — Executive summary
-- `history.json` — Run history for freshness tracking
-
-#### Options
-
-| Flag | Description | Default |
-|------|-------------|---------|
-| `--focus <niche>` | Narrow to a domain (e.g., "healthcare", "devtools") | All domains |
-| `--fresh` | Force fresh harvest even if recent data exists | Re-use if <24h |
-| `--budget low\|medium\|high` | Team size: solo / small team / funded | `medium` |
-| `--pick <N>` | Deep-dive on idea #N from previous shortlist | Interactive |
-| `--skip-planning` | Skip implementation planning (superpowers/GSD) | Auto-detect |
-| `--auto` | Auto-select top idea, skip interactive prompts | Interactive |
-| `--build` | Auto-select, verify, and build via GSD (implies --auto) | Interactive |
-| `--verify` | Run coherence verification on deep-dive artifacts | Off |
-| `--team auto\|ask\|N` | Debate team assembly mode | `auto` |
-| `--skip-debate` | Skip the idea debate phase (Phase 2.5) | Debate enabled |
-
-#### Examples
+Harvests trends from 8+ internet sources, scores SaaS ideas on a balanced scorecard, runs an optional team debate, and generates a deep-dive for the selected idea. Fixed tech stack: PostgreSQL, Google OAuth, Stripe, AWS, Terraform.
 
 ```
-/gw:saas-idea                          # full run, all domains, with debate
-/gw:saas-idea --focus devtools         # focus on developer tools
-/gw:saas-idea --pick 3                 # deep-dive on idea #3 from last run
-/gw:saas-idea --fresh --budget low     # force fresh harvest, solo dev scope
-/gw:saas-idea --auto --skip-debate     # fast run: auto-select #1, no debate
-/gw:saas-idea --build --budget low     # full pipeline: harvest → build (skips debate)
+/gw:saas-idea                              # full run, all domains, with debate
+/gw:saas-idea --focus devtools             # focus on developer tools
+/gw:saas-idea --build --budget low         # full pipeline: harvest to build
 ```
+
+See the skill file for full flag documentation.
 
 ### /gw:merge-it
 
@@ -237,35 +130,15 @@ Harvests trends from 8+ internet sources (Hacker News, Product Hunt, Reddit, Twi
              [--labels <label,...>] [--base <branch>]
 ```
 
-Run from any repo with uncommitted or staged changes. Ships your changes through a full workflow:
+Run from any repo with uncommitted or staged changes. Ships your changes through a full workflow: branch, commit, push, PR, self-review, fix, presentation, merge. Includes post-merge log patrol if `.log-patrol/config.json` exists.
 
-1. Create branch and commit
-2. Push and open PR
-3. Self-review the diff (correctness, security, performance)
-4. Propose fixes with an approval gate — **you decide** what gets applied
-5. Apply approved fixes and generate a PowerPoint presentation of changes
-6. Merge PR
-7. Post-merge log patrol — if `.log-patrol/config.json` exists, automatically scans production logs for errors introduced by the merge
+```
+/gw:merge-it                               # full workflow
+/gw:merge-it --squash --skip-presentation  # squash merge, no slides
+/gw:merge-it --draft --reviewers alice,bob # draft PR with reviewers
+```
 
-| Flag | Description | Default |
-|------|-------------|---------|
-| `--skip-presentation` | Skip PowerPoint generation | |
-| `--skip-review` | Skip self-review and fixes | |
-| `--skip-log-patrol` | Skip post-merge log patrol scan | |
-| `--squash` | Squash merge strategy | Merge commit |
-| `--rebase` | Rebase merge strategy | Merge commit |
-| `--draft` | Create PR as draft | |
-| `--reviewers <user,...>` | Request reviewers | |
-| `--labels <label,...>` | Add labels to PR | |
-| `--base <branch>` | Target branch for PR | Auto-detect |
-| `--all` | Merge all active worktrees via PRs (delegates to `/gw:worktree merge-all`) | |
-
-#### Worktree awareness
-
-When run inside a git worktree (created by `/gw:worktree create`), merge-it automatically:
-- Skips branch creation (uses the worktree's branch)
-- Populates the PR description with the worktree's purpose
-- Updates the worktree manifest after merge
+See the skill file for full flag documentation.
 
 ### /gw:log-patrol
 
@@ -275,62 +148,15 @@ When run inside a git worktree (created by `/gw:worktree create`), merge-it auto
                [--dry-run] [--skip-issues] [--repo owner/repo]
 ```
 
-Monitors production logs across multiple deployment environments. Fetches logs from SSH servers, AWS CloudWatch, local files, and Docker containers. Detects errors via fast pattern grep, then uses AI classification to deduplicate, categorize, and assess severity. Correlates errors with codebase locations and generates GitHub issues with full diagnosis plans (root cause hypothesis, affected code paths, suggested fix, verification steps). Tracks known errors across runs to avoid duplicate issues.
-
-**State files** are stored in `.log-patrol/` (project-local):
-- `config.json` — Source configuration and custom patterns
-- `state.json` — Scan timestamps, known error hashes, issue mappings
-- `reports/YYYY-MM-DD-HHMMSS.md` — Historical run reports
-- `classification.json` — Latest AI analysis output
-- `raw/` — Fetched log files (overwritten each run)
-
-#### Source management
-
-```
-/gw:log-patrol --add-source ssh:user@host:/var/log/app.log
-/gw:log-patrol --add-source cloudwatch:/ecs/my-app-prod
-/gw:log-patrol --add-source local:/path/to/file.log
-/gw:log-patrol --add-source docker:web-api
-/gw:log-patrol --remove-source 0
-/gw:log-patrol --list-sources
-```
-
-#### Auto-discovery
-
-```
-/gw:log-patrol --discover "dockerized Python app with CloudWatch logging"
-/gw:log-patrol --discover "3 EC2 instances running Spring Boot behind an ALB"
-```
-
-Analyzes project files (docker-compose, Terraform, Ansible, CI/CD configs, logging configs, etc.) and actively probes discovered targets (SSH, CloudWatch, Docker, local filesystem) to find log sources. Presents findings for approval before saving.
-
-#### Options
-
-| Flag | Description | Default |
-|------|-------------|---------|
-| `--add-source TYPE:CONN` | Add a log source (ssh, cloudwatch, local, docker) | |
-| `--remove-source IDX` | Remove a source by index or connection string | |
-| `--list-sources` | Show configured sources | |
-| `--discover "PROMPT"` | Auto-discover sources from project context | |
-| `--since DURATION` | How far back to scan (1h, 24h, 7d, etc.) | Since last scan or 24h |
-| `--full` | Ignore last-scan timestamp, scan full history | |
-| `--dry-run` | Scan and report but don't create GitHub issues | |
-| `--skip-issues` | Skip GitHub issue creation entirely | |
-| `--repo owner/repo` | Target GitHub repo for issues | Auto-detected from git remote |
-
-#### Examples
+Monitors production logs across SSH, CloudWatch, local files, and Docker. Detects errors via pattern grep, classifies severity with AI, correlates with codebase, and generates GitHub issues with diagnosis plans. Tracks known errors across runs to avoid duplicates.
 
 ```
 /gw:log-patrol                                          # full scan with issue creation
-/gw:log-patrol --since 1h                               # scan last hour only
-/gw:log-patrol --dry-run                                # scan and report, no issues
-/gw:log-patrol --full --skip-issues                     # full history scan, report only
+/gw:log-patrol --since 1h --dry-run                     # scan last hour, no issues
 /gw:log-patrol --discover "docker-compose Flask app"    # auto-discover sources
 ```
 
-#### Integration with /gw:merge-it
-
-When log-patrol is configured (`.log-patrol/config.json` exists), `/gw:merge-it` automatically offers a post-merge log patrol scan to detect any errors introduced by the merged changes.
+See the skill file for full flag documentation.
 
 ### /gw:compete
 
@@ -339,41 +165,15 @@ When log-patrol is configured (`.log-patrol/config.json` exists), `/gw:merge-it`
             [--add "Competitor"] [--remove "Competitor"] [--list]
 ```
 
-Run from inside any project directory. Auto-detects competitors from README and dependencies, researches them with parallel agents, assembles a team of diverse personas for structured debate (3 rounds with devil's advocate), and produces a prioritized feature implementation plan with TDD test scaffolds.
-
-**Output files** are saved to `.competitors/` in the current directory:
-- `registry.json` — Registered competitors
-- `research/{slug}.md` — Per-competitor research findings
-- `feature-matrix.json` — Feature-by-feature comparison
-- `debate/CONSENSUS.md` — Team debate synthesis
-- `SELECTED.json` — User's feature selections
-- `REPORT.md` — Full competitive analysis report
-- `docs/gw/compete-report-YYYY-MM-DD.pptx` — Presentation
-
-**Workforce** personas persist globally in the gw-skills repo (`workforce/` directory). 37 default personas ship with the skill; manage via `/gw:workforce`.
-
-#### Options
-
-| Flag | Description | Default |
-|------|-------------|---------|
-| `--deep` | Enable deep research (Reddit, HN, G2, forums) | Lightweight |
-| `--refresh` | Force re-research even if cache is recent | Re-use if <7d |
-| `--skip-pptx` | Skip PowerPoint generation | |
-| `--skip-planning` | Skip implementation planning (superpowers/GSD) | |
-| `--skip-tests` | Skip TDD test scaffold generation | |
-| `--team auto\|ask\|N` | Team assembly mode (`auto` skips approval gate) | `auto` |
-| `--add "Name"` | Register a competitor | |
-| `--remove "Name"` | Remove a competitor | |
-| `--list` | Show registered competitors | |
-
-#### Examples
+Auto-detects competitors from README and dependencies, researches them with parallel agents, runs structured debate (3 rounds with devil's advocate), and produces a prioritized feature implementation plan with TDD test scaffolds.
 
 ```
-/gw:compete                                    # full run, auto-detect everything
-/gw:compete --deep                             # deep research with forum crawling
-/gw:compete --add "Notion" --add "Coda"        # register competitors
-/gw:compete --team 8 --deep --skip-planning  # large team, deep research, no planning step
+/gw:compete                                # full run, auto-detect everything
+/gw:compete --deep                         # deep research with forum crawling
+/gw:compete --add "Notion" --add "Coda"    # register competitors
 ```
+
+See the skill file for full flag documentation.
 
 ### /gw:research
 
@@ -381,42 +181,15 @@ Run from inside any project directory. Auto-detects competitors from README and 
 /gw:research <question> [--standalone] [--deep] [--team auto|ask|N] [--skip-pptx] [--skip-planning]
 ```
 
-Takes a research question, assembles a specialist team from the shared workforce, runs parallel research with persona-specific sources (each persona uses their `search_skills` to prioritize different source types), conducts 3-round structured debate (position statements, cross-examination with devil's advocate, supervisor synthesis), and asks what to do with the findings.
-
-**Output formats** (choose one or more after research completes):
-1. **PowerPoint** — presentation with findings and recommendations → `docs/gw/research-{slug}-YYYY-MM-DD.pptx`
-2. **Report** — detailed Markdown report (optional .docx via pandoc) → `.research/{slug}/REPORT.md`
-3. **Implement** — create GSD project/milestone from recommendations (project-contextual only)
-4. **Prototype** — working code demonstrating the recommended approach → `.research/{slug}/prototype/`
-5. **Custom** — describe what you want
-
-**Research artifacts** are saved to `.research/YYYY-MM-DD-{slug}/`:
-- `agents/{persona}.md` — per-persona research findings
-- `debate/round1/{persona}.md` — position statements
-- `debate/round2/{persona}.md` — cross-examination responses
-- `CONSENSUS.md` — supervisor synthesis
-
-**Workforce** personas are shared with `/gw:compete`. 37 default personas ship with the skill; manage via `/gw:workforce`.
-
-#### Options
-
-| Flag | Description | Default |
-|------|-------------|---------|
-| `<question>` | The research question (quoted or unquoted) | Interactive prompt |
-| `--standalone` | Force standalone mode (ignore project context) | Auto-detect |
-| `--deep` | Enable deep research (more sources, historical context, quantitative data) | Lightweight |
-| `--team auto\|ask\|N` | Team assembly mode (`auto` skips approval gate) | `auto` |
-| `--skip-pptx` | Skip PowerPoint generation | |
-| `--skip-planning` | Skip implementation planning (superpowers/GSD) | |
-
-#### Examples
+Takes a research question, assembles a specialist team, runs parallel research with persona-specific sources, conducts 3-round structured debate, and asks what to do with the findings. Output formats include PowerPoint, Markdown report, implementation plan, working prototype, or custom.
 
 ```
 /gw:research What is the best approach to real-time data sync?
 /gw:research --deep "Should we migrate from REST to GraphQL?"
-/gw:research --standalone "What are the latest advances in transformer architectures?"
-/gw:research --team 8 --deep "How should we price our API?"
+/gw:research --standalone "Latest advances in transformer architectures?"
 ```
+
+See the skill file for full flag documentation.
 
 ### /gw:workforce
 
@@ -425,32 +198,15 @@ Takes a research question, assembles a specialist team from the shared workforce
               [--analyze-slug <slug>] [--analyze-categories "..."] [--analyze-tags "..."]
 ```
 
-Manages the shared persona workforce used by all four team-driven skills (`/gw:compete`, `/gw:research`, `/gw:review-app`, `/gw:saas-idea`). Personas persist globally in the gw-skills repo (`workforce/` directory). 37 default personas ship with the skill (23 with analysis capabilities).
-
-With no arguments, shows the full roster with skill participation badges.
-
-#### Options
-
-| Flag | Description |
-|------|-------------|
-| `--hire "Name" --background "..."` | Create a new persona (auto-derives perspective, priorities, debate_style, search_skills) |
-| `--fire "Name"` | Remove a custom persona (default personas cannot be fired) |
-| `--edit "Name"` | Edit a custom persona's fields interactively |
-| `--roster` | List all personas with search_skills and skill badges (default when no flags) |
-| `--analyze-slug <slug>` | When hiring, make persona participate in `gw:review-app` |
-| `--analyze-categories "..."` | Categories for analysis (required with --analyze-slug) |
-| `--analyze-tags "..."` | APP_TYPE tags for analysis relevance (default: "all") |
-
-#### Examples
+Manages the shared persona workforce used by all team-driven skills. 37 default personas ship with the skill (23 with analysis capabilities). With no arguments, shows the full roster with skill participation badges.
 
 ```
 /gw:workforce                                                          # show roster
 /gw:workforce --hire "Chemist" --background "20 years in analytical chemistry"
-/gw:workforce --hire "Chemist" --background "20 years in analytical chemistry" --analyze-slug chemistry --analyze-categories "Compound analysis, safety" --analyze-tags "all"
 /gw:workforce --fire "Chemist"
-/gw:workforce --edit "Chemist"
-/gw:workforce --roster
 ```
+
+See the skill file for full flag documentation.
 
 ### /gw:update
 
@@ -470,66 +226,21 @@ Pulls the latest version of gw-skills from GitHub. All skills auto-check for upd
 /gw:worktree execute <manifest-path>
 ```
 
-Manage git worktrees for concurrent feature development. Each worktree gets its own branch and isolated workspace, allowing parallel work on multiple features.
-
-| Subcommand | Description |
-|------------|-------------|
-| `create <name>` | Create a new worktree with branch, project setup, and baseline test verification |
-| `status` | Show all worktrees with branch, PR, CI status, and purpose |
-| `merge-all` | Merge all active worktree branches via PRs (uses `gw:merge-it` per branch) |
-| `cleanup [name]` | Remove merged worktrees (or a specific one) and prune git references |
-| `execute <manifest>` | Read a feature manifest, create worktrees in dependency waves, dispatch TDD agents in parallel, merge each wave |
-
-#### Options
-
-| Flag | Description | Default |
-|------|-------------|---------|
-| `--purpose "description"` | Describe what this worktree is for (shown in status and PR) | "No purpose specified" |
-
-#### Concurrent development workflow
+Manage git worktrees for concurrent feature development. Each worktree gets its own branch and isolated workspace, allowing parallel work on multiple features. The `execute` subcommand reads feature manifests (generated by other skills) and builds all features in parallel with TDD.
 
 ```
 /gw:worktree create auth-system --purpose "OAuth2 login flow"
-/gw:worktree create billing --purpose "Stripe billing integration"
-# Work in each worktree independently (cd .worktrees/auth-system, etc.)
-/gw:worktree status                # check progress across all worktrees
-/gw:worktree merge-all             # merge everything via PRs in sequence
-/gw:worktree cleanup               # remove merged worktrees
+/gw:worktree status                        # check progress across all worktrees
+/gw:worktree merge-all                     # merge everything via PRs
 ```
 
-Worktrees are stored in `.worktrees/` (gitignored). State is tracked in `.worktrees/manifest.json`.
-
-#### Parallel execution with manifests
-
-Skills like `/gw:saas-idea`, `/gw:compete`, `/gw:research`, and `/gw:review-app` can generate build manifests that describe independent features. The `execute` subcommand reads these manifests and builds all features in parallel with TDD.
-
-```json
-{
-  "project": "my-project",
-  "tech_stack": {"framework": "Next.js", "db": "PostgreSQL"},
-  "features": [
-    {
-      "name": "auth",
-      "description": "OAuth2 login",
-      "spec_file": "docs/SPEC.md",
-      "test_scaffolds": ["tests/auth.test.ts"],
-      "acceptance_tests": ["User can log in"],
-      "dependencies": [],
-      "files_hint": ["src/auth/"]
-    }
-  ]
-}
-```
-
-Features are sorted into dependency waves and executed in parallel per wave. Each agent uses TDD (`superpowers:test-driven-development`) and gets its own isolated worktree.
+See the skill file for full flag documentation.
 
 ## Creating Custom Personas
 
-Personas are Markdown files with YAML frontmatter that define specialist profiles. They live in the `workforce/` directory (custom) or `workforce/_defaults/` (shipped with gw-skills). All team-driven skills (`gw:compete`, `gw:research`, `gw:review-app`, `gw:saas-idea`) load personas from both directories.
+Personas are Markdown files with YAML frontmatter that define specialist profiles. They live in `workforce/` (custom) or `workforce/_defaults/` (shipped). All team-driven skills load personas from both directories.
 
 ### Quick start
-
-The easiest way to create a persona:
 
 ```
 /gw:workforce --hire "Data Engineer" --background "10 years building ETL pipelines and data warehouses"
@@ -537,54 +248,7 @@ The easiest way to create a persona:
 
 This auto-derives `perspective`, `priorities`, `debate_style`, and `search_skills` from the background.
 
-### Manual creation
-
-Create a file at `workforce/{slug}.md` with this structure:
-
-```yaml
----
-name: Data Engineer
-background: 10 years building ETL pipelines, data warehouses, and real-time streaming systems
-perspective: Data flow, pipeline reliability, schema evolution, query performance
-priorities: Is the data pipeline reliable? Can we replay failures? What's the latency?
-debate_style: Pipeline architecture analysis, SLA references, "show me the data lineage"
-search_skills: github, tech-blogs, context7, stackoverflow, benchmarks
----
-```
-
 **Required fields:** `name`, `background`, `perspective`, `priorities`, `debate_style`, `search_skills`
-
-### Making a persona participate in gw:review-app analysis
-
-Add these fields to the frontmatter to enable analysis capabilities:
-
-```yaml
-analyze_slug: data-pipeline        # output file slug (e.g., .analysis/07-data-pipeline.md)
-analyze_categories: "ETL reliability, schema evolution, query performance, data lineage"
-analyze_tags: server,saas           # which APP_TYPEs this specialist is relevant to ("all" for universal)
-analyze_mandatory: false            # true = always selected unless skipped
-analyze_skip_flag: --skip-data      # the --skip flag that disables this specialist
-```
-
-### Adding specialist-specific instructions
-
-Content after the frontmatter closing `---` is appended to the agent prompt when the persona runs in `gw:review-app`. Use this for detailed analysis instructions:
-
-```yaml
----
-name: Data Engineer
-background: ...
-analyze_slug: data-pipeline
-analyze_categories: "ETL, schema, performance"
-analyze_tags: server,saas
----
-
-ADDITIONAL DATA PIPELINE INSTRUCTIONS:
-- Check for idempotent pipeline runs (can we safely re-run?)
-- Flag any raw SQL without parameterized queries as CRITICAL
-- Check for schema migration tooling (Alembic, Flyway, Prisma Migrate)
-- Pipeline without retry/dead-letter handling = WARNING
-```
 
 ### search_skills reference
 
@@ -592,18 +256,7 @@ Choose 3-5 from: `github`, `context7`, `arxiv`, `academic`, `google-scholar`, `p
 
 ### Creating personas during skill runs
 
-You can create new personas on-the-fly during any team-driven skill run (`/gw:compete`, `/gw:research`, `/gw:review-app`, `/gw:saas-idea`) without leaving the workflow:
-
-1. Run any skill with `--team ask` to enable interactive team assembly
-2. At the team approval gate, select `[n]` (create new)
-3. Enter the persona name — the skill researches the role via WebSearch and auto-derives all persona fields
-4. Review and confirm the auto-derived persona (or edit individual fields)
-5. The persona is saved to `workforce/{slug}.md` and added to the team immediately
-6. You can create multiple personas before accepting the team
-
-After the skill completes, if any personas were created during the run, you'll be offered the option to contribute them back to gw-skills defaults via a PR. This copies the persona to `workforce/_defaults/`, creates a branch, and opens a pull request automatically.
-
-For `/gw:review-app`, the creation flow additionally asks whether the persona should participate in analysis runs and prompts for `analyze_slug`, `analyze_categories`, and `analyze_tags` fields.
+You can create new personas on-the-fly during any team-driven skill run by using `--team ask`. At the team approval gate, select `[n]` (create new), enter the persona name, and the skill auto-derives all fields via WebSearch. The persona is saved to `workforce/{slug}.md` and added to the team immediately. After the skill completes, you'll be offered the option to contribute new personas back to gw-skills defaults via a PR.
 
 ## Contributing Personas
 
