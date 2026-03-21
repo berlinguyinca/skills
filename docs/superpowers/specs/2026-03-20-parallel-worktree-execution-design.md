@@ -154,7 +154,7 @@ The agent prompt includes:
   - If no `test_scaffolds`: "Write failing tests first based on the acceptance tests below, then implement the minimal code to make them pass."
 - Commit discipline: "Make atomic commits per test/implementation cycle. Use conventional commit messages prefixed with the feature name."
 - Self-verification: "After all tests pass, run the full project test suite to check for regressions."
-- Report format: Status (DONE/DONE_WITH_CONCERNS/BLOCKED), tests passing count, files changed, any concerns.
+- Report format: Status (DONE/DONE_WITH_CONCERNS/NEEDS_CONTEXT/BLOCKED), tests passing count, files changed, any concerns.
 
 All agents in a wave are dispatched in parallel (multiple `Agent` tool calls in one message, all with `run_in_background: true`).
 
@@ -167,6 +167,7 @@ Wait for all agents in the wave to complete. As each agent finishes, collect its
 For each agent result:
 - **DONE:** Feature ready for merge.
 - **DONE_WITH_CONCERNS:** Surface concerns to user. Ask: "Feature `<name>` completed with concerns: <concerns>. Include in merge [y] or investigate [i]?"
+- **NEEDS_CONTEXT:** Agent needs clarification. Surface the question to the user. After user responds, re-dispatch the agent with the additional context. If user cannot answer, treat as BLOCKED.
 - **BLOCKED:** Feature skipped. Report blocker. Ask: "Feature `<name>` is blocked: <reason>. Skip [s] or abort wave [a]?"
 
 **3e: Merge wave**
@@ -282,10 +283,11 @@ Each skill gets a new step that generates a manifest and optionally invokes `/gw
 9. If [m]: commit manifest, tell user they can run it later
 10. If [s]: continue to existing planning dialog
 
-**Dependency graph (3 waves):**
+**Dependency graph (4 waves):**
 - Wave 1: auth, landing-page
-- Wave 2: core-feature, billing, data-api
-- Wave 3: polish
+- Wave 2: core-feature
+- Wave 3: data-api, billing
+- Wave 4: polish
 
 ### `gw:compete` — New Step 9.5: Build Manifest
 
