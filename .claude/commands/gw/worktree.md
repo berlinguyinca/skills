@@ -4,30 +4,15 @@ description: Manage git worktrees for concurrent feature development — create,
 argument-hint: "create <name> [--purpose \"description\"] | status | merge-all | cleanup [name] | execute <manifest-path>"
 ---
 
-## Step 0 — Update check
+## Step 0 — Preamble
 
-Resolve the gw-skills repo directory and run its update check script:
+Resolve the gw-skills repo path, then read and follow `$GW_REPO/.claude/commands/gw/_shared/preamble.md` for update check and GSD project detection:
 
 ```bash
 GW_REPO="$(cd "$(readlink ~/.claude/commands/gw)/../../.." 2>/dev/null && pwd)" || GW_REPO="$HOME/.gw-skills"
-bash "$GW_REPO/check-update.sh" 2>/dev/null || true
 ```
 
-If the output contains `UPDATE_AVAILABLE`, tell the user how many commits behind they are and ask: "gw-skills has updates available. Run /gw:update to install them, or continue?" If they want to update, invoke `/gw:update` and stop. Otherwise continue. If the script is missing or fails, skip silently.
-
----
-
-## Step 0.5 — GSD Project Detection (Model Inheritance)
-
-Skip this step if you are inside a GSD project (`~/.config/opencode/.planning/` exists).
-
-If `.planning/config.json` exists in the current or parent directories:
-1. Try to resolve and read its JSON content using Bash/Grep
-2. Extract `model_profile` (default: "balanced")
-3. If a profile is found, use it for all agent spawns instead of default Claude model
-4. Log: "Using GSD model profile: {profile}" in the first output message
-
-This enables gw skills to inherit opencode's model preferences within managed projects.
+GW_REPO persists for the duration of this skill run — do not re-resolve it in later steps.
 
 ---
 
@@ -126,13 +111,7 @@ If no known project file is detected, skip with: "No package manager detected �
 
 ### 1e: Baseline test verification
 
-Run the project's test suite to verify the worktree starts from a clean baseline. Use the same detection priority as merge-it:
-
-1. **package.json** — look for `scripts.test`. Run via `npm test` (or `yarn test` / `pnpm test` if lockfile present)
-2. **pyproject.toml** / **pytest** — check for `[tool.pytest]` section or `pytest.ini`. Run via `pytest`
-3. **Cargo.toml** — run `cargo test`
-4. **go.mod** — run `go test ./...`
-5. **Makefile** — check for `test` target. Run via `make test`
+Run the project's test suite to verify the worktree starts from a clean baseline. Detect and run the test suite following the priority in `$GW_REPO/.claude/commands/gw/_shared/test-runner.md`.
 
 If tests pass, report: "Baseline tests pass."
 
@@ -290,7 +269,7 @@ gh pr list --head <branch> --json number,state --limit 1
 ```
 
 3. **If no PR exists:** invoke the full `/gw:merge-it` flow (starting from Step 1 of merge-it)
-4. **If a PR exists and is open:** invoke `/gw:merge-it` flow starting from Step 4 (review/merge the existing PR)
+4. **If a PR exists and is open:** invoke `/gw:merge-it` — it will auto-detect the existing PR via its pre-flight checks and resume from the appropriate step
 5. **If a PR exists and is already merged:** update the manifest entry status to "merged" and skip
 
 After each successful merge:

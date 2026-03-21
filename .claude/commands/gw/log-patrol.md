@@ -4,36 +4,21 @@ description: Monitor production logs across deployment environments — detects 
 argument-hint: "[--add-source TYPE:CONN] [--remove-source IDX] [--list-sources] [--discover \"PROMPT\"] [--since DURATION] [--full] [--dry-run] [--skip-issues] [--repo owner/repo]"
 ---
 
-## Step 0 — Update check
+## Step 0 — Preamble
 
-Resolve the gw-skills repo directory and run its update check script:
+Resolve the gw-skills repo path, then read and follow `$GW_REPO/.claude/commands/gw/_shared/preamble.md` for update check and GSD project detection:
 
 ```bash
 GW_REPO="$(cd "$(readlink ~/.claude/commands/gw)/../../.." 2>/dev/null && pwd)" || GW_REPO="$HOME/.gw-skills"
-bash "$GW_REPO/check-update.sh" 2>/dev/null || true
 ```
 
-If the output contains `UPDATE_AVAILABLE`, tell the user how many commits behind they are and ask: "gw-skills has updates available. Run /gw:update to install them, or continue?" If they want to update, invoke `/gw:update` and stop. Otherwise continue. If the script is missing or fails, skip silently.
-
----
-
-## Step 0.5 — GSD Project Detection (Model Inheritance)
-
-**Model override:** All agents spawned by this skill MUST use `model: "sonnet"`. This applies to every Agent tool call — probe agents, fetch agents, classification agent, and correlation agents. The only exception is if a GSD model profile explicitly overrides it (see below).
-
-Skip this step if you are inside a GSD project (`~/.config/opencode/.planning/` exists).
-
-If `.planning/config.json` exists in the current or parent directories:
-1. Try to resolve and read its JSON content using Bash/Grep
-2. Extract `model_profile` (default: "balanced")
-3. If a profile is found, use it for all agent spawns instead of Sonnet
-4. Log: "Using GSD model profile: {profile}" in the first output message
-
-This enables gw skills to inherit opencode's model preferences within managed projects.
+GW_REPO persists for the duration of this skill run — do not re-resolve it in later steps.
 
 ---
 
 ## Step 1 — Parse arguments & config management
+
+Note: This skill benefits from using Sonnet for agent spawns due to high-volume parallel log analysis. If no GSD model profile is active, prefer Sonnet.
 
 You are an orchestrator for production log monitoring and analysis. You fetch logs from multiple sources, detect errors, classify them, correlate with codebase, generate reports, and create GitHub issues with diagnosis plans. Follow these steps precisely.
 

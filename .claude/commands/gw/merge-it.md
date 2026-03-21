@@ -1,33 +1,18 @@
 ---
 name: merge-it
 description: Ship the current changes end-to-end: branch, PR, review, fix, present, merge
-argument-hint: "[--all] [--skip-presentation] [--skip-review] [--skip-log-patrol] [--squash|--rebase] [--draft] [--reviewers <user,...>] [--labels <label,...>] [--base <branch>]"
+argument-hint: "[--all] [--skip-pptx] [--skip-review] [--skip-log-patrol] [--squash|--rebase] [--draft] [--reviewers <user,...>] [--labels <label,...>] [--base <branch>]"
 ---
 
-## Step 0 — Update check
+## Step 0 — Preamble
 
-Resolve the gw-skills repo directory and run its update check script:
+Resolve the gw-skills repo path, then read and follow `$GW_REPO/.claude/commands/gw/_shared/preamble.md` for update check and GSD project detection:
 
 ```bash
 GW_REPO="$(cd "$(readlink ~/.claude/commands/gw)/../../.." 2>/dev/null && pwd)" || GW_REPO="$HOME/.gw-skills"
-bash "$GW_REPO/check-update.sh" 2>/dev/null || true
 ```
 
-If the output contains `UPDATE_AVAILABLE`, tell the user how many commits behind they are and ask: "gw-skills has updates available. Run /gw:update to install them, or continue?" If they want to update, invoke `/gw:update` and stop. Otherwise continue. If the script is missing or fails, skip silently.
-
----
-
-## Step 0.5 — GSD Project Detection (Model Inheritance)
-
-Skip this step if you are inside a GSD project (`~/.config/opencode/.planning/` exists).
-
-If `.planning/config.json` exists in the current or parent directories:
-1. Try to resolve and read its JSON content using Bash/Grep
-2. Extract `model_profile` (default: "balanced")
-3. If a profile is found, use it for all agent spawns instead of default Claude model
-4. Log: "Using GSD model profile: {profile}" in the first output message
-
-This enables gw skills to inherit opencode's model preferences within managed projects.
+GW_REPO persists for the duration of this skill run — do not re-resolve it in later steps.
 
 ---
 
@@ -35,7 +20,7 @@ This enables gw skills to inherit opencode's model preferences within managed pr
 
 Parse the arguments: "$ARGUMENTS"
 
-- If `--skip-presentation` is present, set SKIP_PPTX=true
+- If `--skip-presentation` or `--skip-pptx` is present, set SKIP_PPTX=true
 - If `--skip-review` is present, set SKIP_REVIEW=true
 - If `--squash` is present, set MERGE_STRATEGY="squash"
 - If `--rebase` is present, set MERGE_STRATEGY="rebase"
@@ -204,13 +189,7 @@ Present the plan summary and ask:
 
 #### 7a: Execute the approved fixes
 - Implement each approved fix
-- Detect and run the project's test suite using this priority order:
-  1. **package.json** — look for `scripts.test`, `scripts.test:unit`, or `scripts.test:ci`. Run via `npm test` (or `yarn test` / `pnpm test` if a `yarn.lock` or `pnpm-lock.yaml` is present)
-  2. **pyproject.toml** / **pytest** — check for `[tool.pytest]` section in `pyproject.toml`, or `pytest.ini`, or `setup.cfg` with pytest config. Run via `pytest`
-  3. **Cargo.toml** — run `cargo test`
-  4. **go.mod** — run `go test ./...`
-  5. **Makefile** — check for `test`, `check`, or `verify` targets. Run via `make test`
-  6. If no test runner is detected, tell the user: "No test runner detected — skipping tests."
+- Detect and run the project's test suite following the priority in `$GW_REPO/.claude/commands/gw/_shared/test-runner.md`.
 - If tests fail, show the output and ask: "Tests failed. Fix and retry, continue anyway, or abort?"
 - Commit fixes with a clear message referencing the review
 - Push the updated branch: `git push`
@@ -223,22 +202,7 @@ Create a `.pptx` file using Python and the `python-pptx` library.
 
 Write and execute a Python script that builds the presentation with these requirements:
 
-**Design system** (canonical gw-skills palette):
-```
-PRIMARY      = RGBColor(0x2C, 0x3E, 0x50)  # dark blue-gray — titles, headers
-SECONDARY    = RGBColor(0x34, 0x49, 0x5E)  # medium blue-gray — body text
-ACCENT       = RGBColor(0x34, 0x98, 0xDB)  # bright blue — highlights, KPIs
-SUCCESS      = RGBColor(0x27, 0xAE, 0x60)  # green — improvements, fixed items
-DANGER       = RGBColor(0xE7, 0x4C, 0x3C)  # red — critical issues
-WARNING      = RGBColor(0xF3, 0x9C, 0x12)  # amber — warnings
-MUTED        = RGBColor(0x95, 0xA5, 0xA6)  # gray — captions, labels
-BG_WHITE     = RGBColor(0xFF, 0xFF, 0xFF)
-BG_LIGHT     = RGBColor(0xF8, 0xF9, 0xFA)
-```
-
-- Font: Calibri throughout
-- Slide dimensions: 16:9 widescreen (13.333" x 7.5")
-- Accent bar: 0.06" wide ACCENT strip at left edge of every slide
+Apply the design system from `$GW_REPO/.claude/commands/gw/_shared/pptx-design.md`.
 
 **Slide structure:**
 

@@ -4,30 +4,15 @@ description: Analyze any application across specialist dimensions with role-adap
 argument-hint: "[--skip-cloud] [--skip-planning] [--skip-gsd] [--skip-testing] [--skip-security] [--skip-seo] [--skip-test-review] [--skip-defaults] [--skip-fix] [--skip-pptx] [--skip-recommend] [--skip-simplify] [--skip-test-gen] [--type web|server|cli|mobile|library|saas] [--scope full|recent|recent:N|timeframe:<spec>] [--team auto|ask|N] [--hire|--fire|--roster]"
 ---
 
-## Step 0 — Update check
+## Step 0 — Preamble
 
-Resolve the gw-skills repo directory and run its update check script:
+Resolve the gw-skills repo path, then read and follow `$GW_REPO/.claude/commands/gw/_shared/preamble.md` for update check and GSD project detection:
 
 ```bash
 GW_REPO="$(cd "$(readlink ~/.claude/commands/gw)/../../.." 2>/dev/null && pwd)" || GW_REPO="$HOME/.gw-skills"
-bash "$GW_REPO/check-update.sh" 2>/dev/null || true
 ```
 
-If the output contains `UPDATE_AVAILABLE`, tell the user how many commits behind they are and ask: "gw-skills has updates available. Run /gw:update to install them, or continue?" If they want to update, invoke `/gw:update` and stop. Otherwise continue. If the script is missing or fails, skip silently.
-
----
-
-## Step 0.5 — GSD Project Detection (Model Inheritance)
-
-Skip this step if you are inside a GSD project (`~/.config/opencode/.planning/` exists).
-
-If `.planning/config.json` exists in the current or parent directories:
-1. Try to resolve and read its JSON content using Bash/Grep
-2. Extract `model_profile` (default: "balanced")
-3. If a profile is found, use it for all agent spawns instead of default Claude model
-4. Log: "Using GSD model profile: {profile}" in the first output message
-
-This enables gw skills to inherit opencode's model preferences within managed projects.
+GW_REPO persists for the duration of this skill run — do not re-resolve it in later steps.
 
 ---
 
@@ -149,200 +134,22 @@ Build STACK_CONTEXT containing the detected stack info, APP_TYPE, file count, pr
 
 ---
 
-### 1e. Load workforce
+## Step 1.5 — Team Assembly
 
-Resolve the gw-skills repo path:
+**Team suggestion table for this skill:**
 
-```bash
-GW_REPO="$(cd "$(readlink ~/.claude/commands/gw)/../../.." 2>/dev/null && pwd)" || GW_REPO="$HOME/.gw-skills"
-```
+| APP_TYPE | Suggested Team |
+|----------|---------------|
+| web | UX Designer, Web Designer, Architect, Complexity |
+| server | SRE, Architect, Performance, DevOps, Complexity |
+| cli | CLI UX, Architect, Cross-Platform, Complexity |
+| mobile | Mobile UX, Mobile Perf, Architect, Cross-Platform, Complexity |
+| library | API Design, Architect, Documentation, Compatibility, Complexity |
+| saas | SRE, UX Designer, Architect, Revenue Strategist, Growth Analyst, Sales Engineer, Performance, Complexity |
 
-Read all persona files from:
-1. `$GW_REPO/workforce/_defaults/*.md` — pre-shipped personas
-2. `$GW_REPO/workforce/*.md` (excluding `_defaults/`) — user-added personas
+Context line for approval gate: `Project: {PROJECT_NAME} ({APP_TYPE})`
 
-Parse frontmatter from each file. Filter to personas that have an `analyze_slug` field set — these form the specialist pool. For each qualifying persona, extract:
-- `name`, `background`, `perspective`, `priorities`, `debate_style`, `search_skills` (standard persona fields)
-- `analyze_slug`, `analyze_categories`, `analyze_tags`, `analyze_mandatory`, `analyze_skip_flag` (analysis-specific fields)
-- If the persona file has content after the frontmatter (text after the closing `---`), store it as `prompt_additions`
-
-Build the SPECIALIST_POOL from these parsed personas.
-
-**Apply minimum team size:** Now that mandatory specialists are loaded, compute the minimum: `max(3, count_of_active_mandatory_specialists)` — ensures all non-skipped mandatory specialists always fit. If the base team size from Step 1d is below this minimum, raise it to the minimum. Clamp to the maximum of 10.
-
-**Validate mandatory specialists:** Check that all 6 expected mandatory specialists (Security Engineer, Testing/QA Analyst, Cloud Cost Analyst, SEO Specialist, Test Sense-Checker, Coding Defaults Enforcer) have matching persona files in the pool. If any are missing, warn: "Missing mandatory specialist persona: {name}. Analysis for this dimension will be skipped."
-
----
-
-## Specialist Pool
-
-Specialists are loaded dynamically from workforce persona files in Step 1e. Each persona with an `analyze_slug` field participates in analysis. The persona file defines:
-- `analyze_slug` — output file slug
-- `analyze_categories` — what this specialist examines
-- `analyze_tags` — which APP_TYPEs this specialist is relevant to (`all` = always relevant)
-- `analyze_mandatory` — if true, always selected unless explicitly skipped
-- `analyze_skip_flag` — the `--skip-*` flag that disables this specialist
-
-### Categories
-
-**Mandatory** (always selected unless skipped): personas where `analyze_mandatory: true` — Security Engineer, Testing/QA Analyst, Cloud Cost Analyst, SEO Specialist, Test Sense-Checker, Coding Defaults Enforcer.
-
-**Domain** (selected by tag match + relevance order): personas where `analyze_tags` matches the current APP_TYPE but `analyze_mandatory` is not set.
-
-**SaaS Business** (selected when APP_TYPE=saas): Revenue Strategist, Growth/Marketing Analyst, Sales Engineer.
-
-### Relevance Order by APP_TYPE
-
-Fill remaining team slots (after mandatory specialists) in this order:
-
-Stability and user experience are the highest priorities. The order below reflects this — UX/UI specialists come before infrastructure ones.
-
-- **web:** UX Designer, Web Designer, Architect, Complexity
-- **server:** SRE, Architect, Performance, DevOps, Complexity
-- **cli:** CLI UX, Architect, Cross-Platform, Complexity
-- **mobile:** Mobile UX, Mobile Perf, Architect, Cross-Platform, Complexity
-- **library:** API Design, Architect, Documentation, Compatibility, Complexity
-- **saas:** SRE, UX Designer, Architect, Revenue Strategist, Growth Analyst, Sales Engineer, Performance, Complexity
-
----
-
-## Step 1.5 — Team Assembly & Approval
-
-### Assembly algorithm
-
-1. Start with mandatory specialists (Security, Testing/QA, Cloud Cost, SEO, Test Sense-Checker, Coding Defaults Enforcer) — remove any that have their skip flag set
-2. From the relevance-ordered list for the current APP_TYPE, add specialists until TEAM_SIZE is reached
-3. Assign output file numbers sequentially: `01-{slug}.md`, `02-{slug}.md`, etc.
-
-### Display proposed team
-
-**If TEAM_MODE is "auto" (default):** Skip the gate — auto-proceed with the proposed team. Print a brief summary:
-
-```
-Team ({TEAM_SIZE} specialists): {Name1}, {Name2}, {Name3}, ... — auto-proceeding (use --team ask for interactive selection)
-```
-
-**If TEAM_MODE is "ask":** Show the full approval gate:
-
-```
-Project: {name} ({APP_TYPE}, {size} — {file_count} files)
-Scope: {full | N files from recent commits | N files from timeframe}
-
-Proposed team ({TEAM_SIZE} specialists):
-  1. Security Engineer           [mandatory]
-  2. Testing/QA Analyst          [mandatory]
-  3. Cloud Cost Analyst          [mandatory]
-  4. SEO Specialist              [mandatory]
-  5. Test Sense-Checker          [mandatory]
-  6. Coding Defaults Enforcer    [mandatory]
-  7. Software Architect
-  ...
-
-Accept [enter], expand [e], customize [c], or create new [n]?
-```
-
-### Handle response (--team ask only)
-
-- **Accept**: proceed immediately with proposed team
-- **Expand [e]**: show the remaining pool members not selected, user picks by number (comma-separated) to add
-- **Customize [c]**: show the full pool with numbers, user picks exactly which specialists to use (comma-separated). Mandatory specialists are pre-selected but can be removed.
-- **Create new [n]**: create a new persona on-the-fly (see below)
-
-### Handle "create new" [n]
-
-When the user selects `[n]` at the approval gate (only available in `--team ask` mode), run this inline persona creation sub-flow:
-
-Initialize `CREATED_PERSONAS` as an empty list if not already set.
-
-#### Step N1 — Ask for name
-
-Prompt the user: "New persona name?"
-
-Slugify the response (lowercase, hyphens, e.g., "Toxicologist" → `toxicologist`). Check for collisions:
-
-- If `$GW_REPO/workforce/{slug}.md` exists (custom): offer "Use existing [u], rename [r], or overwrite [o]?"
-  - **[u]:** add the existing persona to the team and return to the approval gate
-  - **[r]:** ask for a new name, re-slugify, re-check
-  - **[o]:** proceed to Step N2 (will overwrite)
-- If `$GW_REPO/workforce/_defaults/{slug}.md` exists (default): offer "Use existing [u] or rename [r]?" (never overwrite defaults)
-
-#### Step N2 — Research the role
-
-Launch 3 WebSearch queries in parallel:
-1. `"{Name}" job role responsibilities skills`
-2. `"{Name}" what do they focus on priorities`
-3. `"{Name}" debate style perspective how they argue`
-
-From the results, auto-derive:
-- `background` — professional background summary (1-2 sentences)
-- `perspective` — key concerns and viewpoint
-- `priorities` — what this persona cares most about
-- `debate_style` — how they argue and what evidence they cite
-- `search_skills` — 3-5 source types from the search_skills reference list, appropriate for this persona's domain
-
-If WebSearch fails or returns insufficient results: fall back to asking the user to provide each field manually.
-
-#### Step N3 — Present for approval
-
-Display the auto-derived persona:
-
-```
-Auto-derived persona for "{Name}":
-
-  name: {Name}
-  background: {auto-derived}
-  perspective: {auto-derived}
-  priorities: {auto-derived}
-  debate_style: {auto-derived}
-  search_skills: {auto-derived}
-
-Confirm [enter], edit [e], or cancel [x]?
-```
-
-- **[enter]:** accept and proceed to Step N3a
-- **[e]:** show each field for individual editing, re-display, re-prompt
-- **[x]:** cancel creation, return to the approval gate without changes
-
-#### Step N3a — Analysis participation (review-app only)
-
-After persona confirmation, ask:
-
-```
-Should this persona participate in gw:review-app analysis? [y/n]
-```
-
-If `[y]`, auto-derive and prompt for confirmation of these additional fields:
-- `analyze_slug` — derived from the persona name (slugified)
-- `analyze_categories` — derived from the persona's perspective (comma-separated analysis focus areas)
-- `analyze_tags` — default: `"all"`, or suggest specific APP_TYPEs based on the persona's domain
-
-Display:
-
-```
-Analysis fields for "{Name}":
-
-  analyze_slug: {auto-derived}
-  analyze_categories: {auto-derived}
-  analyze_tags: {auto-derived, default "all"}
-
-Confirm [enter] or edit [e]?
-```
-
-If `[n]`, skip analysis fields — the persona will participate in team debates but not in `gw:review-app` analysis runs.
-
-#### Step N4 — Write persona file
-
-```bash
-mkdir -p "$GW_REPO/workforce"
-```
-
-Write `$GW_REPO/workforce/{slug}.md` with standard frontmatter (name, background, perspective, priorities, debate_style, search_skills). If analysis fields were confirmed in Step N3a, also include `analyze_slug`, `analyze_categories`, and `analyze_tags` in the frontmatter.
-
-Append the slug to the `CREATED_PERSONAS` list.
-
-#### Step N5 — Add to team and return to gate
-
-Add the new persona to the selected team. Re-display the updated team roster and return to the approval gate prompt. The user can accept the team, create another persona with `[n]`, or make other changes.
+Read and follow `$GW_REPO/.claude/commands/gw/_shared/team-assembly.md` using the table above for team suggestions.
 
 ---
 

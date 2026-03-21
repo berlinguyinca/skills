@@ -4,16 +4,15 @@ description: Manage the shared workforce — hire, fire, edit, and list personas
 argument-hint: "[--hire \"Name\" --background \"...\"] [--fire \"Name\"] [--edit \"Name\"] [--roster] [--analyze-slug <slug>] [--analyze-categories \"...\"] [--analyze-tags \"...\"]"
 ---
 
-## Step 0 — Update check
+## Step 0 — Preamble
 
-Resolve the gw-skills repo directory and run its update check script:
+Resolve the gw-skills repo path, then read and follow `$GW_REPO/.claude/commands/gw/_shared/preamble.md` for update check and GSD project detection:
 
 ```bash
 GW_REPO="$(cd "$(readlink ~/.claude/commands/gw)/../../.." 2>/dev/null && pwd)" || GW_REPO="$HOME/.gw-skills"
-bash "$GW_REPO/check-update.sh" 2>/dev/null || true
 ```
 
-If the output contains `UPDATE_AVAILABLE`, tell the user how many commits behind they are and ask: "gw-skills has updates available. Run /gw:update to install them, or continue?" If they want to update, invoke `/gw:update` and stop. Otherwise continue. If the script is missing or fails, skip silently.
+GW_REPO persists for the duration of this skill run — do not re-resolve it in later steps.
 
 ---
 
@@ -41,12 +40,6 @@ Parse the arguments: "$ARGUMENTS"
 ---
 
 ## Step 2 — Hire Persona
-
-Resolve the gw-skills repo path:
-
-```bash
-GW_REPO="$(cd "$(readlink ~/.claude/commands/gw)/../../.." 2>/dev/null && pwd)" || GW_REPO="$HOME/.gw-skills"
-```
 
 1. Slugify the name (e.g., "Mass Spectrometrist" → `mass-spectrometrist`)
 2. Check if `$GW_REPO/workforce/{slug}.md` already exists. If so, ask: "A persona named {Name} already exists. Overwrite [o] or rename [r]?" and wait.
@@ -86,12 +79,6 @@ Choose 3-5 from: `github`, `context7`, `arxiv`, `academic`, `google-scholar`, `p
 
 ## Step 3 — Fire Persona
 
-Resolve the gw-skills repo path:
-
-```bash
-GW_REPO="$(cd "$(readlink ~/.claude/commands/gw)/../../.." 2>/dev/null && pwd)" || GW_REPO="$HOME/.gw-skills"
-```
-
 1. Find matching file in `$GW_REPO/workforce/` (NOT `_defaults/`)
 2. If the persona is in `_defaults/`: print "Can't fire default personas. They ship with the skill." and stop.
 3. If no matching file found: print "No custom persona named '{Name}' found. Run `/gw:workforce --roster` to see all personas." and stop.
@@ -102,12 +89,6 @@ GW_REPO="$(cd "$(readlink ~/.claude/commands/gw)/../../.." 2>/dev/null && pwd)" 
 ---
 
 ## Step 4 — Edit Persona
-
-Resolve the gw-skills repo path:
-
-```bash
-GW_REPO="$(cd "$(readlink ~/.claude/commands/gw)/../../.." 2>/dev/null && pwd)" || GW_REPO="$HOME/.gw-skills"
-```
 
 1. Slugify the name and look for the file in `$GW_REPO/workforce/{slug}.md` first, then `$GW_REPO/workforce/_defaults/{slug}.md`.
 2. If found in `_defaults/`: print "Can't edit default personas directly. Use `--hire` to create a custom version." and stop.
@@ -121,12 +102,6 @@ GW_REPO="$(cd "$(readlink ~/.claude/commands/gw)/../../.." 2>/dev/null && pwd)" 
 ---
 
 ## Step 5 — Show Roster
-
-Resolve the gw-skills repo path:
-
-```bash
-GW_REPO="$(cd "$(readlink ~/.claude/commands/gw)/../../.." 2>/dev/null && pwd)" || GW_REPO="$HOME/.gw-skills"
-```
 
 Read all persona files from:
 1. `$GW_REPO/workforce/_defaults/*.md` — pre-shipped personas

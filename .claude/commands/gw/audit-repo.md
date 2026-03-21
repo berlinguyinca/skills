@@ -4,30 +4,15 @@ description: Security audit for GitHub repositories — analyzes code for malici
 argument-hint: "[<github-url>] [--deep] [--tools] [--refresh-threats] [--skip-pptx] [--skip-planning|--skip-gsd] [--publish] [--publish-repo <owner/repo>] [--publish-list]"
 ---
 
-## Step 0 — Update check
+## Step 0 — Preamble
 
-Resolve the gw-skills repo directory and run its update check script:
+Resolve the gw-skills repo path, then read and follow `$GW_REPO/.claude/commands/gw/_shared/preamble.md` for update check and GSD project detection:
 
 ```bash
 GW_REPO="$(cd "$(readlink ~/.claude/commands/gw)/../../.." 2>/dev/null && pwd)" || GW_REPO="$HOME/.gw-skills"
-bash "$GW_REPO/check-update.sh" 2>/dev/null || true
 ```
 
-If the output contains `UPDATE_AVAILABLE`, tell the user how many commits behind they are and ask: "gw-skills has updates available. Run /gw:update to install them, or continue?" If they want to update, invoke `/gw:update` and stop. Otherwise continue. If the script is missing or fails, skip silently.
-
----
-
-## Step 0.5 — GSD Project Detection (Model Inheritance)
-
-Skip this step if you are inside a GSD project (`~/.config/opencode/.planning/` exists).
-
-If `.planning/config.json` exists in the current or parent directories:
-1. Try to resolve and read its JSON content using Bash/Grep
-2. Extract `model_profile` (default: "balanced")
-3. If a profile is found, use it for all agent spawns instead of default Claude model
-4. Log: "Using GSD model profile: {profile}" in the first output message
-
-This enables gw skills to inherit opencode's model preferences within managed projects.
+GW_REPO persists for the duration of this skill run — do not re-resolve it in later steps.
 
 ---
 
@@ -55,6 +40,8 @@ Based on arguments and detected state, the workflow may skip steps:
 |-----------|----------------|
 | Default (no flags) | 0 → 1 → 2 → 3 → (if not SAFE) 4 → 5 → 6 → 7 → 8 → 9 |
 | `--deep` | 0 → 1 → 2 → skip 3 → 4 → 5 → 6 → 7 → 8 → 9 |
+
+Note: `--deep` intentionally bypasses Step 3 (surface scan) and its approval gates — the user explicitly requested deep analysis.
 | `--tools` | Adds Step 4b between Steps 4 and 5 |
 | `--publish` | Adds publish sub-step in Step 8a |
 | Surface scan = SAFE | 0 → 1 → 2 → 3 → offer deep scan or stop |
