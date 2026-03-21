@@ -1,7 +1,7 @@
 ---
 name: review-app
-description: Analyze any application across specialist dimensions with role-adapted agents
-argument-hint: "[--skip-cloud] [--skip-planning] [--skip-gsd] [--skip-testing] [--skip-security] [--skip-seo] [--skip-test-review] [--skip-defaults] [--skip-fix] [--skip-pptx] [--skip-recommend] [--skip-simplify] [--skip-test-gen] [--type web|server|cli|mobile|library|saas] [--scope full|recent|recent:N|timeframe:<spec>] [--team auto|ask|N] [--hire|--fire|--roster]"
+description: Full-stack application review — security, architecture, UX, testing, cloud cost analysis with AI specialists
+argument-hint: "[--focus dim1,dim2,...] [--skip-cloud] [--skip-planning] [--skip-gsd] [--skip-testing] [--skip-security] [--skip-seo] [--skip-test-review] [--skip-defaults] [--skip-fix] [--skip-pptx] [--skip-recommend] [--skip-simplify] [--skip-test-gen] [--type web|server|cli|mobile|library|saas] [--scope full|recent|recent:N|timeframe:<spec>] [--team auto|ask|N] [--hire|--fire|--roster]"
 ---
 
 ## Step 0 — Preamble
@@ -19,6 +19,8 @@ GW_REPO persists for the duration of this skill run — do not re-resolve it in 
 You are an orchestrator for a multi-dimensional application analysis. You assemble a **tailored team of specialists** based on the project's type, size, and complexity. Follow these steps precisely.
 
 Parse the arguments: "$ARGUMENTS"
+- If `--focus <dimensions>` is present, set FOCUS_DIMS to the comma-separated list. Valid dimensions: `cloud`, `security`, `testing`, `seo`, `test-review`, `defaults`, `fix`, `pptx`, `recommend`, `simplify`, `test-gen`. All dimensions NOT in the list are treated as skipped.
+- If both `--focus` and any `--skip-*` flags are present, `--focus` takes precedence. Warn: "Both --focus and --skip flags provided. Using --focus dimensions only."
 - If "--skip-cloud" or "--skip-aws" is present, set SKIP_CLOUD=true
 - If "--skip-planning" or "--skip-gsd" is present, set SKIP_PLANNING=true
 - If "--skip-testing" is present, set SKIP_TESTING=true
@@ -35,6 +37,10 @@ Parse the arguments: "$ARGUMENTS"
 - If "--scope X" is present, set SCOPE_MODE=X (one of: full, recent, recent:N, timeframe:<spec>). Default: full
 - If "--team X" is present: if X is a number, set TEAM_MODE=auto and TEAM_SIZE_OVERRIDE=X (overrides complexity-based sizing). If X is "auto" or "ask", set TEAM_MODE=X. Default: auto
 - If "--hire", "--fire", or "--roster" is present: tell the user "Use `/gw:workforce` for persona management. Examples: `/gw:workforce --hire "Name" --background "..."`, `/gw:workforce --fire "Name"`, `/gw:workforce --roster`" and stop.
+
+**--focus flag behavior:** When FOCUS_DIMS is set, derive skip flags from it:
+- For each valid dimension NOT in FOCUS_DIMS, set its corresponding SKIP variable to true
+- Dimension mapping: `cloud` → SKIP_CLOUD, `security` → SKIP_SECURITY, `testing` → SKIP_TESTING, `seo` → SKIP_SEO, `test-review` → SKIP_TEST_REVIEW, `defaults` → SKIP_DEFAULTS, `fix` → SKIP_FIX, `pptx` → SKIP_PPTX, `recommend` → SKIP_RECOMMEND, `simplify` → SKIP_SIMPLIFY, `test-gen` → SKIP_TEST_GEN
 
 ---
 
