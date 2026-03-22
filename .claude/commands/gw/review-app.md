@@ -1,7 +1,7 @@
 ---
 name: review-app
 description: Full-stack application review — security, architecture, UX, testing, cloud cost analysis with AI specialists
-argument-hint: "[--focus dim1,dim2,...] [--skip-cloud] [--skip-planning] [--skip-gsd] [--skip-testing] [--skip-security] [--skip-seo] [--skip-test-review] [--skip-defaults] [--skip-fix] [--skip-pptx] [--skip-recommend] [--skip-simplify] [--skip-test-gen] [--type web|server|cli|mobile|library|saas] [--scope full|recent|recent:N|timeframe:<spec>] [--team auto|ask|N] [--hire|--fire|--roster]"
+argument-hint: "[--focus dim1,dim2,...] [--skip-cloud] [--skip-planning] [--skip-gsd] [--skip-testing] [--skip-security] [--skip-seo] [--skip-test-review] [--skip-defaults] [--skip-fix] [--skip-pptx] [--skip-recommend] [--skip-simplify] [--skip-test-gen] [--type web|server|cli|mobile|library|saas] [--scope full|recent|recent:N|timeframe:<spec>] [--team auto|ask|N] [--hire|--fire|--roster] [--no-branch]"
 ---
 
 ## Step 0 — Preamble
@@ -13,6 +13,14 @@ GW_REPO="$(cd "$(readlink ~/.claude/commands/gw)/../../.." 2>/dev/null && pwd)" 
 ```
 
 GW_REPO persists for the duration of this skill run — do not re-resolve it in later steps.
+
+---
+
+## Step 0.5 — Branch Isolation
+
+Set `SKILL_NAME="review-app"`.
+
+Read and follow `$GW_REPO/.claude/commands/gw/_shared/branch-first.md` for branch creation.
 
 ---
 
@@ -36,6 +44,7 @@ Parse the arguments: "$ARGUMENTS"
 - If "--type X" is present, set FORCED_TYPE=X (one of: web, server, cli, mobile, library, saas)
 - If "--scope X" is present, set SCOPE_MODE=X (one of: full, recent, recent:N, timeframe:<spec>). Default: full
 - If "--team X" is present: if X is a number, set TEAM_MODE=auto and TEAM_SIZE_OVERRIDE=X (overrides complexity-based sizing). If X is "auto" or "ask", set TEAM_MODE=X. Default: auto
+- If "--no-branch" is present, set NO_BRANCH=true. Default: false. Skips branch isolation (see Step 0.5).
 - If "--hire", "--fire", or "--roster" is present: tell the user "Use `/gw:workforce` for persona management. Examples: `/gw:workforce --hire "Name" --background "..."`, `/gw:workforce --fire "Name"`, `/gw:workforce --roster`" and stop.
 
 **--focus flag behavior:** When FOCUS_DIMS is set, derive skip flags from it:
@@ -898,6 +907,14 @@ If the user selects `[y]`:
 9. If stashed in step 3, `git stash pop`
 10. Return to the original directory and branch
 11. Print the PR URL
+
+---
+
+## Step 11.5 — Intent Commit & Auto-PR
+
+Read and follow `$GW_REPO/.claude/commands/gw/_shared/intent-commit.md` to write and commit the `.gw-intent.md` file.
+
+Then read and follow `$GW_REPO/.claude/commands/gw/_shared/auto-pr.md` to create a PR with the `agent_merge` label.
 
 ---
 

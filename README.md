@@ -24,6 +24,7 @@ rm -rf ~/.config/gw-skills  # remove saved config (source list, etc.)
 | `/gw:saas-idea` | Harvest trending SaaS opportunities from the internet, score and rank them, then deep-dive with full business plan, marketing playbook, tech spec, implementation prompts, and pitch deck. Targets complete prototype deployment on AWS with PostgreSQL, Stripe, and Google OAuth. |
 | `/gw:merge-it` | Ship current changes end-to-end: branch, PR, self-review, fix, generate presentation, merge. Includes post-merge log patrol if configured. |
 | `/gw:worktree` | Manage git worktrees for concurrent feature development — create isolated workspaces, check status across all worktrees, merge all branches via PRs, and clean up after merge. |
+| `/gw:merge-prs` | Discover, review, and integrate all `agent_merge`-labeled PRs into a single integration branch. Reads `.gw-intent.md` files to understand intent, resolves conflicts with AI assistance, runs tests after each merge, and creates a master integration PR. |
 | `/gw:weekly-review` | Generate executive and technical PowerPoint presentations from GitHub activity (commits & PRs) across multiple orgs and repos. |
 | `/gw:compete` | Competitive feature analysis with structured team debate, TDD test scaffolds, and implementation planning. |
 | `/gw:research` | Multi-persona research with structured debate, parallel source investigation, and actionable output (report, PPTX, implementation, prototype). |
@@ -235,6 +236,56 @@ Manage git worktrees for concurrent feature development. Each worktree gets its 
 ```
 
 See the skill file for full flag documentation.
+
+### /gw:merge-prs
+
+```
+/gw:merge-prs [--dry-run] [--label <label>] [--skip-tests] [--base <branch>]
+```
+
+Discover and integrate all PRs labeled `agent_merge` into a single integration branch. Each PR's `.gw-intent.md` file is read to understand intent. PRs are merged one by one with AI-assisted conflict resolution and optional test runs between merges. The result is a master integration PR against the base branch.
+
+```
+/gw:merge-prs                          # full integration workflow
+/gw:merge-prs --dry-run                # list agent_merge PRs without merging
+/gw:merge-prs --skip-tests             # skip test runs between merges
+```
+
+## Concurrent Execution
+
+Skills that produce artifacts (`research`, `compete`, `review-app`, `saas-idea`, `audit-repo`) automatically create an isolated branch for each execution. This allows multiple Claude Code sessions to run skills concurrently without conflicts.
+
+### How it works
+
+1. Each skill run creates a branch: `gw/<skill-name>/<date>-<short-id>`
+2. All work happens on that branch
+3. A `.gw-intent.md` file is committed to document purpose and decisions
+4. A PR is auto-created with the `agent_merge` label
+5. `/gw:merge-prs` integrates all agent PRs into one integration branch
+
+### Example: three skills in parallel
+
+```bash
+# Terminal 1
+/gw:research "market analysis for X"
+
+# Terminal 2
+/gw:compete --deep
+
+# Terminal 3
+/gw:review-app
+
+# After all complete:
+/gw:merge-prs
+```
+
+### Opting out
+
+Use `--no-branch` on any skill to skip branch isolation:
+
+```
+/gw:research "quick question" --no-branch
+```
 
 ## Creating Custom Personas
 

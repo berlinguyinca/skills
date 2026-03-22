@@ -1,7 +1,7 @@
 ---
 name: saas-idea
 description: Harvest trending SaaS opportunities from the internet, score and rank them, then deep-dive into the best idea with full business plan, marketing playbook, and implementation prompts
-argument-hint: "[--focus <niche>] [--fresh] [--budget low|medium|high] [--pick <N>] [--skip-planning] [--skip-gsd] [--auto] [--build] [--verify] [--team auto|ask|N] [--skip-debate]"
+argument-hint: "[--focus <niche>] [--fresh] [--budget low|medium|high] [--pick <N>] [--skip-planning] [--skip-gsd] [--auto] [--build] [--verify] [--team auto|ask|N] [--skip-debate] [--no-branch]"
 ---
 
 ## Step 0 — Preamble
@@ -13,6 +13,14 @@ GW_REPO="$(cd "$(readlink ~/.claude/commands/gw)/../../.." 2>/dev/null && pwd)" 
 ```
 
 GW_REPO persists for the duration of this skill run — do not re-resolve it in later steps.
+
+---
+
+## Step 0.5 — Branch Isolation
+
+Set `SKILL_NAME="saas-idea"`.
+
+Read and follow `$GW_REPO/.claude/commands/gw/_shared/branch-first.md` for branch creation.
 
 ---
 
@@ -29,6 +37,7 @@ Parse the arguments: "$ARGUMENTS"
 - If "--verify" is present, set VERIFY_MODE=true. Default: false
 - If "--team X" is present: if X is a number, set TEAM_MODE=auto and TEAM_SIZE_OVERRIDE=X (clamped to 3-10). If X is "auto" or "ask", set TEAM_MODE=X. Default: auto
 - If "--skip-debate" is present, set SKIP_DEBATE=true. Default: false
+- If "--no-branch" is present, set NO_BRANCH=true. Default: false. Skips branch isolation (see Step 0.5).
 
 ### Flag validation
 
@@ -2073,6 +2082,14 @@ Next Steps:
   - Resume work: /gsd:resume-work
   - Verify completed phases: /gsd:verify-work
 ```
+
+---
+
+## Step 8.5 — Intent Commit & Auto-PR
+
+Read and follow `$GW_REPO/.claude/commands/gw/_shared/intent-commit.md` to write and commit the `.gw-intent.md` file.
+
+Then read and follow `$GW_REPO/.claude/commands/gw/_shared/auto-pr.md` to create a PR with the `agent_merge` label.
 
 ---
 

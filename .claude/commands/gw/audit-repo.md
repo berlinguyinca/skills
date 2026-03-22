@@ -1,7 +1,7 @@
 ---
 name: audit-repo
 description: Security audit for GitHub repositories — analyzes code for malicious patterns, credential theft, crypto wallet attacks, backdoors, and supply chain risks before local use
-argument-hint: "[<github-url>] [--deep] [--tools] [--refresh-threats] [--skip-pptx] [--skip-planning|--skip-gsd] [--publish] [--publish-repo <owner/repo>] [--publish-list]"
+argument-hint: "[<github-url>] [--deep] [--tools] [--refresh-threats] [--skip-pptx] [--skip-planning|--skip-gsd] [--publish] [--publish-repo <owner/repo>] [--publish-list] [--no-branch]"
 ---
 
 ## Step 0 — Preamble
@@ -13,6 +13,14 @@ GW_REPO="$(cd "$(readlink ~/.claude/commands/gw)/../../.." 2>/dev/null && pwd)" 
 ```
 
 GW_REPO persists for the duration of this skill run — do not re-resolve it in later steps.
+
+---
+
+## Step 0.5 — Branch Isolation
+
+Set `SKILL_NAME="audit-repo"`.
+
+Read and follow `$GW_REPO/.claude/commands/gw/_shared/branch-first.md` for branch creation.
 
 ---
 
@@ -33,6 +41,7 @@ Parse the arguments: "$ARGUMENTS"
 | `--publish` | PUBLISH | false | |
 | `--publish-repo <owner/repo>` | — | — | Persist to `~/.config/gw-skills/audit-repo.json`, confirm, and **stop** |
 | `--publish-list` | — | — | Display configured publish repo + past publications, then **stop** |
+| `--no-branch` | NO_BRANCH | false | Skip branch isolation (see Step 0.5) |
 | `--hire` / `--fire` / `--roster` | — | — | Redirect: "Use `/gw:workforce`…" and **stop** |
 
 ## Workflow routing
@@ -750,6 +759,14 @@ Audit complete:
                  docs/gw/audit-technical-{repo-name}-{date}.pptx
   Published:     {yes — to owner/repo | no}
 ```
+
+---
+
+## Step 9.5 — Intent Commit & Auto-PR
+
+Read and follow `$GW_REPO/.claude/commands/gw/_shared/intent-commit.md` to write and commit the `.gw-intent.md` file.
+
+Then read and follow `$GW_REPO/.claude/commands/gw/_shared/auto-pr.md` to create a PR with the `agent_merge` label.
 
 ---
 

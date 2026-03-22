@@ -1,7 +1,7 @@
 ---
 name: research
 description: Multi-persona research with structured debate, parallel source investigation, and actionable output (report, PPTX, implementation, prototype)
-argument-hint: "<question> [--standalone] [--deep] [--team auto|ask|N] [--skip-pptx] [--skip-planning|--skip-gsd]"
+argument-hint: "<question> [--standalone] [--deep] [--team auto|ask|N] [--skip-pptx] [--skip-planning|--skip-gsd] [--no-branch]"
 ---
 
 ## Step 0 — Preamble
@@ -13,6 +13,14 @@ GW_REPO="$(cd "$(readlink ~/.claude/commands/gw)/../../.." 2>/dev/null && pwd)" 
 ```
 
 GW_REPO persists for the duration of this skill run — do not re-resolve it in later steps.
+
+---
+
+## Step 0.5 — Branch Isolation
+
+Set `SKILL_NAME="research"`.
+
+Read and follow `$GW_REPO/.claude/commands/gw/_shared/branch-first.md` for branch creation.
 
 ---
 
@@ -31,6 +39,7 @@ The **research question** is everything in `$ARGUMENTS` that isn't a recognized 
 | `--team <N\|auto\|ask>` | TEAM_MODE, TEAM_SIZE_OVERRIDE | auto | N (number, clamped 3-10) sets TEAM_SIZE_OVERRIDE |
 | `--skip-pptx` | SKIP_PPTX | false | |
 | `--skip-planning` / `--skip-gsd` | SKIP_PLANNING | false | |
+| `--no-branch` | NO_BRANCH | false | Skip branch isolation (see Step 0.5) |
 | `--hire` / `--fire` / `--roster` | — | — | Redirect: "Use `/gw:workforce`…" and **stop** |
 
 If no research question is provided and no workforce management flag is set, ask: "What would you like to research?" and wait.
@@ -1134,6 +1143,14 @@ If the user selects `[y]`:
 9. If stashed in step 3, `git stash pop`
 10. Return to the original directory and branch
 11. Print the PR URL
+
+---
+
+## Step 8.5 — Intent Commit & Auto-PR
+
+Read and follow `$GW_REPO/.claude/commands/gw/_shared/intent-commit.md` to write and commit the `.gw-intent.md` file.
+
+Then read and follow `$GW_REPO/.claude/commands/gw/_shared/auto-pr.md` to create a PR with the `agent_merge` label.
 
 ---
 

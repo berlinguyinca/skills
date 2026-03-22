@@ -1,7 +1,7 @@
 ---
 name: compete
 description: Competitive feature analysis with structured team debate, TDD test scaffolds, and implementation planning
-argument-hint: "[--deep] [--refresh] [--skip-pptx] [--skip-planning] [--skip-gsd] [--skip-tests] [--team auto|ask|N] [--add \"Competitor\"] [--remove \"Competitor\"] [--list]"
+argument-hint: "[--deep] [--refresh] [--skip-pptx] [--skip-planning] [--skip-gsd] [--skip-tests] [--team auto|ask|N] [--add \"Competitor\"] [--remove \"Competitor\"] [--list] [--no-branch]"
 ---
 
 ## Step 0 — Preamble
@@ -13,6 +13,14 @@ GW_REPO="$(cd "$(readlink ~/.claude/commands/gw)/../../.." 2>/dev/null && pwd)" 
 ```
 
 GW_REPO persists for the duration of this skill run — do not re-resolve it in later steps.
+
+---
+
+## Step 0.5 — Branch Isolation
+
+Set `SKILL_NAME="compete"`.
+
+Read and follow `$GW_REPO/.claude/commands/gw/_shared/branch-first.md` for branch creation.
 
 ---
 
@@ -33,6 +41,7 @@ Parse the arguments: "$ARGUMENTS"
 | `--add "Name"` | ADD_COMPETITOR | — | |
 | `--remove "Name"` | REMOVE_COMPETITOR | — | |
 | `--list` | LIST_COMPETITORS | false | |
+| `--no-branch` | NO_BRANCH | false | Skip branch isolation (see Step 0.5) |
 | `--hire` / `--fire` / `--roster` | — | — | Redirect: "Use `/gw:workforce`…" and **stop** |
 
 ## Workflow routing
@@ -914,6 +923,14 @@ If the user selects `[y]`:
 9. If stashed in step 3, `git stash pop`
 10. Return to the original directory and branch
 11. Print the PR URL
+
+---
+
+## Step 12.5 — Intent Commit & Auto-PR
+
+Read and follow `$GW_REPO/.claude/commands/gw/_shared/intent-commit.md` to write and commit the `.gw-intent.md` file.
+
+Then read and follow `$GW_REPO/.claude/commands/gw/_shared/auto-pr.md` to create a PR with the `agent_merge` label.
 
 ---
 
