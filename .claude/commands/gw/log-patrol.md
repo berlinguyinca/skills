@@ -38,11 +38,7 @@ Parse the arguments: "$ARGUMENTS"
 | `--skip-issues` | SKIP_ISSUES | false | Skip GitHub issue creation entirely |
 | `--repo <owner/repo>` | TARGET_REPO | auto-detected | Target GitHub repo for issues |
 
-**Source format examples:**
-- `ssh:user@host:/var/log/app.log`
-- `cloudwatch:log-group-name`
-- `local:/path/to/file.log`
-- `docker:container-name`
+Read and follow `$GW_REPO/.claude/commands/gw/_shared/log-patrol-sources.md` for source format connection strings.
 
 ### Config management operations
 
@@ -90,37 +86,11 @@ Only execute this step when `--discover "PROMPT"` was provided.
 
 ### Phase A — Project file analysis (orchestrator, no agents)
 
-Scan the project for infrastructure hints. Read/glob for these files and extract relevant information:
-
-| File/Pattern | What to extract |
-|-------------|-----------------|
-| `docker-compose.yml` / `docker-compose.*.yml` | Service names, log driver config, volume mounts |
-| `Dockerfile` / `*.dockerfile` | Base image (implies log paths), exposed ports |
-| `*.tf` / `terraform/` | AWS resources (CloudWatch log groups, EC2 instances, ECS tasks, Lambda functions) |
-| `.env` / `.env.*` | Host addresses, AWS regions, service URLs |
-| `deploy/` / `scripts/` / `Makefile` | SSH targets, deployment hosts, rsync destinations |
-| `ansible/` / `playbook*.yml` | Inventory hosts, log path configurations |
-| `k8s/` / `kubernetes/` / `helm/` | Pod names, namespaces, container names |
-| CI/CD configs (`.github/workflows/`, `Jenkinsfile`, `.gitlab-ci.yml`) | Deploy targets, environment variables |
-| `CLAUDE.md` / `README.md` | Infrastructure descriptions, architecture notes |
-| Logging configs (`log4j*.xml`, `logback.xml`, `logging.conf`, winston config) | Log file paths, log formats, rotation settings |
-
-Combine findings with the user's PROMPT to build a list of **candidate sources** (type + connection string + confidence level: high/medium/low).
+Read and follow `$GW_REPO/.claude/commands/gw/_shared/log-patrol-sources.md` for the file/pattern table and what to extract. Combine findings with the user's PROMPT to build a list of **candidate sources** (type + connection string + confidence level: high/medium/low).
 
 ### Phase B — Active probing (parallel agents, 1 per target type)
 
-For each distinct source type discovered, launch a background agent (`model: "sonnet"`) to verify and discover specific log paths:
-
-| Source type | Probe action |
-|-------------|-------------|
-| SSH | `ssh user@host "find /var/log -name '*.log' -mmin -1440 2>/dev/null; ls -la /var/log/app/ 2>/dev/null; systemctl list-units --type=service --state=running 2>/dev/null"` |
-| CloudWatch | `aws logs describe-log-groups --query 'logGroups[*].[logGroupName,storedBytes]' --output table` |
-| Docker | `docker ps --format '{{.Names}} {{.Image}} {{.Status}}'` to list running containers |
-| Local | `find . -name '*.log' -o -name '*.err' \| head -20; ls /var/log/ 2>/dev/null` |
-
-Each probe agent returns discovered log files/streams with metadata (size, last modified, service association).
-
-If a probe fails (e.g., ssh unreachable, aws not configured), note it as failed and continue with other probes.
+Read and follow `$GW_REPO/.claude/commands/gw/_shared/log-patrol-sources.md` for probe commands per source type. Launch a background agent (`model: "sonnet"`) per distinct source type to verify and discover specific log paths.
 
 ### Phase C — Present findings for approval (approval gate)
 
@@ -213,41 +183,7 @@ Compute the time window:
 - If `--since DURATION` was set: parse duration (e.g., `24h` = 24 hours, `7d` = 7 days) and compute start timestamp
 - Otherwise: read `.log-patrol/state.json` for `last_scan` timestamp. If exists, use it. If not, default to 24 hours ago.
 
-### Fetch commands per source type
-
-**SSH source** (`ssh:user@host:/path/to/file.log`):
-```bash
-# Parse connection: user@host and path
-ssh user@host "cat /path/to/file.log" > .log-patrol/raw/source-INDEX.log
-# If --since is set, use awk/sed to filter by timestamp if log format is recognized
-# If file is very large (>50MB), tail the last 10000 lines instead
-```
-
-**CloudWatch source** (`cloudwatch:log-group-name`):
-```bash
-aws logs filter-log-events \
-  --log-group-name "log-group-name" \
-  --start-time START_EPOCH_MS \
-  --output json \
-  --query 'events[*].message' > .log-patrol/raw/source-INDEX.log
-```
-Note: `--start-time` requires epoch milliseconds. Convert the computed start timestamp.
-
-**Local source** (`local:/path/to/file.log`):
-```bash
-cp /path/to/file.log .log-patrol/raw/source-INDEX.log
-# If --since is set and file is large, filter by timestamp or tail
-```
-
-**Docker source** (`docker:container-name`):
-```bash
-docker logs container-name --since START_TIMESTAMP > .log-patrol/raw/source-INDEX.log 2>&1
-```
-
-Each agent should:
-1. Fetch the log content using the appropriate command
-2. Write to `.log-patrol/raw/source-{INDEX}.log` where INDEX is the source index from config
-3. Report back: success with line count + byte size, or failure with error message
+Read and follow `$GW_REPO/.claude/commands/gw/_shared/log-patrol-sources.md` for fetch commands per source type.
 
 After all agents complete, print a fetch summary:
 ```
@@ -266,19 +202,7 @@ If ALL fetches fail, stop with an error summary explaining each failure.
 
 Run grep-based pattern matching directly (no agents) on all fetched log files in `.log-patrol/raw/`.
 
-### Error detection patterns
-
-| Category | Patterns |
-|----------|----------|
-| Explicit errors | `\bERROR\b`, `\bFATAL\b`, `\bCRITICAL\b` |
-| Exceptions | `\bException\b`, `\bTraceback\b`, `\bpanic:\b` |
-| HTTP 5xx | `\bHTTP[/ ][12]\.[01].\s+5[0-9]{2}\b` or `\b5[0-9]{2}\b` with HTTP context (e.g., near `GET`, `POST`, `HTTP`) |
-| Memory | `\bOOM\b`, `\bOutOfMemory\b`, `\bsegfault\b`, `\bSIGKILL\b` |
-| Timeouts | `\btimeout\b`, `\bdeadlock\b`, `\bconnection refused\b` |
-| Disk/IO | `\bNo space left\b`, `\bDisk full\b`, `\bI/O error\b` |
-| Custom | User-defined patterns from `config.json` `custom_patterns` array |
-
-For each pattern, grep across all raw log files. Use case-insensitive matching for timeout/deadlock patterns but case-sensitive for ERROR/FATAL/CRITICAL.
+Read and follow `$GW_REPO/.claude/commands/gw/_shared/log-patrol-sources.md` for error detection patterns, case sensitivity rules, and classification tables.
 
 Collect all matching lines with their source file, line number, and matched category. Deduplicate exact duplicate lines.
 
@@ -314,55 +238,13 @@ Group similar error messages together. Two errors are "similar" if they:
 - Differ only in timestamps, request IDs, user IDs, or other variable data
 - Originate from the same code path (same stack trace structure)
 
-### 5b. Categorize each unique error
-Assign one category: `Application Error`, `Infrastructure Error`, `Dependency Error`, `Configuration Error`, `Performance Error`, `Security Event`
-
-### 5c. Assess severity
-Assign severity: `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`
-
-Criteria:
-- **CRITICAL**: Data loss, security breach, complete service outage, OOM kills
-- **HIGH**: Partial outage, persistent errors affecting users, failing dependencies
-- **MEDIUM**: Intermittent errors, degraded performance, non-critical timeouts
-- **LOW**: Occasional warnings, deprecation notices, minor configuration issues
-
-### 5d. Detect trends
-For each error, assess trend based on timestamps: `increasing`, `decreasing`, `steady`, `periodic`, `new` (first time seen)
+### 5b–5d. Categorize, assess severity, detect trends
+Read and follow `$GW_REPO/.claude/commands/gw/_shared/log-patrol-sources.md` for category list, severity criteria, and trend values.
 
 ### 5e. Match against known errors
 Compare each unique error against `known_errors` in state.json using the error hash (SHA-256 of normalized error message — stripped of timestamps, IDs, and variable data). If a match exists, mark it as `known` with its existing `error_id` and `github_issue` number.
 
-The agent writes its output to `.log-patrol/classification.json`:
-```json
-{
-  "scan_timestamp": "ISO-8601",
-  "unique_errors": [
-    {
-      "error_id": "err-001",
-      "hash": "sha256-of-normalized-message",
-      "title": "NullPointerException in UserService.getProfile()",
-      "category": "Application Error",
-      "severity": "HIGH",
-      "trend": "increasing",
-      "occurrences": 42,
-      "first_occurrence": "ISO-8601",
-      "last_occurrence": "ISO-8601",
-      "sample_lines": ["line1", "line2", "line3"],
-      "sources": [0, 1],
-      "known": false,
-      "existing_issue": null
-    }
-  ],
-  "summary": {
-    "total_raw_matches": 93,
-    "unique_errors": 8,
-    "by_severity": { "CRITICAL": 1, "HIGH": 3, "MEDIUM": 3, "LOW": 1 },
-    "by_category": { "Application Error": 4, "Infrastructure Error": 2, "Dependency Error": 1, "Performance Error": 1 },
-    "new_errors": 5,
-    "known_errors": 3
-  }
-}
-```
+Read and follow `$GW_REPO/.claude/commands/gw/_shared/log-patrol-issue-template.md` for the classification.json output schema. The agent writes its output to `.log-patrol/classification.json`.
 
 Print a classification summary:
 ```
@@ -371,7 +253,7 @@ Classification complete: 93 raw matches -> 8 unique errors
   New: 5  |  Known: 3 (with existing issues)
 ```
 
-**Graceful degradation:** If the classification agent fails, fall back to a pattern-scan-only report. Use the raw pattern matches grouped by category as the classification, assign severity based on category (Exceptions/Memory → HIGH, HTTP 5xx/Timeouts → MEDIUM, others → LOW), and note in the report that AI classification was unavailable.
+**Graceful degradation:** If the classification agent fails, fall back to a pattern-scan-only report. Use the raw pattern matches grouped by category as the classification; read `$GW_REPO/.claude/commands/gw/_shared/log-patrol-sources.md` for fallback severity mapping. Note in the report that AI classification was unavailable.
 
 ---
 
@@ -381,43 +263,9 @@ For each CRITICAL and HIGH severity error from classification, launch a **backgr
 
 Each correlation agent should:
 
-1. **Extract identifiers** from the error: class names, method names, function names, file paths mentioned in stack traces, error codes
-2. **Search the codebase** using Grep and Glob for:
-   - Exact class/method/function name matches
-   - Error message string literals
-   - Related exception handlers (try/catch blocks)
-   - Configuration references (if Configuration Error)
-3. **Build a correlation table** for the error:
-
-```json
-{
-  "error_id": "err-001",
-  "related_files": [
-    {
-      "file": "src/services/UserService.java",
-      "line": 142,
-      "relevance": "Exception origin — getProfile() method",
-      "snippet": "User user = userRepository.findById(id).orElseThrow(...);"
-    },
-    {
-      "file": "src/config/DatabaseConfig.java",
-      "line": 38,
-      "relevance": "Connection pool configuration",
-      "snippet": "maxPoolSize = env.getProperty(\"db.pool.max\", 10);"
-    }
-  ],
-  "diagnosis": {
-    "root_cause_hypothesis": "Null user profile returned when user exists in auth but not in profile database (data inconsistency)",
-    "affected_code_paths": ["UserService.getProfile() -> UserRepository.findById()", "ProfileController.show() -> UserService.getProfile()"],
-    "suggested_fix": "Add null check with graceful fallback or ensure profile creation is atomic with user registration",
-    "verification_steps": [
-      "Check if user IDs in auth table have matching profile entries",
-      "Review user registration flow for race conditions",
-      "Add integration test for profile lookup with missing profile"
-    ]
-  }
-}
-```
+1. **Extract identifiers** from the error: class names, method names, function names, file paths in stack traces, error codes
+2. **Search the codebase** using Grep and Glob for exact matches, error message strings, exception handlers, and configuration references
+3. **Build a correlation table** using the schema from `$GW_REPO/.claude/commands/gw/_shared/log-patrol-issue-template.md`
 
 After all correlation agents complete, merge results. Print summary:
 ```
@@ -530,11 +378,9 @@ For each unique error from classification:
 **New error (not in known_errors):** Plan to CREATE a new issue:
 - Title: `[{SEVERITY}] {error title}`
 - Labels: `bug`, `log-patrol`, lowercase severity (e.g., `critical`, `high`)
-- Body: error metadata + sample lines + codebase correlation table + full diagnosis plan
+- Body: use template from `$GW_REPO/.claude/commands/gw/_shared/log-patrol-issue-template.md`
 
-**Known error (exists in known_errors with a github_issue number):** Plan to UPDATE the existing issue with a comment:
-- Comment: "Log Patrol detected {N} new occurrences since last scan ({timestamp}). Trend: {trend}."
-- Include new sample lines if different from previous
+**Known error (exists in known_errors with a github_issue number):** Plan to UPDATE the existing issue with a comment using the update template from `$GW_REPO/.claude/commands/gw/_shared/log-patrol-issue-template.md`.
 
 ### 8b. Present plan for approval (mandatory gate)
 
@@ -570,46 +416,7 @@ gh issue create --repo owner/repo \
   --body "ISSUE_BODY"
 ```
 
-The issue body should include:
-
-```markdown
-## Error Details
-- **Error ID:** err-XXX
-- **Category:** {category}
-- **Severity:** {severity}
-- **First detected:** {timestamp}
-- **Occurrences:** {count}
-- **Trend:** {trend}
-- **Sources:** {source list}
-
-## Sample Log Lines
-\```
-{3-5 representative lines}
-\```
-
-## Codebase Correlation
-| File | Line | Relevance |
-|------|------|-----------|
-| path | N    | description |
-
-## Diagnosis Plan
-### Root Cause Hypothesis
-{hypothesis}
-
-### Affected Code Paths
-{list of code paths}
-
-### Suggested Fix
-{description}
-
-### Verification Steps
-1. {step}
-2. {step}
-3. {step}
-
----
-*Generated by log-patrol*
-```
+Use the issue body template from `$GW_REPO/.claude/commands/gw/_shared/log-patrol-issue-template.md`.
 
 For known issues, add a comment:
 ```bash
@@ -631,14 +438,7 @@ GitHub issues:
   Failed:  #38 [MEDIUM] Rate limit exceeded (gh error: ...)
 ```
 
-Ensure newly created labels (`log-patrol`, severity labels) exist. If `gh issue create` fails due to missing labels, create them first:
-```bash
-gh label create "log-patrol" --repo owner/repo --description "Auto-detected by log-patrol" --color "d93f0b" 2>/dev/null || true
-gh label create "critical" --repo owner/repo --color "b60205" 2>/dev/null || true
-gh label create "high" --repo owner/repo --color "d93f0b" 2>/dev/null || true
-gh label create "medium" --repo owner/repo --color "fbca04" 2>/dev/null || true
-gh label create "low" --repo owner/repo --color "0e8a16" 2>/dev/null || true
-```
+Read and follow `$GW_REPO/.claude/commands/gw/_shared/log-patrol-issue-template.md` for label creation commands if `gh issue create` fails due to missing labels.
 
 ---
 
@@ -646,40 +446,7 @@ gh label create "low" --repo owner/repo --color "0e8a16" 2>/dev/null || true
 
 Write/update `.log-patrol/state.json` with results from this run.
 
-**State file structure** (`.log-patrol/state.json`):
-```json
-{
-  "last_scan": "ISO-8601",
-  "last_scan_timestamps": {
-    "0": "ISO-8601",
-    "1": "ISO-8601"
-  },
-  "known_errors": {
-    "<sha256-hash>": {
-      "error_id": "err-001",
-      "title": "NullPointerException in UserService",
-      "github_issue": 51,
-      "first_seen": "ISO-8601",
-      "last_seen": "ISO-8601",
-      "total_occurrences": 142,
-      "severity": "HIGH",
-      "status": "open"
-    }
-  },
-  "scan_history": [
-    {
-      "timestamp": "ISO-8601",
-      "sources_scanned": 3,
-      "sources_failed": 1,
-      "raw_matches": 93,
-      "unique_errors": 8,
-      "issues_created": 3,
-      "issues_updated": 1,
-      "issues_failed": 1
-    }
-  ]
-}
-```
+**State file structure** (`.log-patrol/state.json`): top-level keys `last_scan` (ISO-8601), `last_scan_timestamps` (object keyed by source index), `known_errors` (object keyed by sha256 hash, each entry: `error_id`, `title`, `github_issue`, `first_seen`, `last_seen`, `total_occurrences`, `severity`, `status`), `scan_history` (array of run summaries with `timestamp`, `sources_scanned`, `sources_failed`, `raw_matches`, `unique_errors`, `issues_created`, `issues_updated`, `issues_failed`).
 
 Update logic:
 1. **`last_scan`**: Set to current timestamp
@@ -696,6 +463,8 @@ State updated:
   Scan history: 4 runs total
   Next scan will check from: {current timestamp}
 ```
+
+Read and follow `$GW_REPO/.claude/commands/gw/_shared/session-summary.md`.
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: update
-description: Update gw-skills to the latest version
+description: Update gw-skills to the latest version. Use when the user wants to update or check for new versions of gw-skills.
 ---
 
 ## Step 1 — Locate the repo

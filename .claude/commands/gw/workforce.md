@@ -1,6 +1,6 @@
 ---
 name: workforce
-description: Manage the shared workforce — hire, fire, edit, and list personas used by gw:compete, gw:research, gw:review-app, and gw:saas-idea
+description: Manage the shared workforce — hire, fire, edit, and list personas used by gw:compete, gw:research, gw:review-app, and gw:saas-idea. Use when the user wants to hire, fire, edit, or list workforce personas used by team-driven skills.
 argument-hint: "[--hire \"Name\" --background \"...\"] [--fire \"Name\"] [--edit \"Name\"] [--roster] [--analyze-slug <slug>] [--analyze-categories \"...\"] [--analyze-tags \"...\"]"
 ---
 

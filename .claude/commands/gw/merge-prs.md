@@ -1,6 +1,6 @@
 ---
 name: merge-prs
-description: Discover, review, and integrate all agent_merge-labeled PRs into a single integration branch with AI-assisted conflict resolution
+description: Discover, review, and integrate all agent_merge-labeled PRs into a single integration branch with AI-assisted conflict resolution. Use when the user wants to merge agent_merge labeled PRs, integrate multiple branches, or consolidate parallel work.
 argument-hint: "[--dry-run] [--label <label>] [--skip-tests] [--base <branch>]"
 ---
 

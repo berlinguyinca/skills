@@ -16,6 +16,16 @@ If the output contains `UPDATE_AVAILABLE`, tell the user how many commits behind
 
 Skip this step if you are inside a GSD project (`~/.config/opencode/.planning/` exists).
 
+### GSD-2 Detection (check first)
+
+If `.gsd/STATE.md` exists in the current or parent directories:
+1. Log: "Detected GSD-2 project"
+2. If `.gsd/config.json` exists, read it and extract `model_profile` (default: "balanced")
+3. If a profile is found, use it for all agent spawns instead of default Claude model
+4. Log: "Using GSD-2 model profile: {profile}" in the first output message
+
+### GSD v1 Detection (fallback)
+
 If `.planning/config.json` exists in the current or parent directories:
 1. Read its JSON content
 2. Extract `model_profile` (default: "balanced")
