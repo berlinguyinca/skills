@@ -1,6 +1,6 @@
 ---
 name: worktree
-description: Manage git worktrees for concurrent feature development — create, status, merge-all, cleanup
+description: Manage git worktrees for concurrent feature development — create, status, merge-all, cleanup. Use when the user wants to create isolated workspaces, work on parallel features, or manage concurrent development branches.
 argument-hint: "create <name> [--purpose \"description\"] | status | merge-all | cleanup [name] | execute <manifest-path>"
 ---
 

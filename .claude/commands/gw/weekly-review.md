@@ -1,6 +1,6 @@
 ---
 name: weekly-review
-description: Generate executive and technical presentations from GitHub activity
+description: Generate executive and technical presentations from GitHub activity. Use when the user wants a weekly report, activity summary, or presentation of recent GitHub work.
 argument-hint: "[<org-or-repo>] [--from YYYY-MM-DD] [--to YYYY-MM-DD] [--author USERNAME] [--add SOURCE] [--remove SOURCE] [--list]"
 ---
 

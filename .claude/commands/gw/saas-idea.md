@@ -1,6 +1,6 @@
 ---
 name: saas-idea
-description: Harvest trending SaaS opportunities from the internet, score and rank them, then deep-dive into the best idea with full business plan, marketing playbook, and implementation prompts
+description: Harvest trending SaaS opportunities from the internet, score and rank them, then deep-dive into the best idea with full business plan, marketing playbook, and implementation prompts. Use when the user wants to find SaaS ideas, explore business opportunities, validate startup concepts, or generate a business plan.
 argument-hint: "[--focus <niche>] [--fresh] [--budget low|medium|high] [--pick <N>] [--skip-planning] [--skip-gsd] [--auto] [--build] [--verify] [--team auto|ask|N] [--skip-debate] [--no-branch]"
 ---
 

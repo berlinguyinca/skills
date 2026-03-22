@@ -1,6 +1,6 @@
 ---
 name: research
-description: Multi-persona research with structured debate, parallel source investigation, and actionable output (report, PPTX, implementation, prototype)
+description: Multi-persona research with structured debate, parallel source investigation, and actionable output (report, PPTX, implementation, prototype). Use when the user asks to research, investigate, analyze, compare, study, or explore a topic across multiple sources.
 argument-hint: "<question> [--standalone] [--deep] [--team auto|ask|N] [--skip-pptx] [--skip-planning|--skip-gsd] [--no-branch]"
 ---
 

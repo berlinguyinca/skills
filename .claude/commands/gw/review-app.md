@@ -1,6 +1,6 @@
 ---
 name: review-app
-description: Full-stack application review — security, architecture, UX, testing, cloud cost analysis with AI specialists
+description: Full-stack application review — security, architecture, UX, testing, cloud cost analysis with AI specialists. Use when the user asks to review, audit, or analyze an application's quality, security, architecture, or UX.
 argument-hint: "[--focus dim1,dim2,...] [--skip-cloud] [--skip-planning] [--skip-gsd] [--skip-testing] [--skip-security] [--skip-seo] [--skip-test-review] [--skip-defaults] [--skip-fix] [--skip-pptx] [--skip-recommend] [--skip-simplify] [--skip-test-gen] [--type web|server|cli|mobile|library|saas] [--scope full|recent|recent:N|timeframe:<spec>] [--team auto|ask|N] [--hire|--fire|--roster] [--no-branch]"
 ---
 

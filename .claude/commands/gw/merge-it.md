@@ -1,6 +1,6 @@
 ---
 name: merge-it
-description: Ship the current changes end-to-end: branch, PR, review, fix, present, merge
+description: Ship the current changes end-to-end: branch, PR, review, fix, present, merge. Use when the user wants to ship, merge, create a PR, or push current changes through a review workflow.
 argument-hint: "[--all] [--skip-pptx] [--skip-review] [--skip-log-patrol] [--squash|--rebase] [--draft] [--reviewers <user,...>] [--labels <label,...>] [--base <branch>]"
 ---
 

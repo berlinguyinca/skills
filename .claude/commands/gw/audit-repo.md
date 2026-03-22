@@ -1,6 +1,6 @@
 ---
 name: audit-repo
-description: Security audit for GitHub repositories — analyzes code for malicious patterns, credential theft, crypto wallet attacks, backdoors, and supply chain risks before local use
+description: Security audit for GitHub repositories — analyzes code for malicious patterns, credential theft, crypto wallet attacks, backdoors, and supply chain risks before local use. Use when the user wants to audit a repo for security risks, malicious code, backdoors, or supply chain attacks.
 argument-hint: "[<github-url>] [--deep] [--tools] [--refresh-threats] [--skip-pptx] [--skip-planning|--skip-gsd] [--publish] [--publish-repo <owner/repo>] [--publish-list] [--no-branch]"
 ---
 

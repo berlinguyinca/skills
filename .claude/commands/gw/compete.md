@@ -1,6 +1,6 @@
 ---
 name: compete
-description: Competitive feature analysis with structured team debate, TDD test scaffolds, and implementation planning
+description: Competitive feature analysis with structured team debate, TDD test scaffolds, and implementation planning. Use when the user asks to analyze competitors, compare features, find competitive gaps, or plan competitive features.
 argument-hint: "[--deep] [--refresh] [--skip-pptx] [--skip-planning] [--skip-gsd] [--skip-tests] [--team auto|ask|N] [--add \"Competitor\"] [--remove \"Competitor\"] [--list] [--no-branch]"
 ---
 
