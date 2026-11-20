@@ -16,6 +16,18 @@ live in `.claude/commands/gw/`; shared command fragments live in
 - Keep command examples and documented flags synchronized with the command
   definition.
 
+## Shared command workflows
+
+- Public commands that use the common startup flow reference
+  `.claude/commands/gw/_shared/preamble.md`; update the shared preamble rather
+  than copying its update check or GSD project detection into individual
+  commands. GSD-2 detection (`.gsd/STATE.md`) takes precedence over the legacy
+  GSD v1 configuration (`.planning/config.json`).
+- The artifact-producing commands (`audit-repo`, `compete`, `research`,
+  `review-app`, and `saas-idea`) use the shared branch-first workflow by
+  default. Keep their `--no-branch` opt-out, intent commit, and `agent_merge`
+  PR handoff aligned with the corresponding `_shared/` fragments.
+
 ## Local commands
 
 - Install the commands: `./install.sh`. It symlinks
